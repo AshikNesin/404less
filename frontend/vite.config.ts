@@ -6,6 +6,7 @@ export default defineConfig({
 	server: {
 		port: 9000,
 		host: "0.0.0.0",
+		strictPort: true,
 		proxy: {
 			"/api": {
 				target: "http://localhost:9001",
@@ -14,12 +15,6 @@ export default defineConfig({
 		},
 		// Configure HMR for network access
 		hmr: {
-			// Use the same port as the dev server
-			port: 9000,
-			// Allow connections from any host (needed for network access)
-			host: "0.0.0.0",
-			// Disable origin check for HMR (needed for network access)
-			clientPort: 9000,
 			// Show overlay for errors
 			overlay: true,
 		},
