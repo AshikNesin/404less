@@ -25,3 +25,4 @@ infra/.env.local
 
 coverage/
 reports/
+.claude/settings.local.json
