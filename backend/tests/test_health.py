@@ -5,7 +5,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_healthz(client) -> None:
-    response = await client.get("/api/healthz")
+    response = await client.get("/healthz")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
@@ -16,7 +16,7 @@ async def test_healthz(client) -> None:
 
 @pytest.mark.asyncio
 async def test_version(client) -> None:
-    response = await client.get("/api/version")
+    response = await client.get("/version")
     payload = response.json()
     assert response.status_code == 200
     assert "version" in payload
@@ -26,7 +26,7 @@ async def test_version(client) -> None:
 
 @pytest.mark.asyncio
 async def test_health_detailed(client) -> None:
-    response = await client.get("/api/health")
+    response = await client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] in ["ok", "degraded"]

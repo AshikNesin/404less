@@ -96,8 +96,8 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, general_exception_handler)
 
     # Include routers
-    app.include_router(health_router, prefix="/api")
-    app.include_router(todos_router, prefix="/api")
+    app.include_router(health_router)
+    app.include_router(todos_router)
 
     return app
 

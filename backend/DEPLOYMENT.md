@@ -87,7 +87,7 @@ services:
       - infra/.env
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9001/api/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost:9001/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -104,9 +104,9 @@ docker-compose -f docker-compose.prod.yml up -d
 
 The application provides several health endpoints:
 
-- `/api/healthz` - Basic health check (for load balancers)
-- `/api/health` - Detailed health with database status
-- `/api/version` - Version information
+- `/healthz` - Basic health check (for load balancers)
+- `/health` - Detailed health with database status
+- `/version` - Version information
 
 ### Health Check Response
 
@@ -146,7 +146,7 @@ All errors follow a consistent format:
     "details": { ... }
   },
   "timestamp": "2024-01-01T12:00:00.000000",
-  "path": "/api/todos"
+  "path": "/todos"
 }
 ```
 

@@ -21,7 +21,7 @@ cmds = [
 ]
 
 [deploy]
-healthcheckPath = "/api/healthz"
+healthcheckPath = "/healthz"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10

@@ -70,9 +70,9 @@ The refactoring focused on adding essential production features without over-eng
 ### 6. Production-Ready Health Checks (`app/api/v1/health.py`)
 
 **New Endpoints:**
-- `/api/healthz` - Basic health check (for load balancers)
-- `/api/health` - Detailed health with database status
-- `/api/version` - Version information with environment
+- `/healthz` - Basic health check (for load balancers)
+- `/health` - Detailed health with database status
+- `/version` - Version information with environment
 
 **Features:**
 - Database connectivity checks
