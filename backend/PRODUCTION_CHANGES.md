@@ -132,7 +132,7 @@ The refactoring focused on adding essential production features without over-eng
 
 ## Deployment Tools
 
-1. **Deployment Script (`scripts/deploy.sh`):** Simple production deployment
+1. **CI/CD Pipeline:** Automated production deployment
 2. **Deployment Guide (`DEPLOYMENT.md`):** Comprehensive deployment instructions
 3. **Environment Validation:** Pre-deployment safety checks
 
@@ -146,8 +146,9 @@ ENV=development uv run uvicorn app.main:app --reload
 
 ### Production
 ```bash
+# Deploy using your CI/CD pipeline
 # Requires proper environment configuration
-ENV=production SECRET_KEY=your-secret-key ./scripts/deploy.sh
+ENV=production SECRET_KEY=your-secret-key
 ```
 
 ### Docker Production
