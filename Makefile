@@ -1,9 +1,9 @@
 .PHONY: db fe be migrate seed typegen lint test dev clean
 
-ENV_FILE ?= infra/.env
+ENV_FILE ?= backend/.env
 
 db:
-	docker compose -f infra/compose.yml --env-file $(ENV_FILE) up -d postgres
+	docker compose -f backend/compose.yml --env-file $(ENV_FILE) up -d postgres
 
 fe:
 	cd frontend && pnpm install && pnpm dev
@@ -32,6 +32,6 @@ dev: db
 	./scripts/dev.sh
 
 clean:
-	docker compose -f infra/compose.yml down
+	docker compose -f backend/compose.yml down
 	rm -rf backend/.venv
 	rm -rf frontend/node_modules

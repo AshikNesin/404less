@@ -113,10 +113,11 @@ make clean
 │   │   ├── lib/             # Utilities and API client
 │   │   ├── routes/          # Page components
 │   │   └── main.tsx         # App entry point
+│   ├── .env.example         # Environment template
 │   ├── package.json
-│   ├── vite.config.ts       # Vite config with API proxy
+│   ├── vite.config.ts       # Vite config
 │   └── biome.json          # Linting/formatting config
-├── backend/                  # FastAPI backend
+├── backend/                  # FastAPI backend (self-contained service)
 │   ├── app/
 │   │   ├── main.py          # FastAPI app entry point
 │   │   ├── api/v1/          # API endpoints (health.py, todos.py)
@@ -126,9 +127,10 @@ make clean
 │   │   └── schemas/         # Pydantic schemas
 │   ├── alembic/             # Database migrations
 │   ├── tests/               # Backend tests
+│   ├── compose.yml          # Docker Compose for PostgreSQL
+│   ├── .env.example         # Environment template
+│   ├── Dockerfile           # Production container
 │   └── pyproject.toml       # Python dependencies
-├── infra/                   # Infrastructure configuration
-│   └── compose.yml          # Docker Compose for PostgreSQL
 ├── ai/                      # AI assistant guidelines
 │   ├── cursor.rules.md      # Rules for AI assistants
 │   └── prompts/             # Reusable prompt templates
@@ -175,7 +177,8 @@ Follow the rules in `ai/cursor.rules.md`:
 
 ## Environment Setup
 
-Create `infra/.env` from the example values:
+### Backend Environment
+Create `backend/.env` from `backend/.env.example`:
 ```bash
 POSTGRES_USER=dev
 POSTGRES_PASSWORD=dev
@@ -183,6 +186,21 @@ POSTGRES_DB=app
 POSTGRES_PORT=5432
 DATABASE_URL=postgresql+psycopg://dev:dev@localhost:5432/app
 ```
+
+### Frontend Environment
+Create `frontend/.env` from `frontend/.env.example`:
+```bash
+# Local development - uses Vite proxy
+VITE_API_BASE_URL=/api
+
+# Production example - point to specific backend
+VITE_API_BASE_URL=https://api.yourdomain.com
+```
+
+**Environment Variables:**
+- `VITE_API_BASE_URL`: Base URL for all API requests
+- Uses `/api` fallback for backward compatibility
+- In development, Vite proxy routes `/api` to `http://localhost:9001`
 
 ## Local Development Ports
 
@@ -201,3 +219,14 @@ DATABASE_URL=postgresql+psycopg://dev:dev@localhost:5432/app
 - Backend: Docker container (see `backend/Dockerfile`)
 - Frontend: Static build (`pnpm build`) for CDN deployment
 - Database: PostgreSQL instance
+
+### Frontend Environment in Production
+Set the `VITE_API_BASE_URL` environment variable before building:
+```bash
+# Example for production deployment
+VITE_API_BASE_URL=https://api.yourdomain.com pnpm build:prod
+
+# Or create a .env.production file
+echo "VITE_API_BASE_URL=https://api.yourdomain.com" > frontend/.env.production
+pnpm build:prod
+```
