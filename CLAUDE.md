@@ -198,8 +198,8 @@ VITE_API_BASE_URL=https://api.yourdomain.com
 ```
 
 **Environment Variables:**
-- `VITE_API_BASE_URL`: Base URL for all API requests
-- Uses `/api` fallback for backward compatibility
+- `VITE_API_BASE_URL`: Base URL for all API requests (defaults to `/api`)
+- Vite automatically loads this during build and development
 - In development, Vite proxy routes `/api` to `http://localhost:9001`
 
 ## Local Development Ports
@@ -223,10 +223,10 @@ VITE_API_BASE_URL=https://api.yourdomain.com
 ### Frontend Environment in Production
 Set the `VITE_API_BASE_URL` environment variable before building:
 ```bash
-# Example for production deployment
-VITE_API_BASE_URL=https://api.yourdomain.com pnpm build:prod
+# Example: Set API URL and build
+VITE_API_BASE_URL=https://api.yourdomain.com pnpm build
 
 # Or create a .env.production file
 echo "VITE_API_BASE_URL=https://api.yourdomain.com" > frontend/.env.production
-pnpm build:prod
+pnpm build
 ```
