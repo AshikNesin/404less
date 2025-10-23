@@ -1,4 +1,4 @@
-"""Tiny Boilerplate backend package."""
+"""404less backend package."""
 
 from .main import create_app
 

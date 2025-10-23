@@ -62,7 +62,7 @@ async def lifespan(_: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Tiny Boilerplate API",
+        title="404less API",
         version=settings.version,
         lifespan=lifespan,
         description="A simple, production-ready API for indie developers",

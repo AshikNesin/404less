@@ -1,7 +1,7 @@
 [project]
-name = "tiny-backend"
+name = "404less-backend"
 version = "0.1.0"
-description = "Backend service for Tiny Boilerplate"
+description = "Backend service for 404less"
 requires-python = ">=3.12"
 readme = "README.md"
 dependencies = [

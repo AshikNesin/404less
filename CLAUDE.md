@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is "Tiny Boilerplate" - a minimal, opinionated web app starter for indie developers. It's a monorepo with a React frontend and FastAPI backend, designed for simplicity and fast development.
+This is "404less" - a minimal, opinionated web app starter for indie developers. It's a monorepo with a React frontend and FastAPI backend, designed for simplicity and fast development.
 
 **Architecture:**
 - Frontend: React + Vite + TypeScript + Tailwind + shadcn/ui

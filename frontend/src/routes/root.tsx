@@ -68,7 +68,7 @@ export function Root() {
       <div className="w-full max-w-2xl space-y-6">
         <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-semibold">Tiny Boilerplate</h1>
+            <h1 className="text-3xl font-semibold">404less</h1>
             <p className="text-sm text-muted-foreground">
               Reference implementation for the FastAPI backend.
             </p>

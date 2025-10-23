@@ -1,6 +1,6 @@
 # Production Deployment Guide
 
-This guide covers deploying the Tiny Boilerplate backend to production.
+This guide covers deploying the 404less backend to production.
 
 ## Environment Setup
 

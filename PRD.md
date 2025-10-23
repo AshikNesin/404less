@@ -1,4 +1,4 @@
-# **PRD — Tiny Boilerplate (Web App Starter for Indie Devs)**
+# **PRD — 404less (Web App Starter for Indie Devs)**
 
 > **Goal:** A minimal, modern, batteries-included boilerplate that makes it **fast and pleasant** for a solo developer to ship a web app. Prefer **simplicity over abstraction**, **sensible defaults over configurability**, and **great DX** with the fewest moving parts.
 
