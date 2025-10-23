@@ -180,12 +180,14 @@ Follow the rules in `ai/cursor.rules.md`:
 ### Backend Environment
 Create `backend/.env` from `backend/.env.example`:
 ```bash
-POSTGRES_USER=dev
-POSTGRES_PASSWORD=dev
-POSTGRES_DB=app
-POSTGRES_PORT=5432
 DATABASE_URL=postgresql+psycopg://dev:dev@localhost:5432/app
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=9001
+CORS_ORIGINS=http://localhost:9000
+ENV=development
 ```
+
+**Note:** Docker Compose automatically provides sensible defaults for PostgreSQL. Only the `DATABASE_URL` is required by the backend application.
 
 ### Frontend Environment
 Create `frontend/.env` from `frontend/.env.example`:
