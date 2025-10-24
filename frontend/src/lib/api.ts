@@ -24,11 +24,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function listTodos(): Promise<TodoOut[]> {
-	return request<TodoOut[]>("/todos")
+	return request<TodoOut[]>("/v1/todos")
 }
 
 export async function createTodo(payload: TodoCreate): Promise<TodoOut> {
-	return request<TodoOut>("/todos", {
+	return request<TodoOut>("/v1/todos", {
 		method: "POST",
 		body: JSON.stringify(payload),
 	})
@@ -38,12 +38,12 @@ export async function updateTodo(
 	todoId: number,
 	payload: TodoUpdate,
 ): Promise<TodoOut> {
-	return request<TodoOut>(`/todos/${todoId}`, {
+	return request<TodoOut>(`/v1/todos/${todoId}`, {
 		method: "PATCH",
 		body: JSON.stringify(payload),
 	})
 }
 
 export async function deleteTodo(todoId: number): Promise<void> {
-	await request(`/todos/${todoId}`, { method: "DELETE" })
+	await request(`/v1/todos/${todoId}`, { method: "DELETE" })
 }

@@ -100,6 +100,15 @@ Deploy:
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
+## API Versioning
+
+The 404less API uses a mixed versioning approach:
+
+- **Health endpoints** (unversioned): `/healthz`, `/health`, `/version` - Infrastructure and monitoring endpoints
+- **Resource endpoints** (versioned): `/v1/todos` - Application resources that may evolve over time
+
+This approach allows health endpoints to remain simple and stable while providing proper versioning for application resources.
+
 ## Health Checks
 
 The application provides several health endpoints:
@@ -146,7 +155,7 @@ All errors follow a consistent format:
     "details": { ... }
   },
   "timestamp": "2024-01-01T12:00:00.000000",
-  "path": "/todos"
+  "path": "/v1/todos"
 }
 ```
 
