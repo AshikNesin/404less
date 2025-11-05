@@ -2,10 +2,6 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import {
-  Card,
-  CardContent,
-} from "../components/ui/card";
 
 export function Root() {
   const [email, setEmail] = useState("");
@@ -98,61 +94,18 @@ export function Root() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="px-6 py-20">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-foreground mb-4">
+      {/* Coming Soon Section */}
+      <section className="px-6 py-20 bg-muted/30">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-foreground mb-4">
             Simple, transparent pricing
           </h2>
-          <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto">
-            No enterprise contracts, no surprise bills. Just the features you actually need.
-          </p>
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <Card className="text-center">
-              <h3 className="text-lg font-semibold text-foreground mb-2">Free</h3>
-              <div className="text-3xl font-bold text-foreground mb-4">$0</div>
-              <ul className="text-muted-foreground space-y-2 mb-6 text-sm">
-                <li>1 website</li>
-                <li>500 pages monitored</li>
-                <li>Daily digest emails</li>
-                <li>7-day history</li>
-              </ul>
-              <Button variant="outline" className="w-full">
-                Get Started
-              </Button>
-            </Card>
-            <Card className="text-center border-2 border-primary relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded text-sm">
-                Popular
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Starter</h3>
-              <div className="text-3xl font-bold text-foreground mb-4">$9<span className="text-lg font-normal">/mo</span></div>
-              <ul className="text-muted-foreground space-y-2 mb-6 text-sm">
-                <li>3 websites</li>
-                <li>5,000 pages monitored</li>
-                <li>Instant email alerts</li>
-                <li>30-day history</li>
-                <li>No branding</li>
-              </ul>
-              <Button className="w-full">
-                Start Free Trial
-              </Button>
-            </Card>
-            <Card className="text-center">
-              <h3 className="text-lg font-semibold text-foreground mb-2">Pro</h3>
-              <div className="text-3xl font-bold text-foreground mb-4">$29<span className="text-lg font-normal">/mo</span></div>
-              <ul className="text-muted-foreground space-y-2 mb-6 text-sm">
-                <li>10 websites</li>
-                <li>50,000 pages monitored</li>
-                <li>Custom notification rules</li>
-                <li>Slack integration</li>
-                <li>90-day history</li>
-              </ul>
-              <Button variant="outline" className="w-full">
-                Start Free Trial
-              </Button>
-            </Card>
+          <div className="text-6xl font-light text-muted-foreground mb-8">
+            Coming soon...
           </div>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            We're working on our pricing plans. In the meantime, sign up for early access and be the first to know when we launch.
+          </p>
         </div>
       </section>
 
