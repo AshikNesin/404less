@@ -26,3 +26,7 @@ infra/.env.local
 coverage/
 reports/
 .claude/settings.local.json
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
