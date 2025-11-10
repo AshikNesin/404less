@@ -43,7 +43,11 @@ SessionLocal = async_sessionmaker(
 )
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
+# FastAPI dependency type
+SessionDep = AsyncGenerator[AsyncSession, None]
+
+
+async def get_session() -> SessionDep:
     """Get database session with proper error handling."""
     try:
         async with SessionLocal() as session:

@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
 from app.api.v1.todos import router as todos_router
 from app.core.config import settings
@@ -104,6 +105,7 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(health_router)
+    app.include_router(auth_router, prefix="/v1/auth")
     app.include_router(todos_router, prefix="/v1")
 
     @app.get("/sentry-debug")

@@ -2,18 +2,33 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { SignInModal } from "../components/auth/SignInModal";
+import { MagicLinkVerifier } from "../components/auth/MagicLinkVerifier";
+import { useAuth } from "../contexts/AuthContext";
 
 export function Root() {
+  const { user, isLoading, isAuthenticated, logout } = useAuth();
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showSignInModal, setShowSignInModal] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
       setIsSubmitted(true);
-      // In a real app, this would submit to an API
+      // For the waiting list form, we'll keep the existing functionality
       console.log("Email submitted:", email);
     }
+  };
+
+  const handleVerificationSuccess = () => {
+    setVerificationError(null);
+    setShowSignInModal(false);
+  };
+
+  const handleVerificationError = (error: string) => {
+    setVerificationError(error);
   };
 
   return (
@@ -21,9 +36,20 @@ export function Root() {
       {/* Navigation */}
       <nav className="flex items-center justify-between px-6 py-6 max-w-6xl mx-auto">
         <div className="text-2xl font-bold text-foreground">404less</div>
-        <Button variant="outline">
-          Sign In
-        </Button>
+        {isLoading ? (
+          <div className="animate-pulse bg-muted h-9 w-20 rounded"></div>
+        ) : isAuthenticated ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{user?.email}</span>
+            <Button variant="outline" onClick={logout}>
+              Sign Out
+            </Button>
+          </div>
+        ) : (
+          <Button variant="outline" onClick={() => setShowSignInModal(true)}>
+            Sign In
+          </Button>
+        )}
       </nav>
 
       {/* Hero Section */}
@@ -41,13 +67,11 @@ export function Root() {
           <Button size="lg" className="px-8 py-3 text-lg">
             Start Free Trial
           </Button>
-          <Button variant="outline" size="lg" className="px-8 py-3 text-lg">
+          {/* <Button variant="outline" size="lg" className="px-8 py-3 text-lg">
             View Demo
-          </Button>
+          </Button> */}
         </div>
-        <p className="text-sm text-muted-foreground">
-          No credit card required • 1 website free • Setup in 30 seconds
-        </p>
+        
       </section>
 
       {/* Features Section */}
@@ -86,10 +110,7 @@ export function Root() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Simple & Affordable</h3>
-              <p className="text-muted-foreground">
-                $9-29/month. No enterprise bloat, no complex features you'll never use.
-              </p>
-            </div>
+             </div>
           </div>
         </div>
       </section>
@@ -103,10 +124,7 @@ export function Root() {
           <div className="text-6xl font-light text-muted-foreground mb-8">
             Coming soon...
           </div>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            We're working on our pricing plans. In the meantime, sign up for early access and be the first to know when we launch.
-          </p>
-        </div>
+          </div>
       </section>
 
       {/* CTA Section */}
@@ -115,9 +133,9 @@ export function Root() {
           <h2 className="text-3xl font-bold mb-4">
             Stop losing visitors to broken links
           </h2>
-          <p className="text-xl opacity-90 mb-8">
+          {/* <p className="text-xl opacity-90 mb-8">
             Join 50+ others waiting for launch. Get early access and 20% off your first 3 months.
-          </p>
+          </p> */}
 
           {!isSubmitted ? (
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
@@ -150,9 +168,38 @@ export function Root() {
       {/* Footer */}
       <footer className="px-6 py-12 border-t border-border">
         <div className="max-w-6xl mx-auto text-center text-muted-foreground text-sm">
-          <p>© 2025 404less. Building in public.</p>
+          <p>© 2025 404less. Nesin Technologies LLP.</p>
         </div>
       </footer>
+
+      {/* Authentication Components */}
+      <SignInModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        onSuccess={handleVerificationSuccess}
+      />
+
+      {/* Magic Link Verification - handles URL token verification */}
+      <MagicLinkVerifier
+        onVerified={handleVerificationSuccess}
+        onError={handleVerificationError}
+      />
+
+      {/* Verification Error Display */}
+      {verificationError && (
+        <div className="fixed top-4 right-4 z-50 max-w-md">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
+            <h4 className="font-semibold mb-1">Authentication Error</h4>
+            <p>{verificationError}</p>
+            <button
+              onClick={() => setVerificationError(null)}
+              className="mt-2 text-red-600 underline text-xs hover:no-underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
