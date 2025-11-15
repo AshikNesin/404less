@@ -4,30 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is "404less" - a minimal, opinionated web app starter for indie developers. It's a monorepo with a React frontend and FastAPI backend, designed for simplicity and fast development.
+This is "404less" - a 404 monitoring SaaS platform. It's a monorepo with three main applications: a React client app, a marketing website, and a FastAPI backend.
 
 **Architecture:**
-- Frontend: React + Vite + TypeScript + Tailwind + shadcn/ui
-- Backend: FastAPI + SQLAlchemy + Alembic (PostgreSQL)
+- Client: React + Vite + TypeScript + Tailwind + shadcn/ui (authenticated app)
+- Website: React + Vite + TypeScript + Tailwind + shadcn/ui (marketing site)
+- Server: FastAPI + SQLAlchemy + Alembic (PostgreSQL)
 - Database: PostgreSQL (via Docker)
-- Package managers: pnpm (frontend), uv (backend)
-- Code quality: Biome (FE), Ruff (BE)
+- Package managers: pnpm (client/website), uv (server)
+- Code quality: Biome (client/website), Ruff (server)
 
 ## Development Commands
 
 ### Full Stack Development
 ```bash
-# Start everything (database + backend + frontend)
+# Start client + server (database + server + client)
 make dev
 
-# Start database only
-make db
+# Start all services (database + server + client + website)
+make dev-all
 
-# Start backend only
-make be
-
-# Start frontend only
-make fe
+# Start individual services
+make db        # Database only
+make server    # Server only
+make client    # Client only
+make website   # Website only
 ```
 
 ### Database Operations
@@ -39,7 +40,7 @@ make migrate
 make seed
 ```
 
-### Backend Commands (run from backend/ directory)
+### Server Commands (run from server/ directory)
 ```bash
 # Install dependencies
 uv sync
@@ -63,7 +64,7 @@ uv run alembic revision -m "description"
 uv run alembic upgrade head
 ```
 
-### Frontend Commands (run from frontend/ directory)
+### Client Commands (run from client/ directory)
 ```bash
 # Install dependencies
 pnpm install
@@ -90,6 +91,24 @@ pnpm format
 pnpm typegen
 ```
 
+### Website Commands (run from website/ directory)
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server (runs on port 9002)
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Lint code
+pnpm lint
+
+# Format code
+pnpm format
+```
+
 ### Testing
 ```bash
 # Run all tests (both frontend and backend)
@@ -106,21 +125,30 @@ make clean
 
 ```
 ./
-├── frontend/                 # React frontend
+├── client/                   # React client app (authenticated users)
 │   ├── src/
 │   │   ├── api/             # Generated types and API client
-│   │   ├── components/      # React components (ui/, todos/)
+│   │   ├── components/      # React components (ui/, auth/, etc.)
+│   │   ├── contexts/        # React contexts (AuthContext)
 │   │   ├── lib/             # Utilities and API client
 │   │   ├── routes/          # Page components
 │   │   └── main.tsx         # App entry point
 │   ├── .env.example         # Environment template
 │   ├── package.json
-│   ├── vite.config.ts       # Vite config
+│   ├── vite.config.ts       # Vite config (port 9000, API proxy)
 │   └── biome.json          # Linting/formatting config
-├── backend/                  # FastAPI backend (self-contained service)
+├── website/                  # Marketing website (static, deployable separately)
+│   ├── src/
+│   │   ├── components/      # React components (ui/)
+│   │   ├── routes/          # Page components
+│   │   └── main.tsx         # App entry point
+│   ├── package.json
+│   ├── vite.config.ts       # Vite config (port 9002, no API proxy)
+│   └── biome.json          # Linting/formatting config
+├── server/                   # FastAPI backend (self-contained service)
 │   ├── app/
 │   │   ├── main.py          # FastAPI app entry point
-│   │   ├── api/v1/          # API endpoints (health.py, todos.py)
+│   │   ├── api/v1/          # API endpoints (health.py, auth.py, etc.)
 │   │   ├── core/            # Configuration and logging
 │   │   ├── db/              # Database models and session
 │   │   ├── middleware/      # Custom middleware
@@ -135,7 +163,7 @@ make clean
 │   ├── cursor.rules.md      # Rules for AI assistants
 │   └── prompts/             # Reusable prompt templates
 ├── scripts/                 # Utility scripts
-│   ├── dev.sh              # Development runner
+│   ├── dev.sh              # Development runner (supports --all flag)
 │   └── wait-for-db.sh      # Database wait script
 └── Makefile                # Common commands
 ```
@@ -143,27 +171,28 @@ make clean
 ## Key Development Patterns
 
 ### API Development Workflow
-1. Modify FastAPI endpoints in `backend/app/api/v1/`
-2. Update Pydantic schemas in `backend/app/schemas/`
+1. Modify FastAPI endpoints in `server/app/api/v1/`
+2. Update Pydantic schemas in `server/app/schemas/`
 3. If database changes: create Alembic migration
-4. Regenerate frontend types: `cd frontend && pnpm typegen`
-5. Update frontend components to use new types
+4. Regenerate client types: `cd client && pnpm typegen`
+5. Update client components to use new types
 
 ### Database Changes
-1. Modify models in `backend/app/db/models.py`
-2. Generate migration: `cd backend && uv run alembic revision -m "description"`
+1. Modify models in `server/app/db/models.py`
+2. Generate migration: `cd server && uv run alembic revision -m "description"`
 3. Apply migration: `make migrate`
 4. Update schemas if needed
 
-### Frontend API Calls
-- Use the Vite proxy - all API calls go to `/api/*` endpoints
-- API client is in `frontend/src/lib/api.ts`
+### Client API Calls
+- Use the Vite proxy - all API calls go to `/api/*` endpoints (client only)
+- API client is in `client/src/lib/api.ts`
 - Types are auto-generated from OpenAPI spec
+- Website does NOT connect to the API - it's a static marketing site
 
 ### Code Quality Standards
-- Backend: Use Ruff for linting and formatting (`uv run ruff check .` and `uv run ruff format .`)
-- Frontend: Use Biome for linting and formatting (`pnpm lint` and `pnpm format`)
-- Line length: 100 characters for both codebases
+- Server: Use Ruff for linting and formatting (`uv run ruff check .` and `uv run ruff format .`)
+- Client/Website: Use Biome for linting and formatting (`pnpm lint` and `pnpm format`)
+- Line length: 100 characters for all codebases
 
 ## AI Assistant Guidelines
 
@@ -177,8 +206,8 @@ Follow the rules in `ai/cursor.rules.md`:
 
 ## Environment Setup
 
-### Backend Environment
-Create `backend/.env` from `backend/.env.example`:
+### Server Environment
+Create `server/.env` from `server/.env.example`:
 ```bash
 DATABASE_URL=postgresql+psycopg://dev:dev@localhost:5432/app
 BACKEND_HOST=0.0.0.0
@@ -187,10 +216,10 @@ CORS_ORIGINS=http://localhost:9000
 ENV=development
 ```
 
-**Note:** Docker Compose automatically provides sensible defaults for PostgreSQL. Only the `DATABASE_URL` is required by the backend application.
+**Note:** Docker Compose automatically provides sensible defaults for PostgreSQL. Only the `DATABASE_URL` is required by the server application.
 
-### Frontend Environment
-Create `frontend/.env` from `frontend/.env.example`:
+### Client Environment
+Create `client/.env` from `client/.env.example`:
 ```bash
 # Local development - uses Vite proxy
 VITE_API_BASE_URL=/api
@@ -204,31 +233,53 @@ VITE_API_BASE_URL=https://api.yourdomain.com
 - Vite automatically loads this during build and development
 - In development, Vite proxy routes `/api` to `http://localhost:9001`
 
+### Website Environment
+The website is a static marketing site and doesn't require environment variables. It can be deployed to any static hosting platform (Netlify, Vercel, etc.).
+
 ## Local Development Ports
 
-- Frontend: http://localhost:9000 (Vite dev server)
-- Backend: http://localhost:9001 (FastAPI with OpenAPI docs)
+- Client: http://localhost:9000 (authenticated app with Vite dev server + HMR)
+- Server: http://localhost:9001 (FastAPI with OpenAPI docs)
+- Website: http://localhost:9002 (marketing site with Vite dev server + HMR)
 - Database: localhost:5432 (PostgreSQL)
 
 ## Testing
 
-- Backend tests: Use pytest, located in `backend/tests/`
-- Frontend tests: Use Vitest + React Testing Library
+- Server tests: Use pytest, located in `server/tests/`
+- Client tests: Use Vitest + React Testing Library
+- Website: Can use Vitest for component testing if needed
 - Test files should be co-located with source files or in dedicated test directories
 
 ## Production Deployment
 
-- Backend: Docker container (see `backend/Dockerfile`)
-- Frontend: Static build (`pnpm build`) for CDN deployment
-- Database: PostgreSQL instance
+### Server
+- Deploy as Docker container (see `server/Dockerfile`)
+- Requires PostgreSQL database
+- Set environment variables for production
 
-### Frontend Environment in Production
-Set the `VITE_API_BASE_URL` environment variable before building:
+### Client (Authenticated App)
+- Build: `cd client && pnpm build`
+- Deploy static build to CDN or static hosting
+- Set `VITE_API_BASE_URL` to your production API URL before building
+
 ```bash
 # Example: Set API URL and build
-VITE_API_BASE_URL=https://api.yourdomain.com pnpm build
+cd client
+VITE_API_BASE_URL=https://api.404less.com pnpm build
 
 # Or create a .env.production file
-echo "VITE_API_BASE_URL=https://api.yourdomain.com" > frontend/.env.production
+echo "VITE_API_BASE_URL=https://api.404less.com" > client/.env.production
 pnpm build
+```
+
+### Website (Marketing Site)
+- Build: `cd website && pnpm build`
+- Deploy to Netlify, Vercel, or any static hosting platform
+- No environment variables needed
+- Can be deployed completely separately from client and server
+
+```bash
+cd website
+pnpm build
+# Deploy dist/ folder to Netlify, Vercel, etc.
 ```

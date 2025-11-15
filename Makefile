@@ -1,37 +1,54 @@
-.PHONY: db fe be migrate seed typegen lint test dev clean
+.PHONY: db client server website migrate seed typegen lint test dev dev-all clean
 
-ENV_FILE ?= backend/.env
+ENV_FILE ?= server/.env
 
+# Database
 db:
-	docker compose -f backend/compose.yml --env-file $(ENV_FILE) up -d postgres
+	docker compose -f server/compose.yml --env-file $(ENV_FILE) up -d postgres
 
-fe:
-	cd frontend && pnpm install && pnpm dev
+# Individual services
+client:
+	cd client && pnpm install && pnpm dev
 
-be:
-	cd backend && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 9001
+server:
+	cd server && uv sync && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 9001
 
+website:
+	cd website && pnpm install && pnpm dev
+
+# Database operations
 migrate:
-	cd backend && UV_PROJECT_ENV=$(PWD)/backend/.venv uv run alembic upgrade head
+	cd server && UV_PROJECT_ENV=$(PWD)/server/.venv uv run alembic upgrade head
 
 seed:
-	cd backend && UV_PROJECT_ENV=$(PWD)/backend/.venv uv run python -m app.db.init_db
+	cd server && UV_PROJECT_ENV=$(PWD)/server/.venv uv run python -m app.db.init_db
 
+# Type generation
 typegen:
-	cd frontend && pnpm typegen
+	cd client && pnpm typegen
 
+# Code quality
 lint:
-	cd frontend && pnpm lint
-	cd backend && uv run ruff check .
+	cd client && pnpm lint
+	cd server && uv run ruff check .
+	cd website && pnpm lint
 
+# Testing
 test:
-	cd frontend && pnpm test
-	cd backend && uv run pytest
+	cd client && pnpm test
+	cd server && uv run pytest
 
+# Development (client + server)
 dev: db
 	./scripts/dev.sh
 
+# Development (all services: client + server + website)
+dev-all: db
+	./scripts/dev.sh --all
+
+# Cleanup
 clean:
-	docker compose -f backend/compose.yml down
-	rm -rf backend/.venv
-	rm -rf frontend/node_modules
+	docker compose -f server/compose.yml down
+	rm -rf server/.venv
+	rm -rf client/node_modules
+	rm -rf website/node_modules

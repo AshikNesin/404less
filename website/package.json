@@ -1,17 +1,14 @@
 {
-	"name": "404less-frontend",
+	"name": "404less-website",
 	"private": true,
 	"version": "0.1.0",
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
+		"dev": "vite --port 9002",
 		"build": "vite build",
 		"preview": "vite preview",
-		"test": "vitest run",
-		"test:watch": "vitest",
 		"lint": "biome check .",
-		"format": "biome format . --write",
-		"typegen": "openapi-typescript http://localhost:9001/openapi.json -o src/api/types.ts"
+		"format": "biome format . --write"
 	},
 	"dependencies": {
 		"@radix-ui/react-checkbox": "^1.1.2",

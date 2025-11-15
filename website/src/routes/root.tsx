@@ -2,33 +2,17 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { SignInModal } from "../components/auth/SignInModal";
-import { MagicLinkVerifier } from "../components/auth/MagicLinkVerifier";
-import { useAuth } from "../contexts/AuthContext";
 
 export function Root() {
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [showSignInModal, setShowSignInModal] = useState(false);
-  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
       setIsSubmitted(true);
-      // For the waiting list form, we'll keep the existing functionality
       console.log("Email submitted:", email);
     }
-  };
-
-  const handleVerificationSuccess = () => {
-    setVerificationError(null);
-    setShowSignInModal(false);
-  };
-
-  const handleVerificationError = (error: string) => {
-    setVerificationError(error);
   };
 
   return (
@@ -36,20 +20,9 @@ export function Root() {
       {/* Navigation */}
       <nav className="flex items-center justify-between px-6 py-6 max-w-6xl mx-auto">
         <div className="text-2xl font-bold text-foreground">404less</div>
-        {isLoading ? (
-          <div className="animate-pulse bg-muted h-9 w-20 rounded"></div>
-        ) : isAuthenticated ? (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
-            <Button variant="outline" onClick={logout}>
-              Sign Out
-            </Button>
-          </div>
-        ) : (
-          <Button variant="outline" onClick={() => setShowSignInModal(true)}>
-            Sign In
-          </Button>
-        )}
+        <Button variant="outline" onClick={() => window.location.href = 'http://localhost:9000'}>
+          Sign In
+        </Button>
       </nav>
 
       {/* Hero Section */}
@@ -64,12 +37,9 @@ export function Root() {
           Get instant alerts when visitors actually encounter 404 errors, not when your next scheduled scan happens to run.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <Button size="lg" className="px-8 py-3 text-lg">
+          <Button size="lg" className="px-8 py-3 text-lg" onClick={() => window.location.href = 'http://localhost:9000'}>
             Start Free Trial
           </Button>
-          {/* <Button variant="outline" size="lg" className="px-8 py-3 text-lg">
-            View Demo
-          </Button> */}
         </div>
         
       </section>
@@ -110,7 +80,10 @@ export function Root() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Simple & Affordable</h3>
-             </div>
+              <p className="text-muted-foreground">
+                No complex pricing tiers. Just straightforward monitoring that works.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -171,35 +144,6 @@ export function Root() {
           <p>© 2025 404less. Nesin Technologies LLP.</p>
         </div>
       </footer>
-
-      {/* Authentication Components */}
-      <SignInModal
-        isOpen={showSignInModal}
-        onClose={() => setShowSignInModal(false)}
-        onSuccess={handleVerificationSuccess}
-      />
-
-      {/* Magic Link Verification - handles URL token verification */}
-      <MagicLinkVerifier
-        onVerified={handleVerificationSuccess}
-        onError={handleVerificationError}
-      />
-
-      {/* Verification Error Display */}
-      {verificationError && (
-        <div className="fixed top-4 right-4 z-50 max-w-md">
-          <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
-            <h4 className="font-semibold mb-1">Authentication Error</h4>
-            <p>{verificationError}</p>
-            <button
-              onClick={() => setVerificationError(null)}
-              className="mt-2 text-red-600 underline text-xs hover:no-underline"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
