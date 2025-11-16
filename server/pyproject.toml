@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "python-multipart>=0.0.9", # For form data handling
     "sentry-sdk[fastapi]>=2.42.1",
+    "httpx>=0.27.0", # For proxying to Vite dev server
 ]
 
 [project.optional-dependencies]

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # Application Settings
     backend_host: str = Field(default="0.0.0.0", alias="BACKEND_HOST")
-    backend_port: int = Field(default=9001, alias="BACKEND_PORT")
+    backend_port: int = Field(default=9000, alias="BACKEND_PORT")
     cors_origins_raw: str | None = Field(default=None, alias="CORS_ORIGINS")
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     version_override: str | None = Field(default=None, alias="BACKEND_VERSION")
@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Security - REQUIRED field with no hardcoded default
     secret_key: str = Field(alias="SECRET_KEY")
     debug: bool = Field(default=False, alias="DEBUG")
+
+    # Frontend Settings
+    vite_dev_server_url: str = Field(default="http://localhost:9001", alias="VITE_DEV_SERVER_URL")
+    frontend_build_dir: str = Field(default="static", alias="FRONTEND_BUILD_DIR")
 
     # Database Pool Settings
     db_pool_size: int = Field(default=5, alias="DB_POOL_SIZE")
@@ -89,7 +93,7 @@ class Settings(BaseSettings):
         if not self.cors_origins_raw:
             if self.env == "production":
                 raise ValueError("CORS_ORIGINS must be explicitly set in production")
-            return ["http://localhost:9000"]
+            return ["http://localhost:9001"]
         return [origin.strip() for origin in self.cors_origins_raw.split(",") if origin.strip()]
 
     @property

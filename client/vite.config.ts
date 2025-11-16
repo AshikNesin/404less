@@ -4,21 +4,19 @@ import { defineConfig } from "vite"
 export default defineConfig({
 	plugins: [react()],
 	server: {
-		port: 9000,
+		port: 9001,
 		host: "0.0.0.0",
 		strictPort: true,
-		proxy: {
-			"/api": {
-				target: "http://localhost:9001",
-				changeOrigin: true,
-				rewrite: (path) => path.replace(/^\/api/, ''),
-			},
-		},
 		// Configure HMR for network access
 		hmr: {
 			// Show overlay for errors
 			overlay: true,
 		},
+	},
+	build: {
+		// Build to server's static directory
+		outDir: "../server/static",
+		emptyOutDir: true,
 	},
 	test: {
 		environment: "jsdom",

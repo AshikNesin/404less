@@ -30,3 +30,4 @@ reports/
 
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
+server/static/
