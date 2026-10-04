@@ -98,8 +98,23 @@ sitemap.get('/sites/:id/known-urls', async (c) => {
   const site = await siteForUser(c.env, c.req.param('id'), c.get('userId'));
   if ('error' in site) return c.json({ error: site.error }, site.status as 403 | 404);
   const limit = Math.min(Number(c.req.query('limit') ?? 100), 500);
-  const rows = await c.env.DB.prepare(
-    'SELECT url, title, source, added_at FROM known_urls WHERE website_id = ? ORDER BY added_at DESC LIMIT ?',
-  ).bind(site.site.id, limit).all();
-  return c.json({ knownUrls: rows.results });
+  const q = c.req.query('q')?.toLowerCase();
+  const rows = q
+    ? await c.env.DB.prepare(
+        `SELECT url, title, source, added_at FROM known_urls
+         WHERE website_id = ? AND (instr(lower(url), ?) > 0 OR instr(lower(coalesce(title, '')), ?) > 0)
+         ORDER BY added_at DESC LIMIT ?`,
+      ).bind(site.site.id, q, q, limit).all()
+    : await c.env.DB.prepare(
+        'SELECT url, title, source, added_at FROM known_urls WHERE website_id = ? ORDER BY added_at DESC LIMIT ?',
+      ).bind(site.site.id, limit).all();
+  const stats = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN source = 'crawl' THEN 1 ELSE 0 END) AS crawled,
+            SUM(CASE WHEN source = 'sitemap' THEN 1 ELSE 0 END) AS from_sitemap,
+            SUM(CASE WHEN title IS NOT NULL THEN 1 ELSE 0 END) AS titled,
+            MAX(added_at) AS last_added
+     FROM known_urls WHERE website_id = ?`,
+  ).bind(site.site.id).first<{ total: number; crawled: number; from_sitemap: number; titled: number; last_added: number | null }>();
+  return c.json({ knownUrls: rows.results, stats });
 });

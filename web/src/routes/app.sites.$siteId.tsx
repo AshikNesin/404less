@@ -1,11 +1,12 @@
 // Site detail — leads with health, then actions, then data.
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, RefreshCw, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Site, Event } from '../lib/types';
 import { compact, relTime, fullTime, prettyUrl } from '../lib/format';
+import { Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -50,6 +51,19 @@ function SiteDetail() {
     queryKey: ['crawl-report', siteId],
     queryFn: () => api<{ broken: BrokenRow[] }>(`/api/sites/${siteId}/crawl-report`),
     refetchInterval: 15_000,
+  });
+  const [indexQ, setIndexQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(indexQ), 300);
+    return () => clearTimeout(t);
+  }, [indexQ]);
+  const indexed = useQuery({
+    queryKey: ['indexed', siteId, debouncedQ],
+    queryFn: () => api<{
+      knownUrls: { url: string; title: string | null; source: string; added_at: number }[];
+      stats: { total: number; crawled: number; from_sitemap: number; titled: number; last_added: number | null };
+    }>(`/api/sites/${siteId}/known-urls?limit=20${debouncedQ ? `&q=${encodeURIComponent(debouncedQ)}` : ''}`),
   });
 
   const patch = useMutation({
@@ -187,6 +201,50 @@ function SiteDetail() {
             </TableCard>
           ) : (
             <EmptyState title={site.crawl_enabled ? 'No broken links found' : 'Crawler idle'} description={site.crawl_enabled ? 'The last scheduled crawl found no broken links or assets.' : 'Enable scheduled crawling or run a manual crawl to check every link.'} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Indexed pages */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Indexed pages</CardTitle>
+          <CardDescription>
+            {indexed.data
+              ? `${compact(indexed.data.stats.total)} URLs known · ${compact(indexed.data.stats.titled)} with real titles · last updated ${indexed.data.stats.last_added ? relTime(indexed.data.stats.last_added) : 'never'}`
+              : 'Pages discovered from sitemap imports and crawls.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-subtle" />
+            <Input
+              value={indexQ}
+              onChange={(e) => setIndexQ(e.target.value)}
+              placeholder="Search indexed URLs or titles…"
+              className="h-8 pl-8"
+            />
+          </div>
+          {indexed.isLoading ? (
+            <TableSkeleton rows={4} cols={2} />
+          ) : indexed.data && indexed.data.knownUrls.length > 0 ? (
+            <div className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border">
+              {indexed.data.knownUrls.map((k) => (
+                <div key={k.url} className="flex items-center gap-3 px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[0.8125rem]">{k.title || <span className="italic text-muted-foreground">untitled</span>}</div>
+                    <div className="truncate text-meta" title={k.url}>{prettyUrl(k.url)}</div>
+                  </div>
+                  <Badge tone={k.source === 'crawl' ? 'success' : 'outline'}>{k.source === 'crawl' ? 'crawled' : 'sitemap'}</Badge>
+                  <span className="w-14 text-right text-meta">{relTime(k.added_at)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title={debouncedQ ? 'No matches' : 'Nothing indexed yet'}
+              description={debouncedQ ? `No URLs match “${debouncedQ}”.` : 'Import a sitemap or run a crawl to discover pages.'}
+            />
           )}
         </CardContent>
       </Card>
