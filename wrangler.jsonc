@@ -29,6 +29,9 @@
   "triggers": {
     "crons": [ "*/30 * * * *" ]
   },
+  "send_email": [
+    { "name": "EMAIL" }
+  ],
   "durable_objects": {
     "bindings": [
       { "name": "DIGEST", "class_name": "DigestDO" }

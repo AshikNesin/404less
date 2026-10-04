@@ -26,18 +26,18 @@ auth.post('/magic', async (c) => {
 
   const link = `${new URL(c.req.url).origin}/auth/verify?token=${token}`;
   const mailer = getMailer(c.env);
-  if (mailer) {
-    await mailer.send({
-      to: email,
-      subject: 'Your 404less sign-in link',
-      html: `<p>Click to sign in to 404less:</p><p><a href="${link}">${link}</a></p><p>The link expires in 15 minutes.</p>`,
-      text: `Sign in: ${link}\nExpires in 15 minutes.`,
-    });
-    return c.json({ ok: true, emailed: true });
+  if (mailer.kind === 'dev') {
+    // No adapter configured: return the link for local testing (never in prod).
+    console.log('[404less] magic link for', email, ':', link);
+    return c.json({ ok: true, emailed: false, devLink: link });
   }
-  // Dev mode (no RESEND_API_KEY): return the link so you can test locally.
-  console.log('[404less] magic link for', email, ':', link);
-  return c.json({ ok: true, emailed: false, devLink: link });
+  await mailer.send({
+    to: email,
+    subject: 'Your 404less sign-in link',
+    html: `<p>Click to sign in to 404less:</p><p><a href="${link}">${link}</a></p><p>The link expires in 15 minutes.</p>`,
+    text: `Sign in: ${link}\nExpires in 15 minutes.`,
+  });
+  return c.json({ ok: true, emailed: true });
 });
 
 auth.get('/verify', async (c) => {
