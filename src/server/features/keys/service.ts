@@ -28,7 +28,7 @@ export async function deleteKey(env: Env, teamId: string, keyId: string) {
 
 /** Resolve a bearer token to a team id; returns null when unknown. */
 export async function teamForToken(env: Env, bearer: string | null): Promise<string | null> {
-  if (!bearer?.startsWith('fl_')) return null;
+  if (!bearer?.startsWith('404l_')) return null;
   const hash = await sha256Hex(bearer);
   const row = await env.DB.prepare('SELECT team_id FROM api_keys WHERE key_hash = ?').bind(hash)
     .first<{ team_id: string }>();

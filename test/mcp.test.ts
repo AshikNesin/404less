@@ -44,7 +44,7 @@ function rpc(method: string, params?: unknown, id: number | string = 1) {
 const parse = (r: { json: () => Promise<any> }) => r.json();
 
 test('api keys: create returns one-time secret, list shows prefix only, delete works', async () => {
-  expect(apiKey).toMatch(/^fl_/);
+  expect(apiKey).toMatch(/^404l_/);
   const h = { cookie };
   const list = await (await SELF.fetch(`http://localhost/api/teams/${teamId}/keys`, { headers: h })).json() as any;
   expect(list.keys).toHaveLength(1);

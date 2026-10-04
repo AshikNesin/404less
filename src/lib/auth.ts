@@ -27,7 +27,9 @@ export function newSiteKey(): string {
 }
 
 export function newApiToken(): string {
-  return `fl_${randomHex(24)}`;
+  // 404l_ = "404less"; distinctive prefix keeps tokens recognizable and lets
+  // secret scanners / pre-checks identify them cheaply.
+  return `404l_${randomHex(24)}`;
 }
 
 export async function sha256Hex(input: string): Promise<string> {
