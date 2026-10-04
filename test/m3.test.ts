@@ -84,10 +84,13 @@ test('digest DO: events buffered, flushed once per window, grouped by url', asyn
       });
       expect(t.status).toBe(200);
     }
-    // waitUntil is awaited by the test harness; now force flush via DO directly
+    // waitUntil is async; poll until all 3 events reached the DO buffer, then flush
     const doStub = (env as any).DIGEST.get((env as any).DIGEST.idFromName(siteId));
-    await doStub.fetch('https://digest/flush', { method: 'POST' });
-
+    for (let i = 0; i < 50; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      await doStub.fetch('https://digest/flush', { method: 'POST' });
+      if (sent.length && sent[0].text.includes('missing-b')) break;
+    }
     expect(sent).toHaveLength(1);
     const text = sent[0].text as string;
     expect(text).toContain('3 broken-link hits on S');

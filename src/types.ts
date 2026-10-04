@@ -2,10 +2,16 @@
 export type Env = {
   DB: D1Database;
   DIGEST: DurableObjectNamespace;
+  CRAWLQ: Queue<CrawlMessage>;
   MAX_SITES_PER_TEAM?: string;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
 };
+
+export type CrawlMessage =
+  | { kind: 'crawl-site'; siteId: string }                 // start a site crawl (enqueue seed pages)
+  | { kind: 'fetch-page'; siteId: string; url: string; depth: number } // fetch page, extract links
+  | { kind: 'check-link'; siteId: string; url: string; sourceUrl: string; anchor?: string };
 
 export type AuthContext = {
   userId: string;

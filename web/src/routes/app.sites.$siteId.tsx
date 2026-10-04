@@ -24,6 +24,7 @@ function SiteDetail() {
   const [excl, setExcl] = useState('');
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [crawlMsg, setCrawlMsg] = useState('');
 
   const top = useQuery({
     queryKey: ['top', siteId],
@@ -39,6 +40,17 @@ function SiteDetail() {
       api(`/api/sites/${siteId}`, { method: 'PATCH', body: JSON.stringify(body) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sites'] }),
   });
+  const crawlNow = useMutation({
+    mutationFn: () => api(`/api/sites/${siteId}/crawl`, { method: 'POST', body: '{}' }),
+    onSuccess: () => setCrawlMsg('Crawl started — report updates as results come in'),
+    onError: (e: Error) => setCrawlMsg(e.message),
+  });
+  const crawlReport = useQuery({
+    queryKey: ['crawl-report', siteId],
+    queryFn: () => api<{ broken: { url: string; status: number; redirect_chain: string | null; checked_at: number; sources: { source_url: string }[] }[] }>(`/api/sites/${siteId}/crawl-report`),
+    refetchInterval: 15_000,
+  });
+
   const importSitemap = useMutation({
     mutationFn: () => api<{ imported: number }>(`/api/sites/${siteId}/import-sitemap`, { method: 'POST', body: '{}' }),
     onMutate: () => { setImporting(true); setImportMsg(''); },
@@ -109,6 +121,29 @@ function SiteDetail() {
         ) : <p className="text-sm text-slate-400">No 404s recorded yet.</p>}
       </section>
 
+      {/* Crawler report */}
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-medium">Crawler report (broken links & assets)</h2>
+        {crawlReport.data?.broken?.length ? (
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-xs uppercase tracking-wide text-slate-400"><th className="pb-2">URL</th><th className="pb-2">Status</th><th className="pb-2">Found on</th><th className="pb-2">Chain</th></tr></thead>
+            <tbody>
+              {crawlReport.data.broken.map((b) => {
+                const chain = b.redirect_chain ? (JSON.parse(b.redirect_chain) as { url: string; status: number }[]) : null;
+                return (
+                  <tr key={b.url} className="border-t border-slate-100 align-top">
+                    <td className="max-w-[280px] truncate py-1.5 pr-4 text-blue-700"><a href={b.url} target="_blank" rel="noreferrer">{b.url}</a></td>
+                    <td className="py-1.5 pr-4"><span className="rounded bg-red-50 px-2 py-0.5 text-xs text-red-700">{b.status || 'err'}</span></td>
+                    <td className="max-w-[200px] truncate py-1.5 pr-4 text-slate-500">{b.sources?.[0]?.source_url ?? '—'}</td>
+                    <td className="py-1.5 text-xs text-slate-500">{chain ? chain.length + ' hops' : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : <p className="text-sm text-slate-400">No broken links from the last crawl.</p>}
+      </section>
+
       {/* Recent events */}
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-medium">Recent events</h2>
@@ -147,6 +182,26 @@ function SiteDetail() {
               className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500" />
             <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50">Add</button>
           </form>
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-medium">Crawler</h2>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={site.crawl_enabled !== 0}
+              onChange={(e) => patch.mutate({ crawl_enabled: e.target.checked })} />
+            Scheduled crawling (every 30 min)
+          </label>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            Max pages
+            <input type="number" min={1} max={500} defaultValue={site.crawl_max_pages || 100}
+              onBlur={(e) => { const v = Number(e.target.value); if (v >= 1 && v <= 500) patch.mutate({ crawl_max_pages: v }); }}
+              className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm" />
+          </label>
+          <button onClick={() => crawlNow.mutate()} disabled={crawlNow.isPending}
+            className="mt-3 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+            {crawlNow.isPending ? 'Starting…' : 'Crawl now'}
+          </button>
+          {crawlMsg && <span className="ml-3 text-sm text-slate-500">{crawlMsg}</span>}
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5">

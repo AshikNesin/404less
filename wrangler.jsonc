@@ -18,6 +18,17 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/auth/*", "/embed.js", "/mcp"]
   },
+  "queues": {
+    "producers": [
+      { "binding": "CRAWLQ", "queue": "404less-crawl" }
+    ],
+    "consumers": [
+      { "binding": "CRAWLQ", "queue": "404less-crawl", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
+    ]
+  },
+  "triggers": {
+    "crons": [ "*/30 * * * *" ]
+  },
   "durable_objects": {
     "bindings": [
       { "name": "DIGEST", "class_name": "DigestDO" }

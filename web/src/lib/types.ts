@@ -8,6 +8,8 @@ export type Site = {
   exclude_patterns: string[];
   notify_enabled: number;
   digest_minutes: number;
+  crawl_enabled: number;
+  crawl_max_pages: number;
   created_at: number;
 };
 

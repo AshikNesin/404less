@@ -8,7 +8,8 @@ import { auth } from './routes/auth';
 import { api } from './routes/api';
 import { keys } from './routes/keys';
 import { mcp } from './routes/mcp';
-import { DigestDO } from './do/digest';
+import { scheduled, queue } from './cron';
+
 import type { Env } from './types.ts';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -24,6 +25,12 @@ app.route('/api', api);          // dashboard API (session cookie auth)
 app.route('/api', keys);         // API-key management (session cookie auth)
 app.route('/', mcp);             // POST /mcp (MCP streamable HTTP, bearer auth)
 
-export default app;
+// Module-format entrypoint. DO classes must be top-level named exports (wrangler
+// discovers them by name); handlers ride on the default export object.
+export { DigestDO } from './do/digest';
 
-export { DigestDO };
+export default {
+  fetch: app.fetch.bind(app),
+  scheduled,
+  queue: queue as ExportedHandlerQueueHandler<Env>,
+} satisfies ExportedHandler<Env>;

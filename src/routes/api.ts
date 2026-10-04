@@ -110,7 +110,8 @@ api.post('/sites', async (c) => {
 
   let host: string;
   try {
-    host = new URL(domain.startsWith('http') ? domain : `https://${domain}`).hostname.replace(/^www\./, '');
+    const u = new URL(domain.startsWith('http') ? domain : `https://${domain}`);
+    host = u.hostname.replace(/^www\./, '') + (u.port ? `:${u.port}` : '');
   } catch {
     return c.json({ error: 'invalid domain' }, 400);
   }
@@ -142,10 +143,16 @@ api.patch('/sites/:id', async (c) => {
   const digest = Number.isInteger(body?.digest_minutes) && body.digest_minutes >= 5 && body.digest_minutes <= 1440
     ? body.digest_minutes : undefined;
   if (body?.digest_minutes !== undefined && digest === undefined) return c.json({ error: 'digest_minutes must be 5..1440' }, 400);
+  const crawlEnabled = typeof body?.crawl_enabled === 'boolean' ? (body.crawl_enabled ? 1 : 0) : undefined;
+  const crawlMax = Number.isInteger(body?.crawl_max_pages) && body.crawl_max_pages >= 1 && body.crawl_max_pages <= 500
+    ? body.crawl_max_pages : undefined;
 
   await c.env.DB.prepare(
-    'UPDATE websites SET name = ?, ignore_status_codes = ?, exclude_patterns = ?, notify_enabled = COALESCE(?, notify_enabled), digest_minutes = COALESCE(?, digest_minutes) WHERE id = ?',
-  ).bind(name, ignore, excl, notify ?? null, digest ?? null, site.site.id).run();
+    `UPDATE websites SET name = ?, ignore_status_codes = ?, exclude_patterns = ?,
+     notify_enabled = COALESCE(?, notify_enabled), digest_minutes = COALESCE(?, digest_minutes),
+     crawl_enabled = COALESCE(?, crawl_enabled), crawl_max_pages = COALESCE(?, crawl_max_pages)
+     WHERE id = ?`,
+  ).bind(name, ignore, excl, notify ?? null, digest ?? null, crawlEnabled ?? null, crawlMax ?? null, site.site.id).run();
   return c.json({ ok: true, site: { id: site.site.id, name, ignore_status_codes: JSON.parse(ignore), exclude_patterns: JSON.parse(excl) } });
 });
 
@@ -155,6 +162,39 @@ api.get('/sites/:id/top', async (c) => {
   const limit = Math.min(Number(c.req.query('limit') ?? 10), 50);
   const results = await topBrokenUrls(c.env, site.site.id, limit);
   return c.json({ results });
+});
+
+// start a crawl now (manual trigger; same path the cron takes)
+api.post('/sites/:id/crawl', async (c) => {
+  const site = await siteForUser(c.env, c.req.param('id'), c.get('userId'));
+  if ('error' in site) return c.json({ error: site.error }, site.status as 403 | 404);
+  const role = await c.env.DB.prepare('SELECT role FROM team_members WHERE team_id = ? AND user_id = ?')
+    .bind(site.site.team_id, c.get('userId')).first<{ role: string }>();
+  if (!role || role.role === 'viewer') return c.json({ error: 'forbidden' }, 403);
+  await c.env.CRAWLQ.send({ kind: 'crawl-site', siteId: site.site.id });
+  return c.json({ ok: true, started: true });
+});
+
+// crawl report: latest check per URL joined with its source pages
+api.get('/sites/:id/crawl-report', async (c) => {
+  const site = await siteForUser(c.env, c.req.param('id'), c.get('userId'));
+  if ('error' in site) return c.json({ error: site.error }, site.status as 403 | 404);
+  const limit = Math.min(Number(c.req.query('limit') ?? 100), 200);
+  const broken = await c.env.DB.prepare(
+    `SELECT lc.url, lc.status, lc.redirect_chain, lc.checked_at
+     FROM link_checks lc
+     JOIN (SELECT url, MAX(checked_at) AS m FROM link_checks WHERE website_id = ? GROUP BY url) latest
+       ON latest.url = lc.url AND latest.m = lc.checked_at
+     WHERE lc.website_id = ? AND lc.ok = 0
+     ORDER BY lc.checked_at DESC LIMIT ?`,
+  ).bind(site.site.id, site.site.id, limit).all();
+  const withSources = await Promise.all((broken.results as unknown as { url: string }[]).map(async (r) => {
+    const src = await c.env.DB.prepare(
+      'SELECT source_url FROM crawl_sources WHERE website_id = ? AND target_url = ? LIMIT 5',
+    ).bind(site.site.id, r.url).all();
+    return { ...r, sources: src.results };
+  }));
+  return c.json({ broken: withSources });
 });
 
 api.get('/sites/:id/events', async (c) => {
