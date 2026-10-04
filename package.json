@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:web": "npm --prefix web run dev",
-    "build:web": "npm --prefix web run build"
+    "build:web": "npm --prefix web run build",
+    "build:cf": "npm ci --no-fund && npm --prefix web ci --no-fund && npm run build:web"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.0",
