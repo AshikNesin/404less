@@ -25,6 +25,7 @@ auth.post('/magic', async (c) => {
     .bind(token, user!.id, now() + 15 * 60 * 1000).run();
 
   const link = `${new URL(c.req.url).origin}/auth/verify?token=${token}`;
+
   const mailer = getMailer(c.env);
   if (mailer) {
     await mailer.send({

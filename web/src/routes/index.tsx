@@ -30,7 +30,13 @@ function LoginPage() {
         body: JSON.stringify({ email }),
       });
       const body = await res.json();
-      if (body.devLink) { window.location.href = body.devLink; return; }
+      if (body.devLink) {
+        // dev-mode link may carry the configured custom domain; use the origin we're actually on
+        const u = new URL(body.devLink, location.origin);
+        u.protocol = location.protocol; u.host = location.host;
+        window.location.href = u.toString();
+        return;
+      }
       setMsg(body.ok ? 'Check your inbox — the link expires in 15 minutes.' : (body.error ?? 'Something went wrong'));
     } finally {
       setBusy(false);
