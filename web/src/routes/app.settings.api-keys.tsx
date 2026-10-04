@@ -6,6 +6,7 @@ import { useToast } from '../components/ui/toast';
 import { KeyRound, Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { Button } from '../components/ui/button';
+import { ConfirmButton } from '../components/ui/confirm-button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { CopyButton } from '../components/copy-button';
 import { EmptyState } from '../components/ui/empty-state';
@@ -69,10 +70,10 @@ function ApiKeysPage() {
                 <CardTitle className="font-mono">{k.prefix}…</CardTitle>
                 <CardDescription>created {new Date(k.created_at).toISOString().slice(0, 10)}</CardDescription>
                 <CardAction>
-                  <Button variant="destructive" size="sm"
-                    onClick={() => api(`/api/teams/${teamId}/keys/${k.id}`, { method: 'DELETE' }).then(() => { toast('success', 'Key revoked'); refetch(); })}>
+                  <ConfirmButton size="sm" confirmLabel="Revoke?"
+                    onConfirm={() => api(`/api/teams/${teamId}/keys/${k.id}`, { method: 'DELETE' }).then(() => { toast('success', `Key ${k.prefix}… revoked`); refetch(); })}>
                     Revoke
-                  </Button>
+                  </ConfirmButton>
                 </CardAction>
               </CardHeader>
             </Card>

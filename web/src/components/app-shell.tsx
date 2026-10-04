@@ -2,17 +2,39 @@
 import { Link, useLocation } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Globe, LayoutDashboard, LogOut, Bell, KeyRound, Menu, type LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { Site } from '../lib/types';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
+
+export function BrandMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <rect width="32" height="32" rx="7" className="fill-primary" />
+      <text x="15" y="21.5" fontSize="13" fontWeight="700" fill="#fff" textAnchor="middle" fontFamily="ui-monospace,monospace">404</text>
+      <rect x="23" y="23" width="5" height="5" rx="1.5" fill="#a5a0ff" />
+    </svg>
+  );
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { data } = useQuery({ queryKey: ['sites'], queryFn: () => api<{ sites: Site[] }>('/api/sites') });
   const qc = useQueryClient();
   const sites = data?.sites ?? [];
   const [mobileNav, setMobileNav] = useState(false);
+
+  // Keyboard shortcuts: Alt+1 overview, Alt+2 notifications, Alt+3 API keys
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.altKey) return;
+      if (e.key === '1') window.location.assign('/app');
+      else if (e.key === '2') window.location.assign('/app/settings/channels');
+      else if (e.key === '3') window.location.assign('/app/settings/api-keys');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <div className="flex min-h-screen">
@@ -21,7 +43,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         'fixed inset-y-0 left-0 z-30 flex w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0',
         mobileNav ? 'translate-x-0' : '-translate-x-full',
       )}>
-        <div className="flex h-13 items-center px-4 py-3.5">
+        <div className="flex h-13 items-center gap-2 px-4 py-3.5">
+          <BrandMark className="size-5" />
           <span className="text-[1.0625rem] font-semibold tracking-tight">
             404<span className="text-primary">less</span>
           </span>

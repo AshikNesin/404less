@@ -7,6 +7,7 @@ import { Megaphone, Send } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Channel, Team } from '../lib/types';
 import { Button } from '../components/ui/button';
+import { ConfirmButton } from '../components/ui/confirm-button';
 import { Input, Select } from '../components/ui/input';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { EmptyState } from '../components/ui/empty-state';
@@ -85,10 +86,10 @@ function ChannelsPage() {
                       onClick={() => api(`/api/teams/${teamId}/channels/${ch.id}`, { method: 'PATCH', body: JSON.stringify({ enabled: ch.enabled === 0 }) }).then(() => refetch())}>
                       {ch.enabled ? 'Disable' : 'Enable'}
                     </Button>
-                    <Button variant="destructive" size="sm"
-                      onClick={() => api(`/api/teams/${teamId}/channels/${ch.id}`, { method: 'DELETE' }).then(() => refetch())}>
+                    <ConfirmButton size="sm" confirmLabel="Remove?"
+                      onConfirm={() => api(`/api/teams/${teamId}/channels/${ch.id}`, { method: 'DELETE' }).then(() => { toast('success', `Channel "${ch.name}" removed`); refetch(); })}>
                       Remove
-                    </Button>
+                    </ConfirmButton>
                   </div>
                 </CardAction>
               </CardHeader>

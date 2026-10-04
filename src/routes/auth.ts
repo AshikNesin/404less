@@ -55,7 +55,7 @@ auth.get('/verify', async (c) => {
     'Set-Cookie',
     `${SESSION_COOKIE}=${cookie}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`,
   );
-  return c.redirect('/dashboard');
+  return c.redirect('/app');
 });
 
 auth.post('/logout', async (c) => {

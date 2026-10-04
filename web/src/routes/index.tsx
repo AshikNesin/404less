@@ -5,6 +5,7 @@ import { LinkIcon } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { BrandMark } from '../components/app-shell';
 
 export const Route = createFileRoute('/')({
   beforeLoad: async () => {
@@ -40,8 +41,8 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-[1.0625rem] font-semibold tracking-tight">
-            404<span className="text-primary">less</span>
+          <CardTitle className="flex items-center gap-2 text-[1.0625rem] font-semibold tracking-tight">
+            <BrandMark className="size-5" /> 404<span className="text-primary">less</span>
           </CardTitle>
           <CardDescription>
             Broken-link monitoring that self-hosts for free. Sign in with your email — we'll send a link.
