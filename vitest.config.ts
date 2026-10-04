@@ -16,7 +16,6 @@ export default defineConfig({
           bindings: {
             MAX_SITES_PER_TEAM: '2', // tighten quota for tests
             TEST_MIGRATIONS: migrations as unknown as string,
-            DEV_MAILER: '1', // log-only mailer: keeps devLink in magic-link responses
           },
         },
       };

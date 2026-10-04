@@ -117,11 +117,9 @@ also fine — we'll keep 3 separate Workers for clean per-worker limits & deploy
 ### 5.3 Notifications
 
 - Queue consumer Worker receives `{siteId, type, payload}`.
-- Channels: Slack incoming webhook, Pushover REST call, email via adapter:
-  - **Hosted SaaS:** Resend (free 3k/mo, `RESEND_API_KEY` + `MAIL_FROM`) — arbitrary recipients.
-  - **Self-hosted:** Cloudflare Email Service `send_email` binding (zero config) — sends to
-    *verified destination addresses* free & unlimited on every plan (CF docs, verified 2026-10).
-  - No config: log-only dev mode.
+- Channels: Slack incoming webhook, Pushover REST call, email via **Resend** (free 3k/mo;
+  `RESEND_API_KEY` + optional `MAIL_FROM`) behind a single adapter interface. Without the key,
+  the app runs in dev mode: magic links return in the API response instead of emailing.
 - **Digestion:** a Durable Object per site (`DO:[siteId]:alerts`) groups events in a window (default
   15 min) and sends one summary — prevents the classic alert-flood from a single bad deploy.
 - Per-user notification preferences + per-channel enable flags (matches your notification-toggle rule).

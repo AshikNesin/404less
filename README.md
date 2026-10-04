@@ -39,10 +39,8 @@ the link is returned in the API response (`devLink`) — easy local testing.
 npx wrangler d1 create 404less   # paste database_id into wrangler.jsonc
 npx wrangler d1 migrations apply DB --remote
 npx wrangler deploy
-npx wrangler secret put RESEND_API_KEY   # hosted SaaS: arbitrary recipients (free 3k/mo)
-# Self-hosted alternative: no secret at all — the EMAIL binding (declared already)
-# sends to *verified destination addresses* free & unlimited. Set MAIL_FROM to an
-# address on your Email-Routing domain, e.g. noreply@yourdomain.com.
+npx wrangler secret put RESEND_API_KEY   # email adapter (free 3k/mo tier)
+# Optional: wrangler secret put MAIL_FROM  (default: 404less <onboarding@resend.dev>)
 
 ## Embed
 
