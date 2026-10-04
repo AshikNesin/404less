@@ -1,6 +1,6 @@
 // Public ingest endpoints used by the embed script.
 import { Hono } from 'hono';
-import { siteForUser, siteFilters } from './helpers';
+import { siteForUser, siteFilters } from '../server/features/sites/service';
 import { rankSuggestions, urlMatchesPattern } from '../lib/suggest';
 import type { Env } from '../types';
 

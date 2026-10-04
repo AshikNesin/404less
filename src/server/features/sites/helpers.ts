@@ -1,5 +1,5 @@
 // Shared query helpers for site-scoped endpoints.
-import type { Env } from '../types';
+import type { Env } from '../../../types';
 
 export type SiteRow = {
   id: string; team_id: string; name: string; domain: string; site_key: string;

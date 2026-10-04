@@ -3,7 +3,7 @@
 import { Hono } from 'hono';
 import { isValidHttpUrl, parseSitemap, titleFromUrl } from '../lib/sitemap';
 import { newId, now } from '../lib/auth';
-import { siteForUser } from './helpers';
+import { siteForUser } from '../server/features/sites/service';
 import type { Env } from '../types';
 
 export const sitemap = new Hono<{ Bindings: Env; Variables: { userId: string } }>();

@@ -6,7 +6,6 @@ import { embedRoutes } from './routes/embed';
 import { ingest } from './routes/ingest';
 import { auth } from './routes/auth';
 import { api } from './routes/api';
-import { dashboardHtml } from './dashboard_html';
 import { DigestDO } from './do/digest';
 import type { Env } from './types.ts';
 
@@ -20,10 +19,6 @@ app.use('*', embedRoutes());      // serves /embed.js
 app.route('/auth', auth);        // POST /auth/magic, GET /auth/verify
 app.route('/api', ingest);       // POST /api/track, GET /api/suggestions (public, CORS)
 app.route('/api', api);          // dashboard API (session cookie auth)
-
-// dashboard (single-page, zero-build)
-app.get('/', (c) => c.html(dashboardHtml));
-app.get('/dashboard', (c) => c.html(dashboardHtml));
 
 export default app;
 

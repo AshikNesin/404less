@@ -198,8 +198,10 @@ limits (docs). Links: see §10.
 - Repo ships `wrangler.toml` (or `wrangler.jsonc`) declaring D1, Queues, DO bindings, and cron — the
   **Deploy to Cloudflare** button provisions everything in the self-hoster's account.
 - All config (Resend key, public URL) via dashboard onboarding wizard writing to KV/secrets.
-- Stack: **TypeScript, Hono** (routing/RPC for dashboard API), **Drizzle ORM** on D1, dashboard UI as
-  React SPA bundled into the Worker (no separate Pages project needed).
+- Stack: **TypeScript, Hono** (thin HTTP routes), feature services in `src/server/features/*`, D1 SQL.
+  Dashboard: Vite + React + TanStack Router SPA (light theme, sidebar shell) served via Workers static
+  assets — structure modeled on open-seo (github.com/every-app/open-seo): client features folders,
+  ui component primitives, service-layer backend.
 - Per your preference this stays pure HTTP-API-first (no CLI wrappers); the embed and MCP-facing
   endpoints are just REST.
 

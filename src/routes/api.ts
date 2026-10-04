@@ -5,7 +5,7 @@ import { getCookie } from 'hono/cookie';
 import { newId, newSiteKey, now, SESSION_COOKIE, verifySession } from '../lib/auth';
 import { sitemap } from './sitemap';
 import { channels } from './channels';
-import { siteForUser } from './helpers';
+import { siteForUser, topBrokenUrls } from '../server/features/sites/service';
 import type { Env } from '../types';
 
 export type Vars = { Variables: { userId: string } };
@@ -147,6 +147,14 @@ api.patch('/sites/:id', async (c) => {
     'UPDATE websites SET name = ?, ignore_status_codes = ?, exclude_patterns = ?, notify_enabled = COALESCE(?, notify_enabled), digest_minutes = COALESCE(?, digest_minutes) WHERE id = ?',
   ).bind(name, ignore, excl, notify ?? null, digest ?? null, site.site.id).run();
   return c.json({ ok: true, site: { id: site.site.id, name, ignore_status_codes: JSON.parse(ignore), exclude_patterns: JSON.parse(excl) } });
+});
+
+api.get('/sites/:id/top', async (c) => {
+  const site = await siteForUser(c.env, c.req.param('id'), c.get('userId'));
+  if ('error' in site) return c.json({ error: site.error }, site.status as 403 | 404);
+  const limit = Math.min(Number(c.req.query('limit') ?? 10), 50);
+  const results = await topBrokenUrls(c.env, site.site.id, limit);
+  return c.json({ results });
 });
 
 api.get('/sites/:id/events', async (c) => {
