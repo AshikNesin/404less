@@ -6,6 +6,8 @@ import { embedRoutes } from './routes/embed';
 import { ingest } from './routes/ingest';
 import { auth } from './routes/auth';
 import { api } from './routes/api';
+import { keys } from './routes/keys';
+import { mcp } from './routes/mcp';
 import { DigestDO } from './do/digest';
 import type { Env } from './types.ts';
 
@@ -19,6 +21,8 @@ app.use('*', embedRoutes());      // serves /embed.js
 app.route('/auth', auth);        // POST /auth/magic, GET /auth/verify
 app.route('/api', ingest);       // POST /api/track, GET /api/suggestions (public, CORS)
 app.route('/api', api);          // dashboard API (session cookie auth)
+app.route('/api', keys);         // API-key management (session cookie auth)
+app.route('/', mcp);             // POST /mcp (MCP streamable HTTP, bearer auth)
 
 export default app;
 
