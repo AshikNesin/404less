@@ -1,14 +1,25 @@
 // The 404less embed — tiny, dependency-free.
+//
 // Usage:
-//   <script src="https://host/embed.js" data-site="SITE_KEY" defer></script>
-// Detects a 404 page via (in order): data-404 attribute on <html>/<body>,
-// a meta[name="404less"] tag, or document.title containing "404".
-// On 404: POSTs the hit to /api/track and renders suggested links from
-// /api/suggestions into an unobtrusive card at the top of the page.
+//   <script src="https://404less.com/embed.js" data-site="SITE_KEY" defer></script>
+//
+// What it does when the page looks like a 404 (data-404 attr > meta[name=404less]
+// > title match):
+//   1. TRACK: reports the hit (url + referrer) to 404less via sendBeacon.
+//   2. SUGGEST: asks 404less for close matches from your sitemap and renders
+//      a dismissible "Did you mean…?" panel.
+//
+// Panel design constraints:
+//   - never scrolls with the page, never blocks content after dismissal
+//   - mobile-first (bottom sheet) / desktop (bottom-right toast)
+//   - isolated styles via element-level cssText only (no stylesheet injection)
+//   - respects user motion preference; auto-hide never removes user control
 (function () {
+  'use strict';
   var script = document.currentScript;
   if (!script) return;
   var siteKey = script.getAttribute('data-site');
+  if (!siteKey) return;
   var apiBase = new URL(script.src, location.href).origin;
 
   function is404() {
@@ -20,45 +31,107 @@
   }
 
   function track() {
-    var payload = JSON.stringify({
-      siteKey: siteKey,
-      url: location.href,
-      referrer: document.referrer || null,
-    });
+    var payload = JSON.stringify({ siteKey: siteKey, url: location.href, referrer: document.referrer || null });
     if (navigator.sendBeacon) {
       navigator.sendBeacon(apiBase + '/api/track', new Blob([payload], { type: 'application/json' }));
     } else {
-      fetch(apiBase + '/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true });
+      fetch(apiBase + '/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
     }
   }
 
-  function renderSuggestions(urls) {
-    if (!urls || !urls.length) return;
-    var box = document.createElement('div');
-    box.style.cssText = 'all:initial;position:fixed;top:0;left:0;right:0;z-index:2147483647;font-family:system-ui,sans-serif;';
-    var card = document.createElement('div');
-    card.style.cssText = 'background:#ffffff;color:#1b1e27;margin:12px auto;max-width:640px;border-radius:10px;padding:14px 18px;border:1px solid #e3e6eb;box-shadow:0 4px 14px rgba(15,23,42,.10);font-size:14px;';
-    var title = document.createElement('div');
-    title.textContent = 'Did you mean…?';
-    title.style.cssText = 'font-weight:600;margin-bottom:8px;';
-    card.appendChild(title);
-    urls.forEach(function (u) {
-      var a = document.createElement('a');
-      a.href = u.url;
-      a.textContent = u.title || u.url;
-      a.style.cssText = 'display:block;color:#2563eb;text-decoration:none;padding:3px 0;';
-      card.appendChild(a);
-    });
-    box.appendChild(card);
-    document.body.appendChild(box);
+  function el(tag, style, text) {
+    var e = document.createElement(tag);
+    e.style.cssText = style;
+    if (text != null) e.textContent = text;
+    return e;
   }
 
-  if (!siteKey) return;
-  if (is404()) {
-    track();
-    fetch(apiBase + '/api/suggestions?site=' + encodeURIComponent(siteKey) + '&url=' + encodeURIComponent(location.href))
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { renderSuggestions(d && d.suggestions); })
-      .catch(function () {});
+  // dark-mode aware (page-level media query; embed has no :host context to inherit)
+  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  function renderSuggestions(items) {
+    if (!items || !items.length) return;
+
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // shell: fixed, full-viewport, flex-end; pointer-events pass through except on card
+    var shell = el('div',
+      'position:fixed;inset:0;z-index:2147483646;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;');
+    // mobile: bottom sheet; >=640px: right-aligned toast
+    var card = el('div',
+      'pointer-events:auto;box-sizing:border-box;max-width:640px;width:calc(100% - 24px);' +
+      'margin:0 0 16px;background:#ffffff;color:#1b1e27;border:1px solid #e3e6eb;border-radius:12px;' +
+      'box-shadow:0 8px 24px rgba(15,23,42,.14);padding:12px 14px;font:14px/1.45 system-ui,-apple-system,sans-serif;' +
+      'animation:f404in .18s ease-out;');
+    if (dark) {
+      card.style.background = '#1c1c24';
+      card.style.color = '#e8e8f0';
+      card.style.borderColor = '#33334a';
+    }
+
+    // media query for desktop placement without a stylesheet: use a style element scoped by id
+    var mq = document.createElement('style');
+    mq.textContent =
+      '@media(min-width:640px){.f404-card{margin:0 16px 16px auto;width:360px}}' +
+      '@keyframes f404in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}' +
+      (reduce ? '@media(prefers-reduced-motion:reduce){.f404-card{animation:none}}' : '');
+    card.className = 'f404-card';
+    document.head.appendChild(mq);
+
+    // header row: title + close
+    var head = el('div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;');
+    head.appendChild(el('div', 'font-weight:600;font-size:13px;', 'Did you mean…?'));
+    var close = el('button',
+      'all:unset;cursor:pointer;font:600 14px/1 system-ui,sans-serif;color:#6b7280;padding:4px 6px;margin:-4px -6px 0 0;border-radius:6px;',
+      '✕');
+    close.setAttribute('aria-label', 'Dismiss suggestions');
+    close.onmouseenter = function () { close.style.color = dark ? '#e8e8f0' : '#1b1e27'; };
+    close.onmouseleave = function () { close.style.color = '#6b7280'; };
+    head.appendChild(close);
+    card.appendChild(head);
+
+    items.slice(0, 3).forEach(function (u, i) {
+      var row = el('a',
+        'display:flex;align-items:center;gap:8px;padding:7px 8px;margin:0 -8px;border-radius:8px;text-decoration:none;' +
+        'color:' + (dark ? '#8ab4ff' : '#2563eb') + ';font-size:13.5px;',
+        null);
+      row.href = u.url;
+      var icon = el('span', 'flex:none;opacity:.55;font-size:12px;width:14px;text-align:center;', '↗');
+      var label = el('span', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', u.title || u.url);
+      row.appendChild(icon); row.appendChild(label);
+      row.onmouseenter = function () { row.style.background = dark ? 'rgba(255,255,255,.07)' : '#f4f5f7'; };
+      row.onmouseleave = function () { row.style.background = 'transparent'; };
+      if (i === 0) row.style.fontWeight = '500'; // best match emphasized
+      card.appendChild(row);
+    });
+
+    var powered = el('div',
+      'margin-top:8px;font-size:11px;color:#9aa0ae;',
+      null);
+    var plink = el('a', 'color:inherit;text-decoration:none;', 'Detected by 404less');
+    plink.href = 'https://404less.com';
+    plink.target = '_blank';
+    plink.rel = 'noopener';
+    powered.appendChild(plink);
+    card.appendChild(powered);
+
+    function dismiss() {
+      if (reduce || !card.animate) { shell.remove(); mq.remove(); return; }
+      card.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        { duration: 120, easing: 'ease-in' }
+      ).finished.then(function () { shell.remove(); mq.remove(); }).catch(function () { shell.remove(); mq.remove(); });
+    }
+    close.onclick = dismiss;
+
+    shell.appendChild(card);
+    document.body.appendChild(shell);
   }
+
+  if (!is404()) return;
+  track();
+  fetch(apiBase + '/api/suggestions?site=' + encodeURIComponent(siteKey) + '&url=' + encodeURIComponent(location.href))
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) { renderSuggestions(d && d.suggestions); })
+    .catch(function () {});
 })();
