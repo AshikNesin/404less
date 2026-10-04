@@ -27,6 +27,7 @@
       { "queue": "404less-crawl", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
     ]
   },
+  "workers_dev": true,
   "routes": [
     { "pattern": "404less.com", "custom_domain": true },
     { "pattern": "www.404less.com", "custom_domain": true }
