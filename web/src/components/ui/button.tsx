@@ -1,26 +1,26 @@
-// Button with variants, modeled on open-seo's cva button (light theme only).
+// Button — Stripe-style: one accent, quiet secondaries, spinner on pending.
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent text-[0.8125rem] font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:outline-2 focus-visible:outline-ring active:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-[15px] [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/85',
-        outline: 'border-border bg-card hover:bg-muted hover:text-foreground',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-muted',
-        ghost: 'hover:bg-muted hover:text-foreground',
-        destructive: 'bg-destructive/10 text-destructive hover:bg-destructive/20',
-        link: 'text-primary underline-offset-4 hover:underline',
+        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
+        outline: 'border-border-strong bg-card text-foreground shadow-xs hover:bg-muted',
+        secondary: 'bg-muted text-foreground hover:bg-border',
+        ghost: 'text-foreground/75 hover:bg-muted hover:text-foreground',
+        destructive: 'bg-destructive-subtle text-destructive hover:bg-destructive hover:text-primary-foreground',
+        link: 'text-primary underline-offset-3 hover:underline',
       },
       size: {
-        default: 'h-9 px-4',
-        sm: 'h-7 px-2.5 text-[0.8rem]',
-        xs: 'h-6 px-2 text-xs',
-        lg: 'h-11 px-6',
-        icon: 'size-9',
+        default: 'h-8 px-3.5',
+        sm: 'h-7 px-3 text-xs',
+        xs: 'h-6 px-2 text-[0.6875rem]',
+        lg: 'h-10 px-5 text-sm',
+        icon: 'size-8',
         'icon-sm': 'size-7',
       },
     },

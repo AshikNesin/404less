@@ -40,11 +40,11 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-xl">
+          <CardTitle className="text-[1.0625rem] font-semibold tracking-tight">
             404<span className="text-primary">less</span>
           </CardTitle>
           <CardDescription>
-            Broken-link monitoring that self-hosts for free on Cloudflare.
+            Broken-link monitoring that self-hosts for free. Sign in with your email — we'll send a link.
           </CardDescription>
         </CardHeader>
         <CardContent>

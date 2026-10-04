@@ -2,6 +2,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useToast } from '../components/ui/toast';
 import { KeyRound, Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { Button } from '../components/ui/button';
@@ -17,7 +18,6 @@ export const Route = createFileRoute('/app/settings/api-keys')({
 function ApiKeysPage() {
   const qc = useQueryClient();
   const [secret, setSecret] = useState('');
-  const [error, setError] = useState('');
 
   const { data: teamsData } = useQuery({ queryKey: ['teams'], queryFn: () => api<{ teams: Team[] }>('/api/teams') });
   const teamId = teamsData?.teams?.[0]?.id;
@@ -27,10 +27,11 @@ function ApiKeysPage() {
     enabled: !!teamId,
   });
 
+  const toast = useToast();
   const create = useMutation({
     mutationFn: () => api<{ key: { id: string; prefix: string }; secret: string }>(`/api/teams/${teamId}/keys`, { method: 'POST', body: '{}' }),
-    onSuccess: (d) => { setSecret(d.secret); setError(''); refetch(); },
-    onError: (e: Error) => setError(e.message),
+    onSuccess: (d) => { setSecret(d.secret); refetch(); },
+    onError: (e: Error) => toast('error', e.message),
   });
 
   return (
@@ -57,7 +58,6 @@ function ApiKeysPage() {
           </CardContent>
         </Card>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
 
       {keysData && keysData.keys.length === 0 ? (
         <EmptyState icon={KeyRound} title="No API keys" description="Create a key to use the REST API or connect an MCP client." />
@@ -70,7 +70,7 @@ function ApiKeysPage() {
                 <CardDescription>created {new Date(k.created_at).toISOString().slice(0, 10)}</CardDescription>
                 <CardAction>
                   <Button variant="destructive" size="sm"
-                    onClick={() => api(`/api/teams/${teamId}/keys/${k.id}`, { method: 'DELETE' }).then(() => refetch())}>
+                    onClick={() => api(`/api/teams/${teamId}/keys/${k.id}`, { method: 'DELETE' }).then(() => { toast('success', 'Key revoked'); refetch(); })}>
                     Revoke
                   </Button>
                 </CardAction>

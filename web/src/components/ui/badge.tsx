@@ -1,15 +1,34 @@
+// Badge — status dots + tones. Semantic meaning only.
 import { cn } from '../../lib/utils';
 
-export function Badge({ className, tone = 'default', ...props }: React.HTMLAttributes<HTMLSpanElement> & {
-  tone?: 'default' | 'destructive' | 'success' | 'warning' | 'info' | 'muted';
-}) {
-  const tones = {
-    default: 'bg-muted text-foreground',
-    destructive: 'bg-destructive/10 text-destructive',
-    success: 'bg-success/15 text-success',
-    warning: 'bg-warning/25 text-foreground',
-    info: 'bg-primary/10 text-primary',
-    muted: 'bg-muted text-muted-foreground',
-  } as const;
-  return <span className={cn('inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap', tones[tone], className)} {...props} />;
+const TONES = {
+  neutral: 'bg-muted text-foreground/70',
+  destructive: 'bg-destructive-subtle text-destructive',
+  success: 'bg-success-subtle text-success',
+  warning: 'bg-warning-subtle text-foreground',
+  accent: 'bg-primary-subtle text-primary',
+  outline: 'border border-border text-muted-foreground',
+} as const;
+
+const DOT = {
+  neutral: 'bg-subtle',
+  destructive: 'bg-destructive',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  accent: 'bg-primary',
+  outline: 'bg-subtle',
+} as const;
+
+export function Badge({
+  className, tone = 'neutral', dot, ...props
+}: React.HTMLAttributes<HTMLSpanElement> & { tone?: keyof typeof TONES; dot?: boolean }) {
+  return (
+    <span className={cn(
+      'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium whitespace-nowrap num',
+      TONES[tone], className,
+    )} {...props}>
+      {dot && <span className={cn('size-1.5 rounded-full', DOT[tone])} />}
+      {props.children}
+    </span>
+  );
 }

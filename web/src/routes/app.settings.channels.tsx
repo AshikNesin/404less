@@ -2,6 +2,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useToast } from '../components/ui/toast';
 import { Megaphone, Send } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Channel, Team } from '../lib/types';
@@ -17,8 +18,7 @@ function ChannelsPage() {
   const qc = useQueryClient();
   const [type, setType] = useState<'slack' | 'pushover' | 'email'>('slack');
   const [value, setValue] = useState('');
-  const [error, setError] = useState('');
-  const [testMsg, setTestMsg] = useState('');
+  const toast = useToast();
   const [testing, setTesting] = useState<string | null>(null);
 
   const { data: teamsData } = useQuery({ queryKey: ['teams'], queryFn: () => api<{ teams: Team[] }>('/api/teams') });
@@ -38,15 +38,17 @@ function ChannelsPage() {
         (() => { const [token, user] = value.split(':'); return { token, user }; })();
       return api(`/api/teams/${teamId}/channels`, { method: 'POST', body: JSON.stringify({ type, config }) });
     },
-    onSuccess: () => { setValue(''); setError(''); refetch(); },
-    onError: (e: Error) => setError(e.message),
+    onSuccess: () => { setValue(''); toast('success', 'Channel added'); refetch(); },
+    onError: (e: Error) => toast('error', e.message),
   });
 
   async function test(id: string) {
-    setTesting(id); setTestMsg('');
+    setTesting(id);
     try {
       const r = await api<{ ok?: boolean; error?: string }>(`/api/teams/${teamId}/channels/${id}/test`, { method: 'POST', body: '{}' });
-      setTestMsg(r.ok ? 'Test sent — check the channel' : `Failed: ${r.error}`);
+      r.ok ? toast('success', 'Test sent — check the channel') : toast('error', `Failed: ${r.error}`);
+    } catch (e) {
+      toast('error', e instanceof Error ? e.message : 'Test failed');
     } finally {
       setTesting(null);
     }
@@ -71,8 +73,8 @@ function ChannelsPage() {
             <Card key={ch.id} size="sm">
               <CardHeader className="pb-0">
                 <CardTitle className="flex items-center gap-2">
-                  <Badge tone="info">{ch.type}</Badge> {ch.name}
-                  {ch.enabled === 0 && <Badge tone="muted">disabled</Badge>}
+                  <Badge tone="accent">{ch.type}</Badge> {ch.name}
+                  {ch.enabled === 0 && <Badge tone="outline">disabled</Badge>}
                 </CardTitle>
                 <CardAction>
                   <div className="flex gap-2">
@@ -94,7 +96,6 @@ function ChannelsPage() {
           ))}
         </div>
       )}
-      {testMsg && <p className="text-sm text-muted-foreground">{testMsg}</p>}
 
       <Card>
         <CardHeader>
@@ -113,7 +114,6 @@ function ChannelsPage() {
               className="flex-1 min-w-64" />
             <Button type="submit" pending={add.isPending} disabled={!teamId}>Add channel</Button>
           </form>
-          {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>
     </div>

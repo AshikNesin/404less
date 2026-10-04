@@ -1,33 +1,38 @@
-// Sidebar shell modeled on open-seo's AuthenticatedAppLayout: brand, nav groups
-// with active indicators, footer with sign-out.
+// App shell — quiet sidebar, context header, designed like a Stripe dashboard.
 import { Link, useLocation } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Globe, LayoutDashboard, LogOut, Bell, KeyRound, type LucideIcon } from 'lucide-react';
+import { Globe, LayoutDashboard, LogOut, Bell, KeyRound, Menu, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import { api } from '../lib/api';
 import type { Site } from '../lib/types';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 
-export function AppShell({ children, ready = true }: { children: React.ReactNode; ready?: boolean }) {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const { data } = useQuery({ queryKey: ['sites'], queryFn: () => api<{ sites: Site[] }>('/api/sites') });
   const qc = useQueryClient();
   const sites = data?.sites ?? [];
+  const [mobileNav, setMobileNav] = useState(false);
 
   return (
     <div className="flex min-h-screen">
-      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-        <div className="flex h-14 items-center px-4">
-          <span className="text-lg font-semibold tracking-tight">
+      {/* Sidebar */}
+      <aside className={cn(
+        'fixed inset-y-0 left-0 z-30 flex w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0',
+        mobileNav ? 'translate-x-0' : '-translate-x-full',
+      )}>
+        <div className="flex h-13 items-center px-4 py-3.5">
+          <span className="text-[1.0625rem] font-semibold tracking-tight">
             404<span className="text-primary">less</span>
           </span>
         </div>
-        <nav className="flex-1 space-y-4 overflow-y-auto p-2 text-sm">
+        <nav className="flex-1 space-y-4 overflow-y-auto p-2">
           <NavGroup label="Monitor">
             <NavLink to="/app" icon={LayoutDashboard} label="Overview" exact />
           </NavGroup>
           <NavGroup label="Sites">
-            {ready && sites.length === 0 && (
-              <p className="px-3 py-1.5 text-xs text-muted-foreground">No sites yet</p>
+            {sites.length === 0 && (
+              <p className="px-3 py-1 text-meta">No sites yet</p>
             )}
             {sites.map((s) => (
               <NavLink key={s.id} to="/app/sites/$siteId" params={{ siteId: s.id }} icon={Globe} label={s.name} />
@@ -38,11 +43,11 @@ export function AppShell({ children, ready = true }: { children: React.ReactNode
             <NavLink to="/app/settings/api-keys" icon={KeyRound} label="API keys" />
           </NavGroup>
         </nav>
-        <div className="border-t border-sidebar-border p-3">
+        <div className="border-t border-sidebar-border p-2">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-sidebar-foreground/70"
+            className="w-full justify-start text-foreground/60 hover:text-foreground"
             onClick={async () => {
               await api('/auth/logout', { method: 'POST' });
               qc.clear();
@@ -53,11 +58,21 @@ export function AppShell({ children, ready = true }: { children: React.ReactNode
           </Button>
         </div>
       </aside>
+
+      {/* Mobile scrim */}
+      {mobileNav && (
+        <div className="fixed inset-0 z-20 bg-foreground/20 md:hidden" onClick={() => setMobileNav(false)} />
+      )}
+
+      {/* Main */}
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur">
-          <Breadcrumbs />
+        <header className="sticky top-0 z-10 flex h-13 items-center gap-3 border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:px-6">
+          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setMobileNav(true)} aria-label="Menu">
+            <Menu />
+          </Button>
+          <PageTitle />
         </header>
-        <main className="mx-auto max-w-5xl p-6">{ready ? children : null}</main>
+        <main className="mx-auto max-w-4xl space-y-8 p-4 py-6 md:p-6 md:py-8">{children}</main>
       </div>
     </div>
   );
@@ -66,7 +81,7 @@ export function AppShell({ children, ready = true }: { children: React.ReactNode
 function NavGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="px-3 pb-1 pt-2 text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground/80">
+      <div className="px-3 pb-1.5 pt-2 text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-subtle">
         {label}
       </div>
       <div className="space-y-0.5">{children}</div>
@@ -85,30 +100,19 @@ function NavLink({
       to={to as never}
       params={params as never}
       className={cn(
-        'relative flex items-center gap-2 rounded-lg px-3 py-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-        active && 'bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r-full before:bg-primary',
+        'flex items-center gap-2 rounded-md px-3 py-1.5 text-[0.8125rem] text-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-foreground',
+        active && 'bg-sidebar-accent font-medium text-foreground',
       )}
     >
-      <Icon className="size-4 shrink-0" />
+      <Icon className="size-[15px] shrink-0" />
       <span className="truncate">{label}</span>
     </Link>
   );
 }
 
-function Breadcrumbs() {
+// Header context label per section.
+function PageTitle() {
   const location = useLocation();
-  const parts = location.pathname.split('/').filter(Boolean);
-  const names: Record<string, string> = { app: 'Dashboard', settings: 'Settings', sites: 'Sites', 'api-keys': 'API keys', channels: 'Notifications' };
-  return (
-    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-      {parts.map((p, i) => (
-        <span key={i} className="flex items-center gap-1.5">
-          {i > 0 && <span className="text-muted-foreground/50">/</span>}
-          <span className={i === parts.length - 1 ? 'font-medium text-foreground' : ''}>
-            {names[p] ?? (p.length > 8 ? p.slice(0, 8) + '…' : p)}
-          </span>
-        </span>
-      ))}
-    </div>
-  );
+  const m = location.pathname.match(/^\/app\/sites\/([^/]+)/);
+  return <span className="text-[0.8125rem] font-medium text-foreground/80">{m ? 'Sites' : location.pathname === '/app' ? 'Overview' : location.pathname.includes('channels') ? 'Settings' : 'Settings'}</span>;
 }
