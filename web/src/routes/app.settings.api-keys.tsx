@@ -2,7 +2,12 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { KeyRound, Plus } from 'lucide-react';
 import { api } from '../lib/api';
+import { Button } from '../components/ui/button';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { CopyButton } from '../components/copy-button';
+import { EmptyState } from '../components/ui/empty-state';
 import type { Team } from '../lib/types';
 
 export const Route = createFileRoute('/app/settings/api-keys')({
@@ -39,42 +44,45 @@ function ApiKeysPage() {
       </div>
 
       {secret && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <p className="text-sm font-medium text-blue-800">Copy this key now — it won't be shown again.</p>
-          <div className="mt-2 flex items-center gap-2">
-            <code className="flex-1 overflow-x-auto rounded bg-white px-3 py-2 text-xs">{secret}</code>
-            <button
-              onClick={() => { navigator.clipboard.writeText(secret); }}
-              className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-100"
-            >Copy</button>
-          </div>
-        </div>
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle>Copy this key now — it won't be shown again</CardTitle>
+            <CardDescription>Use it as a bearer token for the REST API and MCP server.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 overflow-x-auto rounded-lg bg-card px-3 py-2 text-xs">{secret}</code>
+              <CopyButton value={secret} />
+            </div>
+          </CardContent>
+        </Card>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="space-y-3">
-        {(keysData?.keys ?? []).map((k) => (
-          <div key={k.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
-            <div>
-              <code className="text-sm">{k.prefix}…</code>
-              <span className="ml-3 text-xs text-slate-400">created {new Date(k.created_at).toISOString().slice(0, 10)}</span>
-            </div>
-            <button
-              onClick={() => api(`/api/teams/${teamId}/keys/${k.id}`, { method: 'DELETE' }).then(() => refetch())}
-              className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
-            >Revoke</button>
-          </div>
-        ))}
-        {keysData && keysData.keys.length === 0 && <p className="text-sm text-slate-500">No keys yet.</p>}
-      </div>
+      {keysData && keysData.keys.length === 0 ? (
+        <EmptyState icon={KeyRound} title="No API keys" description="Create a key to use the REST API or connect an MCP client." />
+      ) : (
+        <div className="space-y-3">
+          {(keysData?.keys ?? []).map((k) => (
+            <Card key={k.id} size="sm">
+              <CardHeader className="pb-0">
+                <CardTitle className="font-mono">{k.prefix}…</CardTitle>
+                <CardDescription>created {new Date(k.created_at).toISOString().slice(0, 10)}</CardDescription>
+                <CardAction>
+                  <Button variant="destructive" size="sm"
+                    onClick={() => api(`/api/teams/${teamId}/keys/${k.id}`, { method: 'DELETE' }).then(() => refetch())}>
+                    Revoke
+                  </Button>
+                </CardAction>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      <button
-        onClick={() => create.mutate()}
-        disabled={create.isPending || !teamId}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-      >
-        Create key
-      </button>
+      <Button onClick={() => create.mutate()} pending={create.isPending} disabled={!teamId}>
+        <Plus /> Create key
+      </Button>
     </div>
   );
 }

@@ -1,14 +1,16 @@
-// Overview: all sites, add-site form, quick stats.
-import { createFileRoute } from '@tanstack/react-router';
+// Overview: stats + site cards + add-site form.
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { Globe, Plus, ArrowRight } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Site, Team } from '../lib/types';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { EmptyState } from '../components/ui/empty-state';
 
-export const Route = createFileRoute('/app/')({
-  component: Overview,
-});
+export const Route = createFileRoute('/app/')({ component: Overview });
 
 function Overview() {
   const qc = useQueryClient();
@@ -40,38 +42,53 @@ function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Overview</h1>
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Overview</h1>
+          <p className="text-sm text-muted-foreground">
+            {sites.length} site{sites.length === 1 ? '' : 's'} monitored
+          </p>
+        </div>
       </div>
 
       <form
         onSubmit={(e) => { e.preventDefault(); addSite.mutate(); }}
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap items-center gap-2"
       >
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Site name" required
-          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-        <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.com" required
-          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-        <button disabled={addSite.isPending}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-          Add site
-        </button>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Site name" required className="flex-1 min-w-40" />
+        <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.com" required className="flex-1 min-w-40" />
+        <Button type="submit" pending={addSite.isPending}>
+          <Plus /> Add site
+        </Button>
       </form>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <div className="space-y-4">
-        {sites.length === 0 && <p className="text-sm text-slate-500">No sites yet — add your first above.</p>}
-        {sites.map((s) => (
-          <div key={s.id} className="rounded-xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <Link to="/app/sites/$siteId" params={{ siteId: s.id }} className="font-medium text-blue-700 hover:underline">
-                {s.name}
-              </Link>
-              <span className="text-sm text-slate-500">{s.domain}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {sites.length === 0 ? (
+        <EmptyState
+          title="No sites yet"
+          description="Add your first site above — you'll get an embed snippet and can import a sitemap for suggestions."
+        />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {sites.map((s) => (
+            <Card key={s.id}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="size-4 text-muted-foreground" /> {s.name}
+                </CardTitle>
+                <CardDescription>{s.domain}</CardDescription>
+                <CardAction>
+                  <Link to="/app/sites/$siteId" params={{ siteId: s.id }}>
+                    <Button variant="ghost" size="sm">
+                      Open <ArrowRight />
+                    </Button>
+                  </Link>
+                </CardAction>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

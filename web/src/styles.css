@@ -1,10 +1,65 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: light;
+/* Design tokens (light theme only, per product decision) — modeled on open-seo's
+   oklch palette. These are the source of truth for all component colors. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
+:root {
+  color-scheme: light;
+  --radius: 0.5rem;
+  --background: oklch(95.5% 0 0);
+  --foreground: oklch(20% 0 0);
+  --card: oklch(100% 0 0);
+  --card-foreground: oklch(20% 0 0);
+  --primary: oklch(50% 0.12 262);
+  --primary-foreground: oklch(100% 0 0);
+  --secondary: oklch(97% 0 0);
+  --secondary-foreground: oklch(20% 0 0);
+  --muted: oklch(97% 0 0);
+  --muted-foreground: oklch(20% 0 0 / 60%);
+  --accent: oklch(97% 0 0);
+  --accent-foreground: oklch(20% 0 0);
+  --destructive: oklch(65% 0.2 25);
+  --success: oklch(65% 0.18 145);
+  --warning: oklch(80% 0.15 80);
+  --border: oklch(92% 0 0);
+  --input: oklch(82% 0 0);
+  --ring: oklch(50% 0.12 262);
+  --sidebar: oklch(91% 0 0);
+  --sidebar-foreground: oklch(20% 0 0);
+  --sidebar-accent: oklch(20% 0 0 / 8%);
+  --sidebar-accent-foreground: oklch(20% 0 0);
+  --sidebar-border: oklch(86% 0 0);
+  --sidebar-ring: oklch(50% 0.12 262);
+}
+
+html,
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply m-0 bg-background text-foreground antialiased;
   font-family: system-ui, -apple-system, sans-serif;
 }

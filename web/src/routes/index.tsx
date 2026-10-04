@@ -1,11 +1,15 @@
-// Landing = login (magic link) or redirect into the app.
-import { createFileRoute, redirect } from '@tanstack/react-router';
+// Landing = login (magic link).
+import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
+import { LinkIcon } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 
 export const Route = createFileRoute('/')({
   beforeLoad: async () => {
     const res = await fetch('/api/teams');
-    if (res.ok) throw redirect({ to: '/app' });
+    if (res.ok) window.location.href = '/app';
   },
   component: LoginPage,
 });
@@ -17,8 +21,7 @@ function LoginPage() {
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setMsg('');
+    setBusy(true); setMsg('');
     try {
       const res = await fetch('/auth/magic', {
         method: 'POST',
@@ -26,12 +29,8 @@ function LoginPage() {
         body: JSON.stringify({ email }),
       });
       const body = await res.json();
-      if (body.devLink) {
-        window.location.href = body.devLink;
-        return;
-      }
-      if (body.ok) setMsg('Check your inbox — the link expires in 15 minutes.');
-      else setMsg(body.error ?? 'Something went wrong');
+      if (body.devLink) { window.location.href = body.devLink; return; }
+      setMsg(body.ok ? 'Check your inbox — the link expires in 15 minutes.' : (body.error ?? 'Something went wrong'));
     } finally {
       setBusy(false);
     }
@@ -39,29 +38,31 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          404<span className="text-blue-600">less</span>
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">Broken-link monitoring that self-hosts for free.</p>
-        <form onSubmit={send} className="mt-6 space-y-3">
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          />
-          <button
-            disabled={busy}
-            className="w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {busy ? 'Sending…' : 'Send sign-in link'}
-          </button>
-        </form>
-        {msg && <p className="mt-3 text-sm text-slate-600">{msg}</p>}
-      </div>
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">
+            404<span className="text-primary">less</span>
+          </CardTitle>
+          <CardDescription>
+            Broken-link monitoring that self-hosts for free on Cloudflare.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={send} className="space-y-3">
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+            <Button type="submit" pending={busy} className="w-full">
+              <LinkIcon /> Send sign-in link
+            </Button>
+          </form>
+          {msg && <p className="mt-3 text-sm text-muted-foreground">{msg}</p>}
+        </CardContent>
+      </Card>
     </div>
   );
 }
