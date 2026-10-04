@@ -1,0 +1,64 @@
+// The 404less embed — tiny, dependency-free.
+// Usage:
+//   <script src="https://host/embed.js" data-site="SITE_KEY" defer></script>
+// Detects a 404 page via (in order): data-404 attribute on <html>/<body>,
+// a meta[name="404less"] tag, or document.title containing "404".
+// On 404: POSTs the hit to /api/track and renders suggested links from
+// /api/suggestions into an unobtrusive card at the top of the page.
+(function () {
+  var script = document.currentScript;
+  if (!script) return;
+  var siteKey = script.getAttribute('data-site');
+  var apiBase = new URL(script.src, location.href).origin;
+
+  function is404() {
+    var el = document.documentElement.getAttribute('data-404') || document.body.getAttribute('data-404');
+    if (el === 'true' || el === '1') return true;
+    var meta = document.querySelector('meta[name="404less"]');
+    if (meta && /404|not found/i.test(meta.content || '')) return true;
+    return /\b404\b|not found/i.test(document.title || '');
+  }
+
+  function track() {
+    var payload = JSON.stringify({
+      siteKey: siteKey,
+      url: location.href,
+      referrer: document.referrer || null,
+    });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(apiBase + '/api/track', new Blob([payload], { type: 'application/json' }));
+    } else {
+      fetch(apiBase + '/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true });
+    }
+  }
+
+  function renderSuggestions(urls) {
+    if (!urls || !urls.length) return;
+    var box = document.createElement('div');
+    box.style.cssText = 'all:initial;position:fixed;top:0;left:0;right:0;z-index:2147483647;font-family:system-ui,sans-serif;';
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#1a1a2e;color:#eee;margin:12px auto;max-width:640px;border-radius:10px;padding:14px 18px;box-shadow:0 4px 14px rgba(0,0,0,.35);font-size:14px;';
+    var title = document.createElement('div');
+    title.textContent = 'Did you mean…?';
+    title.style.cssText = 'font-weight:600;margin-bottom:8px;';
+    card.appendChild(title);
+    urls.forEach(function (u) {
+      var a = document.createElement('a');
+      a.href = u.url;
+      a.textContent = u.title || u.url;
+      a.style.cssText = 'display:block;color:#7cb7ff;text-decoration:none;padding:3px 0;';
+      card.appendChild(a);
+    });
+    box.appendChild(card);
+    document.body.appendChild(box);
+  }
+
+  if (!siteKey) return;
+  if (is404()) {
+    track();
+    fetch(apiBase + '/api/suggestions?site=' + encodeURIComponent(siteKey) + '&url=' + encodeURIComponent(location.href))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { renderSuggestions(d && d.suggestions); })
+      .catch(function () {});
+  }
+})();

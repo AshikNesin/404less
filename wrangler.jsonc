@@ -1,0 +1,16 @@
+{
+  // 404less — self-hostable broken-link monitoring on Cloudflare free tier.
+  // database_id is intentionally omitted: the "Deploy to Cloudflare" button
+  // provisions D1 in the target account. For manual setup run:
+  //   npx wrangler d1 create 404less   (then paste the id here)
+  "name": "404less",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "404less",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
