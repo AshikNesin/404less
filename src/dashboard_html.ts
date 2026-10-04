@@ -6,16 +6,16 @@ export const dashboardHtml = String.raw`<!doctype html>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>404less</title>
 <style>
-  :root{--bg:#0d0d14;--card:#16161f;--line:#262633;--fg:#e8e8f0;--mut:#8b8ba3;--acc:#7cb7ff}
+  :root{--bg:#f6f7f9;--card:#ffffff;--line:#e3e6eb;--fg:#1b1e27;--mut:#6b7280;--acc:#2563eb}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,sans-serif}
   .wrap{max-width:880px;margin:0 auto;padding:32px 20px}
   h1{font-size:22px} h1 span{color:var(--acc)}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0}
-  input,button{font:inherit;border-radius:8px;border:1px solid var(--line);background:#101018;color:var(--fg);padding:8px 12px}
-  button{cursor:pointer;background:#1d2b45;border-color:#2c4066} button:hover{background:#24365a}
+  input,button{font:inherit;border-radius:8px;border:1px solid var(--line);background:#ffffff;color:var(--fg);padding:8px 12px}
+  button{cursor:pointer;background:#2563eb;border-color:#1d4ed8;color:#fff} button:hover{background:#1d4ed8}
   .muted{color:var(--mut)}
-  code{background:#101018;padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+  code{background:#f1f3f6;color:#24292f;padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all;display:inline-block}
   table{width:100%;border-collapse:collapse;font-size:14px}
   td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -63,7 +63,7 @@ async function dashboardView(teams) {
     '  <input id="name" placeholder="Site name" style="flex:1">' +
     '  <input id="domain" placeholder="example.com" style="flex:1">' +
     "  <button id=add>Add site</button>" +
-    '  <button id="out" style="background:#3a2020;border-color:#5a2c2c">Sign out</button>' +
+    '  <button id="out" style="background:#fff;border-color:#f3c7c7;color:#b91c1c">Sign out</button>' +
     "</div>");
   app.append(form, list);
   form.querySelector("#out").onclick = async () => { await api("/auth/logout",{method:"POST"}); location.reload(); };
@@ -102,7 +102,7 @@ async function dashboardView(teams) {
         if (!excls.length) { exlst.textContent = "No exclusions."; return; }
         for (const e of excls) {
           const chip = $("<span></span>");
-          chip.style.cssText = "display:inline-block;background:#101018;border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px 4px 2px 0";
+          chip.style.cssText = "display:inline-block;background:#f1f3f6;border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px 4px 2px 0";
           chip.textContent = e + " ×";
           chip.style.cursor = "pointer";
           chip.title = "click to remove";

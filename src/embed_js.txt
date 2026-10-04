@@ -37,7 +37,7 @@
     var box = document.createElement('div');
     box.style.cssText = 'all:initial;position:fixed;top:0;left:0;right:0;z-index:2147483647;font-family:system-ui,sans-serif;';
     var card = document.createElement('div');
-    card.style.cssText = 'background:#1a1a2e;color:#eee;margin:12px auto;max-width:640px;border-radius:10px;padding:14px 18px;box-shadow:0 4px 14px rgba(0,0,0,.35);font-size:14px;';
+    card.style.cssText = 'background:#ffffff;color:#1b1e27;margin:12px auto;max-width:640px;border-radius:10px;padding:14px 18px;border:1px solid #e3e6eb;box-shadow:0 4px 14px rgba(15,23,42,.10);font-size:14px;';
     var title = document.createElement('div');
     title.textContent = 'Did you mean…?';
     title.style.cssText = 'font-weight:600;margin-bottom:8px;';
@@ -46,7 +46,7 @@
       var a = document.createElement('a');
       a.href = u.url;
       a.textContent = u.title || u.url;
-      a.style.cssText = 'display:block;color:#7cb7ff;text-decoration:none;padding:3px 0;';
+      a.style.cssText = 'display:block;color:#2563eb;text-decoration:none;padding:3px 0;';
       card.appendChild(a);
     });
     box.appendChild(card);
