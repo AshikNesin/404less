@@ -27,6 +27,10 @@
       { "queue": "404less-crawl", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
     ]
   },
+  "routes": [
+    { "pattern": "404less.com", "custom_domain": true },
+    { "pattern": "www.404less.com", "custom_domain": true }
+  ],
   "triggers": {
     "crons": [ "*/30 * * * *", "17 3 * * *" ]
   },
