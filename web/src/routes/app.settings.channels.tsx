@@ -36,7 +36,7 @@ function ChannelsPage() {
       const config =
         type === 'slack' ? { url: value } :
         type === 'email' ? { to: value } :
-        (() => { const [token, user] = value.split(':'); return { token, user }; })();
+        (() => { const [user, token] = value.split(':'); return { token, user }; })(); // pushover format: user:token
       return api(`/api/teams/${teamId}/channels`, { method: 'POST', body: JSON.stringify({ type, config }) });
     },
     onSuccess: () => { setValue(''); toast('success', 'Channel added'); refetch(); },
@@ -101,7 +101,7 @@ function ChannelsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Add channel</CardTitle>
-          <CardDescription>Slack: webhook URL · Pushover: token:user · Email: address</CardDescription>
+          <CardDescription>Slack: webhook URL · Pushover: user:token · Email: address</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={(e) => { e.preventDefault(); add.mutate(); }} className="flex flex-wrap gap-2">
@@ -111,7 +111,7 @@ function ChannelsPage() {
               <option value="email">Email</option>
             </Select>
             <Input value={value} onChange={(e) => setValue(e.target.value)}
-              placeholder={type === 'slack' ? 'https://hooks.slack.com/services/…' : type === 'email' ? 'you@example.com' : 'token:user'}
+              placeholder={type === 'slack' ? 'https://hooks.slack.com/services/…' : type === 'email' ? 'you@example.com' : 'user:token'}
               className="flex-1 min-w-64" />
             <Button type="submit" pending={add.isPending} disabled={!teamId}>Add channel</Button>
           </form>
