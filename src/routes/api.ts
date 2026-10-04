@@ -3,6 +3,8 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { newId, newSiteKey, now, SESSION_COOKIE, verifySession } from '../lib/auth';
+import { sitemap } from './sitemap';
+import { siteForUser } from './helpers';
 import type { Env } from '../types';
 
 export type Vars = { Variables: { userId: string } };
@@ -14,6 +16,9 @@ api.use('*', async (c, next) => {
   c.set('userId', userId as never);
   await next();
 });
+
+// mounted AFTER auth middleware: POST /api/sites/:id/import-sitemap, GET /api/sites/:id/known-urls
+api.route('/', sitemap);
 
 // --- teams ---
 
@@ -83,6 +88,27 @@ api.post('/sites', async (c) => {
     'INSERT INTO websites (id, team_id, name, domain, site_key, created_at) VALUES (?, ?, ?, ?, ?, ?)',
   ).bind(siteId, teamId, name, host, siteKey, now()).run();
   return c.json({ site: { id: siteId, team_id: teamId, name, domain: host, site_key: siteKey } }, 201);
+});
+
+api.patch('/sites/:id', async (c) => {
+  const site = await siteForUser(c.env, c.req.param('id'), c.get('userId'));
+  if ('error' in site) return c.json({ error: site.error }, site.status as 403 | 404);
+  const body = await c.req.json().catch(() => ({}));
+
+  const parse = (v: unknown, fallback: string): string => {
+    if (Array.isArray(v) && v.every((x) => typeof x === 'number' && x >= 100 && x <= 599)) return JSON.stringify(v);
+    if (Array.isArray(v) && v.every((x) => typeof x === 'string' && x.length <= 200)) return JSON.stringify(v.slice(0, 100));
+    return fallback;
+  };
+  const cur = await c.env.DB.prepare('SELECT ignore_status_codes, exclude_patterns FROM websites WHERE id = ?')
+    .bind(site.site.id).first<{ ignore_status_codes: string; exclude_patterns: string }>();
+  const ignore = body.ignore_status_codes !== undefined ? parse(body.ignore_status_codes, cur!.ignore_status_codes) : cur!.ignore_status_codes;
+  const excl = body.exclude_patterns !== undefined ? parse(body.exclude_patterns, cur!.exclude_patterns) : cur!.exclude_patterns;
+  const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 100) : site.site.name;
+
+  await c.env.DB.prepare('UPDATE websites SET name = ?, ignore_status_codes = ?, exclude_patterns = ? WHERE id = ?')
+    .bind(name, ignore, excl, site.site.id).run();
+  return c.json({ ok: true, site: { id: site.site.id, name, ignore_status_codes: JSON.parse(ignore), exclude_patterns: JSON.parse(excl) } });
 });
 
 api.get('/sites/:id/events', async (c) => {

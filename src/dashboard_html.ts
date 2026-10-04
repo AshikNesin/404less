@@ -86,9 +86,49 @@ async function dashboardView(teams) {
         "  </div>" +
         "  <p class=muted>Embed:</p>" +
         '  <code>&lt;script src="' + location.origin + '/embed.js" data-site="' + s.site_key + '" defer&gt;&lt;/script&gt;</code>' +
+        '  <div class="row" style="margin-top:8px">' +
+        '    <input class="excl" placeholder="exclude pattern e.g. /wp-admin/*" style="flex:1">' +
+        "    <button class=addex>Add exclusion</button>" +
+        "    <button class=imp>Import sitemap</button>" +
+        "  </div>" +
+        '  <p class="exlst muted" style="margin:6px 0"></p>' +
         '  <p class="muted" style="margin-bottom:4px">Recent 404s</p>' +
         '  <div class="ev"></div>' +
         "</div>");
+      const exlst = card.querySelector(".exlst");
+      const excls = s.exclude_patterns || [];
+      function drawExcls() {
+        exlst.innerHTML = "";
+        if (!excls.length) { exlst.textContent = "No exclusions."; return; }
+        for (const e of excls) {
+          const chip = $("<span></span>");
+          chip.style.cssText = "display:inline-block;background:#101018;border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px 4px 2px 0";
+          chip.textContent = e + " ×";
+          chip.style.cursor = "pointer";
+          chip.title = "click to remove";
+          chip.onclick = async () => {
+            const next = excls.filter((x) => x !== e);
+            await api("/api/sites/" + s.id, {method:"PATCH", body: JSON.stringify({exclude_patterns: next})});
+            excls.length = 0; excls.push(...next); drawExcls();
+          };
+          exlst.append(chip);
+        }
+      }
+      drawExcls();
+      card.querySelector(".addex").onclick = async () => {
+        const v = card.querySelector(".excl").value.trim();
+        if (!v) return;
+        const next = excls.concat([v]);
+        const r = await api("/api/sites/" + s.id, {method:"PATCH", body: JSON.stringify({exclude_patterns: next})});
+        if (r.error) { alert(r.error); return; }
+        excls.length = 0; excls.push(...next); card.querySelector(".excl").value = ""; drawExcls();
+      };
+      card.querySelector(".imp").onclick = async () => {
+        card.querySelector(".imp").textContent = "Importing…";
+        const r = await api("/api/sites/" + s.id + "/import-sitemap", {method:"POST", body: "{}"});
+        card.querySelector(".imp").textContent = "Import sitemap";
+        alert(r.error ? r.error : "Imported " + r.imported + " URLs from sitemap");
+      };
       const ev = card.querySelector(".ev");
       api("/api/sites/" + s.id + "/events?limit=10").then(function(res){
         const events = res.events;
