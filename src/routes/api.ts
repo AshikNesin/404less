@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { newId, newSiteKey, now, SESSION_COOKIE, verifySession } from '../lib/auth';
 import { sitemap } from './sitemap';
+import { channels } from './channels';
 import { siteForUser } from './helpers';
 import type { Env } from '../types';
 
@@ -17,8 +18,40 @@ api.use('*', async (c, next) => {
   await next();
 });
 
-// mounted AFTER auth middleware: POST /api/sites/:id/import-sitemap, GET /api/sites/:id/known-urls
-api.route('/', sitemap);
+// mounted AFTER auth middleware
+api.route('/', sitemap);   // POST /api/sites/:id/import-sitemap, GET /api/sites/:id/known-urls
+api.route('/', channels);  // channels CRUD, alerts history, notify settings, test-send
+
+// CSV export (RICE 153): events or aggregated by url
+api.get('/sites/:id/events.csv', async (c) => {
+  const site = await siteForUser(c.env, c.req.param('id'), c.get('userId'));
+  if ('error' in site) return c.json({ error: site.error }, site.status as 403 | 404);
+  const group = c.req.query('group') === 'url';
+  const limit = Math.min(Number(c.req.query('limit') ?? 5000), 5000);
+  type Row = { url: string; hits?: number; first_seen?: number; last_seen?: number; referrer?: string | null; user_agent?: string | null; ts?: number };
+  const rows: { results: Row[] } = group
+    ? await c.env.DB.prepare(
+        'SELECT url, COUNT(*) AS hits, MIN(ts) AS first_seen, MAX(ts) AS last_seen FROM not_found_events WHERE website_id = ? GROUP BY url ORDER BY hits DESC LIMIT ?',
+      ).bind(site.site.id, limit).all<{ url: string; hits: number; first_seen: number; last_seen: number }>()
+    : await c.env.DB.prepare(
+        'SELECT url, referrer, user_agent, ts FROM not_found_events WHERE website_id = ? ORDER BY ts DESC LIMIT ?',
+      ).bind(site.site.id, limit).all<{ url: string; referrer: string | null; user_agent: string | null; ts: number }>();
+
+  const esc = (v: unknown) => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = group ? 'url,hits,first_seen,last_seen' : 'url,referrer,user_agent,ts';
+  const body = rows.results.map((r) =>
+    group
+      ? [r.url, r.hits ?? 0, new Date(r.first_seen ?? 0).toISOString(), new Date(r.last_seen ?? 0).toISOString()].map(esc).join(',')
+      : [r.url, r.referrer ?? '', r.user_agent ?? '', new Date(r.ts ?? 0).toISOString()].map(esc).join(','),
+  ).join('\n');
+  return c.body(`${header}\n${body}\n`, 200, {
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': `attachment; filename="404less-${site.site.domain}${group ? '-grouped' : ''}.csv"`,
+  });
+});
 
 // --- teams ---
 
@@ -105,9 +138,14 @@ api.patch('/sites/:id', async (c) => {
   const ignore = body.ignore_status_codes !== undefined ? parse(body.ignore_status_codes, cur!.ignore_status_codes) : cur!.ignore_status_codes;
   const excl = body.exclude_patterns !== undefined ? parse(body.exclude_patterns, cur!.exclude_patterns) : cur!.exclude_patterns;
   const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 100) : site.site.name;
+  const notify = typeof body?.notify_enabled === 'boolean' ? (body.notify_enabled ? 1 : 0) : undefined;
+  const digest = Number.isInteger(body?.digest_minutes) && body.digest_minutes >= 5 && body.digest_minutes <= 1440
+    ? body.digest_minutes : undefined;
+  if (body?.digest_minutes !== undefined && digest === undefined) return c.json({ error: 'digest_minutes must be 5..1440' }, 400);
 
-  await c.env.DB.prepare('UPDATE websites SET name = ?, ignore_status_codes = ?, exclude_patterns = ? WHERE id = ?')
-    .bind(name, ignore, excl, site.site.id).run();
+  await c.env.DB.prepare(
+    'UPDATE websites SET name = ?, ignore_status_codes = ?, exclude_patterns = ?, notify_enabled = COALESCE(?, notify_enabled), digest_minutes = COALESCE(?, digest_minutes) WHERE id = ?',
+  ).bind(name, ignore, excl, notify ?? null, digest ?? null, site.site.id).run();
   return c.json({ ok: true, site: { id: site.site.id, name, ignore_status_codes: JSON.parse(ignore), exclude_patterns: JSON.parse(excl) } });
 });
 

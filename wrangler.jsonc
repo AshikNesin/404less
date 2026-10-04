@@ -12,5 +12,13 @@
       "database_name": "404less",
       "migrations_dir": "migrations"
     }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "DIGEST", "class_name": "DigestDO" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["DigestDO"] }
   ]
 }

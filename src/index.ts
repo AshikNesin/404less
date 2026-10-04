@@ -7,6 +7,7 @@ import { ingest } from './routes/ingest';
 import { auth } from './routes/auth';
 import { api } from './routes/api';
 import { dashboardHtml } from './dashboard_html';
+import { DigestDO } from './do/digest';
 import type { Env } from './types.ts';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -25,3 +26,5 @@ app.get('/', (c) => c.html(dashboardHtml));
 app.get('/dashboard', (c) => c.html(dashboardHtml));
 
 export default app;
+
+export { DigestDO };

@@ -1,6 +1,7 @@
 // Shared Worker bindings & types.
 export type Env = {
   DB: D1Database;
+  DIGEST: DurableObjectNamespace;
   MAX_SITES_PER_TEAM?: string;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;

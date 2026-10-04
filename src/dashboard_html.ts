@@ -75,6 +75,72 @@ async function dashboardView(teams) {
     if (r.error) { alert(r.error); return; }
     const s2 = await api("/api/sites"); render(s2.sites);
   };
+  // --- channels (team = first team) ---
+  const chanCard = $(
+    '<div class="card">' +
+    '  <div class="row" style="justify-content:space-between"><b>Notifications</b><span class=muted>per team</span></div>' +
+    '  <div class="chlst"><span class=muted>loading…</span></div>' +
+    '  <div class="row" style="margin-top:8px">' +
+    '    <select class="ctype" style="flex:0 0 110px">' +
+    '      <option value="slack">Slack</option><option value="pushover">Pushover</option><option value="email">Email</option>' +
+    '    </select>' +
+    '    <input class="cval" placeholder="webhook URL / token:user / you@x.com" style="flex:1">' +
+    '    <button class=cadd>Add channel</button>' +
+    '  </div>' +
+    '</div>');
+  app.append(chanCard);
+  const chlst = chanCard.querySelector(".chlst");
+  async function teamIdOf() {
+    const t = await api("/api/teams");
+    return t.teams && t.teams[0] && t.teams[0].id;
+  }
+  async function drawChannels() {
+    const tid = await teamIdOf();
+    if (!tid) { chlst.innerHTML = "<p class=muted>Create a team first (add a site).</p>"; return; }
+    const r = await api("/api/teams/" + tid + "/channels");
+    chlst.innerHTML = "";
+    if (!r.channels || !r.channels.length) { chlst.append($("<p class=muted>No channels yet. Add one below.</p>")); }
+    for (const ch of (r.channels || [])) {
+      const row = $(
+        '<div class="row" style="justify-content:space-between;margin:4px 0">' +
+        '  <span>' + ch.type + " — <b>" + ch.name + "</b>" + (ch.enabled ? "" : " <span class=muted>(disabled)</span>") + "</span>" +
+        '  <span><button class="tgl">' + (ch.enabled ? "Disable" : "Enable") + '</button> <button class="tst">Test</button> <button class="del" style="background:#fff;border-color:#f3c7c7;color:#b91c1c">Remove</button></span>' +
+        "</div>");
+      const tid2 = tid;
+      row.querySelector(".tgl").onclick = async () => {
+        await api("/api/teams/" + tid2 + "/channels/" + ch.id, {method:"PATCH", body: JSON.stringify({enabled: !ch.enabled})});
+        drawChannels();
+      };
+      row.querySelector(".del").onclick = async () => {
+        await api("/api/teams/" + tid2 + "/channels/" + ch.id, {method:"DELETE"});
+        drawChannels();
+      };
+      row.querySelector(".tst").onclick = async () => {
+        const t = await api("/api/teams/" + tid2 + "/channels/" + ch.id + "/test", {method:"POST", body:"{}"});
+        alert(t.ok ? "Test sent — check the channel" : ("Test failed: " + (t.error || "unknown")));
+      };
+      chlst.append(row);
+    }
+  }
+  drawChannels();
+  chanCard.querySelector(".cadd").onclick = async () => {
+    const tid = await teamIdOf();
+    const type = chanCard.querySelector(".ctype").value;
+    const v = chanCard.querySelector(".cval").value.trim();
+    let config = null;
+    if (type === "slack") config = {url: v};
+    else if (type === "email") config = {to: v};
+    else {
+      const parts = v.split(":");
+      if (parts.length !== 2) { alert("Pushover format: token:user"); return; }
+      config = {token: parts[0], user: parts[1]};
+    }
+    const r = await api("/api/teams/" + tid + "/channels", {method:"POST", body: JSON.stringify({type, config})});
+    if (r.error) { alert(r.error); return; }
+    chanCard.querySelector(".cval").value = "";
+    drawChannels();
+  };
+
   function render(sites) {
     list.innerHTML = "";
     if (!sites.length) { list.append($("<p class=muted>No sites yet. Add one above.</p>")); return; }
@@ -92,6 +158,13 @@ async function dashboardView(teams) {
         "    <button class=imp>Import sitemap</button>" +
         "  </div>" +
         '  <p class="exlst muted" style="margin:6px 0"></p>' +
+        '  <div class="row" style="margin:6px 0">' +
+        '    <label class="row" style="gap:6px"><input type="checkbox" class="ntf"> alerts</label>' +
+        '    <select class="dgm">' +
+        '      <option value="15">15 min digest</option><option value="60">60 min</option><option value="1440">daily</option>' +
+        "    </select>" +
+        '    <a class="csv1" href="#" style="color:var(--acc)">CSV</a> <a class="csv2" href="#" style="color:var(--acc)">CSV (grouped)</a>' +
+        "  </div>" +
         '  <p class="muted" style="margin-bottom:4px">Recent 404s</p>' +
         '  <div class="ev"></div>' +
         "</div>");
@@ -123,6 +196,18 @@ async function dashboardView(teams) {
         if (r.error) { alert(r.error); return; }
         excls.length = 0; excls.push(...next); card.querySelector(".excl").value = ""; drawExcls();
       };
+      const ntf = card.querySelector(".ntf");
+      const dgm = card.querySelector(".dgm");
+      ntf.checked = s.notify_enabled !== 0;
+      dgm.value = String(Math.min(1440, Math.max(15, s.digest_minutes || 15)));
+      ntf.onchange = async () => {
+        await api("/api/sites/" + s.id, {method:"PATCH", body: JSON.stringify({notify_enabled: ntf.checked})});
+      };
+      dgm.onchange = async () => {
+        await api("/api/sites/" + s.id, {method:"PATCH", body: JSON.stringify({digest_minutes: Number(dgm.value)})});
+      };
+      card.querySelector(".csv1").href = "/api/sites/" + s.id + "/events.csv";
+      card.querySelector(".csv2").href = "/api/sites/" + s.id + "/events.csv?group=url";
       card.querySelector(".imp").onclick = async () => {
         card.querySelector(".imp").textContent = "Importing…";
         const r = await api("/api/sites/" + s.id + "/import-sitemap", {method:"POST", body: "{}"});

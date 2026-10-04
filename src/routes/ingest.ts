@@ -32,6 +32,16 @@ ingest.post('/track', async (c) => {
   )
     .bind(crypto.randomUUID(), site.id, parsed.toString(), body.referrer ?? null, c.req.header('User-Agent') ?? null, Date.now())
     .run();
+
+  // forward to per-site digest DO (no-op until channels exist; alarm flushes)
+  const doStub = c.env.DIGEST.get(c.env.DIGEST.idFromName(site.id));
+  c.executionCtx.waitUntil(
+    doStub.fetch('https://digest/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: parsed.toString(), ts: Date.now(), referrer: body.referrer ?? null }),
+    }),
+  );
   return c.json({ ok: true });
 });
 
