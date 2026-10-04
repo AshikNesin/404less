@@ -33,7 +33,7 @@ the link is returned in the API response (`devLink`) — easy local testing.
 
 ## Deploy to Cloudflare
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/YOUR_USER/404less)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less)
 
 ```bash
 npx wrangler d1 create 404less   # paste database_id into wrangler.jsonc
