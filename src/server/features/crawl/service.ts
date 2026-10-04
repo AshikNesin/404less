@@ -2,6 +2,7 @@
 import type { CrawlMessage } from '../../../types';
 import type { Env } from '../../../types';
 import { extractLinks } from './html';
+import { loadRobots, type Robots } from './robots';
 import { checkUrl } from './checker';
 
 export type CrawlSiteRow = {
@@ -73,13 +74,16 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     if (excluded(a, excludes)) continue;
     next.push({ kind: 'check-link', siteId: site.id, url: a, sourceUrl: url });
   }
-  // enqueue same-host pages for further crawling
+  // enqueue same-host pages for further crawling (robots-respecting, memoized per run)
   if (depth < 2) {
+    let robots: Robots | null = null;
     for (const l of links) {
       let u: URL;
       try { u = new URL(l.url); } catch { continue; }
       if (u.hostname.replace(/^www\./, '') !== host) continue;
       if (u.hash || u.search) continue;
+      robots ??= await loadRobots(`https://${site.domain}`);
+      if (!robots.allowed(u.pathname)) continue;
       next.push({ kind: 'fetch-page', siteId: site.id, url: l.url, depth: depth + 1 });
     }
   }

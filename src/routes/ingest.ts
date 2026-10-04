@@ -23,6 +23,11 @@ ingest.post('/track', async (c) => {
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return c.json({ error: 'bad url' }, 400);
 
+  // Per-site rate limit (protects the free-tier D1 write budget)
+  const rl = c.env.RATELIMIT.get(c.env.RATELIMIT.idFromName(site.id));
+  const verdict = await rl.fetch(`https://ratelimit/${site.id}/check`, { method: 'POST' });
+  if (verdict.status === 429) return c.json({ ok: true, limited: true });
+
   // Per-site exclusions (RICE 203): drop events the user chose to ignore.
   const { excludes } = siteFilters(site as never);
   if (excludes.some((p) => urlMatchesPattern(parsed.toString(), p))) return c.json({ ok: true, ignored: true });

@@ -4,6 +4,9 @@ export type Env = {
   DIGEST: DurableObjectNamespace;
   CRAWLQ: Queue<CrawlMessage>;
   MAX_SITES_PER_TEAM?: string;
+  EVENT_RETENTION_DAYS?: string;
+  /** RateLimiterDO binding (declared in wrangler.jsonc) */
+  RATELIMIT: DurableObjectNamespace;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
 };

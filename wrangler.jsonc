@@ -23,18 +23,20 @@
       { "binding": "CRAWLQ", "queue": "404less-crawl" }
     ],
     "consumers": [
-      { "binding": "CRAWLQ", "queue": "404less-crawl", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
+      { "queue": "404less-crawl", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
     ]
   },
   "triggers": {
-    "crons": [ "*/30 * * * *" ]
+    "crons": [ "*/30 * * * *", "17 3 * * *" ]
   },
   "durable_objects": {
     "bindings": [
-      { "name": "DIGEST", "class_name": "DigestDO" }
+      { "name": "DIGEST", "class_name": "DigestDO" },
+      { "name": "RATELIMIT", "class_name": "RateLimiterDO" }
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["DigestDO"] }
+    { "tag": "v1", "new_sqlite_classes": ["DigestDO"] },
+    { "tag": "v2", "new_sqlite_classes": ["RateLimiterDO"] }
   ]
 }

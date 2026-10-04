@@ -28,6 +28,7 @@ app.route('/', mcp);             // POST /mcp (MCP streamable HTTP, bearer auth)
 // Module-format entrypoint. DO classes must be top-level named exports (wrangler
 // discovers them by name); handlers ride on the default export object.
 export { DigestDO } from './do/digest';
+export { RateLimiterDO } from './server/features/quota/service';
 
 export default {
   fetch: app.fetch.bind(app),

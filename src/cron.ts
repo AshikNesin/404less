@@ -4,6 +4,13 @@ import type { CrawlMessage, Env } from './types';
 
 /** Cron: enqueue crawl-site for every site with crawling enabled. */
 export async function scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  // nightly retention prune (17:03 UTC cron)
+  if (controller.cron === '17 3 * * *') {
+    const { pruneEvents } = await import('./server/features/events/retention');
+    const { deleted } = await pruneEvents(env);
+    console.log(`[404less] retention pruned ${deleted} events`);
+    return;
+  }
   const sites = await env.DB.prepare('SELECT id FROM websites WHERE crawl_enabled = 1').all<{ id: string }>();
   const messages = sites.results.map((s) => ({ body: { kind: 'crawl-site', siteId: s.id } as CrawlMessage }));
   if (messages.length) await env.CRAWLQ.sendBatch(messages);
