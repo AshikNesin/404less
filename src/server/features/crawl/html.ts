@@ -37,6 +37,22 @@ function stripTags(s: string): string {
   return s.replace(/<[^>]+>/g, ' ');
 }
 
+/** Real page title from <title> (og:title fallback); null when absent. */
+export function pageTitle(html: string): string | null {
+  const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  if (m) {
+    const t = decodeXml(m[1]).replace(/\s+/g, ' ').trim();
+    if (t) return t.slice(0, 300);
+  }
+  const og = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+    || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+  if (og) {
+    const t = decodeXml(og[1]).replace(/\s+/g, ' ').trim();
+    if (t) return t.slice(0, 300);
+  }
+  return null;
+}
+
 function decodeXml(s: string): string {
   return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }

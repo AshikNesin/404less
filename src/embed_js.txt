@@ -96,8 +96,10 @@
         'color:' + (dark ? '#8ab4ff' : '#2563eb') + ';font-size:13.5px;',
         null);
       row.href = u.url;
-      var icon = el('span', 'flex:none;opacity:.55;font-size:12px;width:14px;text-align:center;', '↗');
-      var label = el('span', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', u.title || u.url);
+      // real page title when known; otherwise a readable path ("/til/cloudflare-claude"), never the full URL
+      var path = '';
+      try { var pu = new URL(u.url); path = pu.pathname.replace(/\/$/, '').split('/').filter(Boolean).pop() || pu.hostname; } catch (e) { path = u.url; }
+      var label = el('span', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', u.title || decodeURIComponent(path));
       row.appendChild(icon); row.appendChild(label);
       row.onmouseenter = function () { row.style.background = dark ? 'rgba(255,255,255,.07)' : '#f4f5f7'; };
       row.onmouseleave = function () { row.style.background = 'transparent'; };

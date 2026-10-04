@@ -84,7 +84,7 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
       c.env.DB.prepare(
         `INSERT INTO known_urls (id, website_id, url, title, source, added_at)
          VALUES (?, ?, ?, ?, 'sitemap', ?)
-         ON CONFLICT(website_id, url) DO UPDATE SET title = excluded.title`,
+         ON CONFLICT(website_id, url) DO NOTHING`,
       ).bind(id, site.site.id, url, title, ts),
     );
     const results = await c.env.DB.batch(stmts);

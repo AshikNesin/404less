@@ -1,8 +1,9 @@
 // Crawl orchestration: seed discovery, budgeting, result persistence, diffing.
 import type { CrawlMessage } from '../../../types';
 import type { Env } from '../../../types';
-import { extractLinks } from './html';
+import { extractLinks, pageTitle } from './html';
 import { loadRobots, type Robots } from './robots';
+import { newId } from '../../../lib/auth';
 import { checkUrl } from './checker';
 
 export type CrawlSiteRow = {
@@ -52,6 +53,16 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     html = await res.text();
   } catch {
     return next;
+  }
+
+  // capture the real page title (upgrades slug-guesses from sitemap imports)
+  const title = pageTitle(html);
+  if (title) {
+    await env.DB.prepare(
+      `INSERT INTO known_urls (id, website_id, url, title, source, added_at)
+       VALUES (?, ?, ?, ?, 'crawl', ?)
+       ON CONFLICT(website_id, url) DO UPDATE SET title = excluded.title`,
+    ).bind(newId(), site.id, url, title, Date.now()).run();
   }
 
   const { links, assets } = extractLinks(url, html);
