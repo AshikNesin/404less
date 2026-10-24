@@ -1,13 +1,13 @@
-// Landing = sign in (magic link).
+// Sign in (magic link). Lives at /app/login outside the authenticated layout.
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Bell, Bot, MailCheck, Radar, Sparkles } from 'lucide-react';
+import { ArrowLeft, MailCheck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input, Label } from '../components/ui/input';
 import { Alert } from '../components/ui/alert';
 import { Brand } from '../components/app-shell';
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/app_/login')({
   validateSearch: (s: Record<string, unknown>): { error?: string } => (typeof s.error === 'string' ? { error: s.error } : {}),
   beforeLoad: async () => {
     const res = await fetch('/api/me');
@@ -15,13 +15,6 @@ export const Route = createFileRoute('/')({
   },
   component: LoginPage,
 });
-
-const FEATURES = [
-  { Icon: Radar, title: 'Realtime 404 tracking', text: 'A one-line snippet reports every hit, with referrer, and shows visitors a “did you mean” card.' },
-  { Icon: Bot, title: 'Scheduled crawler', text: 'Checks every link and asset, captures redirect chains, and auto-resolves links once they work again.' },
-  { Icon: Bell, title: 'Digests, not noise', text: 'Slack, Pushover or email — one grouped digest per window, suggested fixes included.' },
-  { Icon: Sparkles, title: 'MCP for your agent', text: 'Read-only tools so Claude Code or Cursor can list broken links and open the fix PR.' },
-];
 
 function LoginPage() {
   const { error } = Route.useSearch();
@@ -57,31 +50,15 @@ function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-[1.1fr_1fr]">
-      <section className="hidden flex-col justify-between bg-sidebar p-10 lg:flex">
-        <Brand />
-        <div className="max-w-md space-y-8">
-          <div className="space-y-3">
-            <h1 className="text-[2rem] leading-tight font-semibold tracking-tight">Broken links, found and fixed before your visitors give up.</h1>
-            <p className="text-[0.9375rem] text-muted-foreground">Self-hostable on Cloudflare’s free tier. Realtime 404 tracking, a scheduled crawler, grouped alerts and suggested fixes in one calm dashboard.</p>
-          </div>
-          <ul className="space-y-4">
-            {FEATURES.map(({ Icon, title, text }) => (
-              <li key={title} className="flex gap-3">
-                <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-foreground shadow-xs"><Icon className="size-4" /></span>
-                <span><span className="block text-[0.875rem] font-medium">{title}</span><span className="block text-[0.8125rem] text-muted-foreground">{text}</span></span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className="text-meta">Open source · MIT · <a className="hover:text-foreground" href="https://github.com/AshikNesin/404less" target="_blank" rel="noreferrer">github.com/AshikNesin/404less</a></p>
-      </section>
-
-      <section className="flex items-center justify-center px-5 py-10">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="flex h-14 items-center justify-between px-5 md:px-8">
+        <a href="/"><Brand /></a>
+        <a href="/" className="link inline-flex items-center gap-1 text-[0.8125rem]"><ArrowLeft className="size-3.5" /> Back to 404less.com</a>
+      </header>
+      <main className="flex flex-1 items-center justify-center px-5 py-10">
         <div className="w-full max-w-sm space-y-6">
-          <div className="lg:hidden"><Brand /></div>
           <div>
-            <h2 className="text-page-title">Sign in</h2>
+            <h1 className="text-page-title">Sign in</h1>
             <p className="text-caption mt-1">We’ll email you a link. No password to remember.</p>
           </div>
           {error === 'expired' && <Alert tone="warning" title="That link has expired or was already used.">Request a new one below.</Alert>}
@@ -102,7 +79,7 @@ function LoginPage() {
           )}
           <p className="text-meta">First time here? Signing in creates your account and a personal team.</p>
         </div>
-      </section>
+      </main>
     </div>
   );
 }

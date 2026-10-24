@@ -9,6 +9,8 @@ export type Env = {
   RATELIMIT: DurableObjectNamespace;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
+  /** Static assets (dist/web): marketing site + SPA shell. Absent in unit tests. */
+  ASSETS?: Fetcher;
 };
 
 export type CrawlMessage =

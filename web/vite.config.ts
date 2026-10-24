@@ -10,8 +10,25 @@ export default defineConfig({
     tanstackRouter({ target: 'react', autoCodeSplitting: true, routesDirectory: './src/routes', generatedRouteTree: './src/routeTree.gen.ts' }),
     react(),
     tailwindcss(),
+    // dev server: the SPA lives under /app; the marketing site (site/) is built separately
+    {
+      name: 'app-shell',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url === '/' ) { req.url = '/app.html'; }
+          else if (req.url?.startsWith('/app') && !req.url.startsWith('/app.html')) req.url = '/app.html';
+          next();
+        });
+        return () => server.middlewares.use(async (req, res, next) => {
+          if (req.url !== '/app.html') return next();
+          const html = await server.transformIndexHtml('/app', await (await import('node:fs/promises')).readFile(new URL('./app.html', import.meta.url), 'utf8'));
+          res.setHeader('Content-Type', 'text/html'); res.end(html);
+        });
+      },
+    },
   ],
-  build: { outDir: '../dist/web', emptyOutDir: true },
+  appType: 'custom',
+  build: { outDir: '../dist/web', emptyOutDir: true, rollupOptions: { input: 'app.html' } },
   server: {
     port: 5173,
     proxy: {

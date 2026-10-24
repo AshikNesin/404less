@@ -1,0 +1,174 @@
+<!--meta
+{
+  "path": "/",
+  "nav": "home",
+  "title": "404less — Broken links, found and fixed before your visitors give up",
+  "ogTitle": "Broken links, found and fixed before your visitors give up.",
+  "description": "Realtime 404 tracking, a scheduled crawler, suggested fixes and grouped alerts in one minimal dashboard. Open source, self-hosted on Cloudflare's free tier.",
+  "og": "/og/og.png"
+}
+-->
+  <section class="hero">
+    <div class="container">
+      <span class="eyebrow"><span class="dot"></span> Open source · runs on Cloudflare’s free tier</span>
+      <h1>Broken links, found and fixed before your visitors give up.</h1>
+      <p class="lead">One script tag catches every 404 your visitors hit. A crawler finds the ones nobody clicked yet. Everything lands in one list with a suggested fix, a redirect rule, and alerts that don’t spam you.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less" rel="noopener">Deploy to Cloudflare <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn-secondary" href="https://github.com/AshikNesin/404less" rel="noopener">View on GitHub</a>
+      </div>
+      <p class="note">Your own Worker, D1 and Queues. No account with us, no usage fees at hobby scale.</p>
+    </div>
+  </section>
+  <div class="shot-wrap">
+    <div class="container">
+      <div class="frame">
+        <div class="bar"><i></i><i></i><i></i><span class="url">app.404less.com/sites/acme-docs</span></div>
+        <div class="crop" style="aspect-ratio: 1440 / 900"><img src="/img/overview.webp" alt="The 404less overview: open broken links, 404 hits per day, and the links that need attention with suggested fixes" width="2400" height="1500" loading="eager" fetchpriority="high"></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="section" id="how">
+    <div class="container">
+      <div class="section-head">
+        <h2>How it works</h2>
+        <p>Install in a minute. Then it mostly runs itself.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="vis"><pre class="code"><span class="m">&lt;</span><span class="k">script</span> <span class="p">src</span><span class="m">=</span><span class="s">"https://404less.com/embed.js"</span>
+        <span class="p">data-site</span><span class="m">=</span><span class="s">"k8f2a9c1e4"</span> <span class="p">defer</span><span class="m">&gt;&lt;/</span><span class="k">script</span><span class="m">&gt;</span></pre></div>
+          <div class="body"><span class="n">1</span><h3>Add one script tag to your 404 page</h3><p>It reports each hit with its referrer, and shows the visitor the closest matching pages so they don’t bounce. <a class="link" href="/embed">Embed options →</a></p></div>
+        </div>
+        <div class="step">
+          <div class="vis"><img src="/img/links-sel2.webp" alt="The broken links list with two rows selected and a bulk Resolve action"></div>
+          <div class="body"><span class="n">2</span><h3>Everything lands in one list</h3><p>Visitor 404s and crawler findings together, ranked by hits. Resolve what you fixed, ignore what’s noise. If it breaks again, it reopens on its own.</p></div>
+        </div>
+        <div class="step">
+          <div class="vis"><img src="/img/detail-vercel.webp" alt="A broken link’s detail page with ranked suggested fixes and a Vercel redirect rule" style="left:-112px;top:-108px;width:215%"></div>
+          <div class="body"><span class="n">3</span><h3>Fix it with a redirect rule</h3><p>Pick a suggested target and copy the rule for your platform: <code class="inline-code">_redirects</code>, Vercel, Next.js, Nginx or Apache. Or let your agent do it.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-head">
+        <h2>Built for the job, not a suite.</h2>
+        <p>Six things, done properly. No uptime checks, no keyword rankings, no bloat.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="4"/></svg></span><h3>Realtime 404 tracking</h3><p>Every hit, with the referrer that sent it there and a 30-day trend. Fragments stripped, exclusions honored, rate-limited per site.</p></div>
+        <div class="card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="3"/><path d="M12 4v4M8 14h.01M16 14h.01M8 20v1M16 20v1"/></svg></span><h3>Scheduled crawler</h3><p>Fetches your pages, checks every link and asset, records redirect chains, respects robots.txt, and re-verifies open links so fixes resolve themselves.</p></div>
+        <div class="card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span><h3>Suggested fixes</h3><p>Ranks your known pages by path similarity, so <code class="inline-code">/docs/instalation</code> points at <code class="inline-code">/docs/installation</code> before anyone has to think.</p></div>
+        <div class="card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11a4 4 0 0 1 0 8H9"/><path d="m12 11-3 4 3 4"/></svg></span><h3>Redirect rules, ready to paste</h3><p>One click gives you the exact rule for <code class="inline-code">_redirects</code>, Vercel, Next.js, Nginx or Apache. The fix is a commit, not a ticket.</p></div>
+        <div class="card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg></span><h3>Digests, not noise</h3><p>Slack, email or Pushover. One grouped digest per window per site, from five minutes to daily. Ignored links never alert.</p></div>
+        <div class="card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m8 10 2 2-2 2M12 14h4"/></svg></span><h3>MCP for your agent</h3><p>Read-only tools over streamable HTTP. Claude Code or Cursor can list what’s broken and open the fix PR. 404less never writes to your repo.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="widget">
+    <div class="container">
+      <div class="split">
+        <div>
+          <h2>Your visitors see this instead of a dead end.</h2>
+          <p class="lead">The snippet detects a 404 page, reports the hit, and asks 404less for the closest known pages. The card takes your accent color and renders inline or as a quiet toast.</p>
+          <ul class="list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Isolated in a shadow root, so it never fights your CSS</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>No cookies, no tracking on pages that aren’t a 404</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Light and dark, reduced-motion aware, dismissible, keyboard accessible</li>
+          </ul>
+          <div style="margin-top:28px"><a class="btn btn-secondary" href="/embed">Embed options</a></div>
+        </div>
+        <div class="mock404">
+          <div class="big">404</div>
+          <div class="t">Page not found</div>
+          <div class="d">We couldn’t find that page on docs.acme.dev.</div>
+          <img src="/img/widget.webp" alt="The 404less suggestion card: “Looking for something?” with three matching pages" width="960" height="518">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="agent">
+    <div class="container on-dark">
+      <div class="split">
+        <div>
+          <h2>Or hand it to your agent.</h2>
+          <p class="lead">Point Claude Code, Cursor or any MCP client at your instance. The tools are read-only by design: your agent gets the list, the referrers and the suggested targets, and opens the pull request in your repo.</p>
+          <ul class="list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><code class="inline-code" style="background:rgba(255,255,255,.08)">list_sites</code>&nbsp;· <code class="inline-code" style="background:rgba(255,255,255,.08)">list_broken_links</code>&nbsp;· <code class="inline-code" style="background:rgba(255,255,255,.08)">get_link_details</code>&nbsp;· <code class="inline-code" style="background:rgba(255,255,255,.08)">get_suggestions</code></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Streamable HTTP, bearer API key, scoped to your team’s sites</li>
+          </ul>
+          <div style="margin-top:28px"><a class="btn btn-secondary" href="/agent">Agent setup</a></div>
+        </div>
+        <pre class="code"><span class="m">$</span> claude mcp add --transport http 404less \
+    https://404less.com/mcp \
+    --header <span class="s">"Authorization: Bearer 404l_…"</span>
+<span class="s">✓</span> <span class="m">Added 404less · 4 tools</span>
+
+<span class="k">›</span> Which broken links on docs.acme.dev matter most?
+  Draft the redirects.
+  <span class="m">Top 3 by hits: /docs/getting-startd (40),</span>
+  <span class="m">/docs/instalation (23), /blog/launch-post (15)</span>
+  <span class="m">Drafted 3 redirects in vercel.json</span>
+<span class="s">✓ Opened PR #142 · fix: redirect 3 broken docs URLs</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="selfhost">
+    <div class="container">
+      <div class="split">
+        <div>
+          <h2>Self-host in one click. Pay nothing at hobby scale.</h2>
+          <p class="lead">The whole thing is one Cloudflare Worker with D1, Queues and Durable Objects, all on the Workers Free plan. The deploy button provisions everything in your account.</p>
+          <ul class="list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Your data stays in your account; 90-day retention by default</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Magic-link sign-in; email via Resend when you want it, dev mode when you don’t</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>MIT licensed. Fork it, change it, keep it.</li>
+          </ul>
+          <div style="margin-top:28px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn btn-primary" href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less" rel="noopener">Deploy to Cloudflare</a><a class="btn btn-secondary" href="/self-host">Deploy guide</a></div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Resource</th><th>Free plan</th><th>404less at hobby scale</th></tr></thead>
+            <tbody>
+              <tr><td>Worker requests</td><td>100k / day</td><td>Hits, dashboard, crawler — thousands</td></tr>
+              <tr><td>D1 writes</td><td>100k / day</td><td>Bounded by per-site rate limit + retention</td></tr>
+              <tr><td>Queues</td><td>10k ops / day</td><td>Crawl batches, capped per run</td></tr>
+              <tr><td>Durable Objects</td><td>100k req / day</td><td>Digest windows and rate limiters</td></tr>
+              <tr><td>Cron triggers</td><td>3 per Worker</td><td>Crawler + nightly retention</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section tight" id="faq">
+    <div class="container">
+      <div class="section-head"><h2>Questions</h2></div>
+      <div class="faq">
+        <details><summary>Is it really free?</summary><div class="a">The software is MIT licensed and designed to fit the Cloudflare Workers Free plan at hobby scale: a few sites, thousands of hits a day. Cloudflare bills you directly if you outgrow the free tier; 404less has no fees of its own.</div></details>
+        <details><summary>What does the snippet collect?</summary><div class="a">Only on a page it detects as a 404: the URL, the referrer, and the user agent. It sets no cookies and does nothing on pages that aren’t a 404. Hits are rate-limited per site and pruned after 90 days by default.</div></details>
+        <details><summary>Will it slow my site down?</summary><div class="a">The script is about 14 KB, loads deferred, and only acts on 404 pages. The hit is sent with <code class="inline-code">sendBeacon</code>, so it never blocks navigation.</div></details>
+        <details><summary>How is this different from Ahrefs or Oh Dear?</summary><div class="a">Those are broad suites that include a crawl. 404less does one job end to end: it sees the 404s visitors actually hit, finds the rest with a crawler, suggests the fix, hands you the redirect rule, and keeps the list clean with resolve/ignore and automatic reopening. And you host it yourself.</div></details>
+        <details><summary>Can I monitor several sites?</summary><div class="a">Yes. Sites belong to a team; each has its own key, filters, crawl schedule and alert settings. The default cap is five sites per team to protect free-tier limits, and it’s a one-line setting to raise.</div></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="container">
+      <h2>Stop losing visitors to pages that moved.</h2>
+      <p>Deploy your own 404less in a few minutes, or read the source first.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less" rel="noopener">Deploy to Cloudflare</a>
+        <a class="btn btn-secondary" href="https://github.com/AshikNesin/404less" rel="noopener">Read the source</a>
+      </div>
+    </div>
+  </section>

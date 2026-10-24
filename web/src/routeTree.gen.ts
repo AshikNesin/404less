@@ -9,10 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppLoginRouteImport } from './routes/app_.login'
 import { Route as AppSettingsApiKeysRouteImport } from './routes/app.settings.api-keys'
 import { Route as AppSettingsChannelsRouteImport } from './routes/app.settings.channels'
 import { Route as AppSitesSiteIdRouteImport } from './routes/app.sites.$siteId'
@@ -23,25 +22,20 @@ import { Route as AppSitesSiteIdSettingsRouteImport } from './routes/app.sites.$
 import { Route as AppSitesSiteIdLinksIndexRouteImport } from './routes/app.sites.$siteId.links.index'
 import { Route as AppSitesSiteIdLinksLinkIdRouteImport } from './routes/app.sites.$siteId.links.$linkId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const AppLoginRoute = AppLoginRouteImport.update({
+  id: '/app_/login',
+  path: '/app/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsApiKeysRoute = AppSettingsApiKeysRouteImport.update({
   id: '/settings/api-keys',
@@ -92,9 +86,8 @@ const AppSitesSiteIdLinksLinkIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/dashboard': typeof DashboardRoute
+  '/app/login': typeof AppLoginRoute
   '/app/': typeof AppIndexRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/channels': typeof AppSettingsChannelsRoute
@@ -107,8 +100,7 @@ export interface FileRoutesByFullPath {
   '/app/sites/$siteId/links/': typeof AppSitesSiteIdLinksIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/app/login': typeof AppLoginRoute
   '/app': typeof AppIndexRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/channels': typeof AppSettingsChannelsRoute
@@ -121,9 +113,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/dashboard': typeof DashboardRoute
+  '/app_/login': typeof AppLoginRoute
   '/app/': typeof AppIndexRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/channels': typeof AppSettingsChannelsRoute
@@ -138,9 +129,8 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/app'
-    | '/dashboard'
+    | '/app/login'
     | '/app/'
     | '/app/settings/api-keys'
     | '/app/settings/channels'
@@ -153,8 +143,7 @@ export interface FileRouteTypes {
     | '/app/sites/$siteId/links/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/dashboard'
+    | '/app/login'
     | '/app'
     | '/app/settings/api-keys'
     | '/app/settings/channels'
@@ -166,9 +155,8 @@ export interface FileRouteTypes {
     | '/app/sites/$siteId/links'
   id:
     | '__root__'
-    | '/'
     | '/app'
-    | '/dashboard'
+    | '/app_/login'
     | '/app/'
     | '/app/settings/api-keys'
     | '/app/settings/channels'
@@ -182,32 +170,17 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
-  DashboardRoute: typeof DashboardRoute
+  AppLoginRoute: typeof AppLoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/app': {
       id: '/app'
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -216,6 +189,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/app_/login': {
+      id: '/app_/login'
+      path: '/app/login'
+      fullPath: '/app/login'
+      preLoaderRoute: typeof AppLoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/settings/api-keys': {
       id: '/app/settings/api-keys'
@@ -322,9 +302,8 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
-  DashboardRoute: DashboardRoute,
+  AppLoginRoute: AppLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

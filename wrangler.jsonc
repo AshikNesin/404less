@@ -16,8 +16,10 @@
   ],
   "assets": {
     "directory": "./dist/web",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/auth/*", "/embed.js", "/mcp"]
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "none",
+    "run_worker_first": ["/api/*", "/auth/*", "/embed.js", "/mcp", "/app", "/app/*"]
   },
   "queues": {
     "producers": [

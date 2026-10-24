@@ -16,7 +16,7 @@ export async function api<T = unknown>(path: string, opts?: RequestInit): Promis
     ...opts,
   });
   if (res.status === 401 && !path.startsWith('/auth')) {
-    window.location.href = '/';
+    window.location.href = '/app/login';
     await new Promise(() => {}); // the browser is navigating away
   }
   const text = await res.text();

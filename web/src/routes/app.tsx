@@ -7,7 +7,7 @@ import type { Me } from '../lib/types';
 export const Route = createFileRoute('/app')({
   beforeLoad: async ({ context }) => {
     const res = await fetch('/api/me');
-    if (res.status === 401) throw redirect({ to: '/' });
+    if (res.status === 401) throw redirect({ to: '/app/login' });
     if (!res.ok) throw new Error(`Could not load your account (${res.status})`);
     const me = (await res.json()) as Me;
     context.queryClient.setQueryData(meQuery.queryKey, me);

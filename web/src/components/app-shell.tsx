@@ -207,7 +207,7 @@ function AccountFooter() {
           onClick={async () => {
             await api('/auth/logout', { method: 'POST' });
             qc.clear();
-            window.location.href = '/';
+            window.location.href = '/app/login';
           }}
         >
           <LogOut /> Sign out

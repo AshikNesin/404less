@@ -23,15 +23,20 @@ Vite + React 19 + TanStack Router/Query SPA served as Worker static assets.
 Structure follows [open-seo](https://github.com/every-app/open-seo). Design doc:
 [docs/DESIGN.md](docs/DESIGN.md).
 
+One Worker serves everything: the marketing site at `/` (`/embed`, `/self-host`,
+`/agent`), the dashboard under `/app` (sign-in at `/app/login`), the API under
+`/api`, the snippet at `/embed.js` and MCP at `/mcp`.
+
 ## Quick start (local)
 
 ```bash
 npm install && npm --prefix web install
-npm run build:web      # SPA → dist/web (served by the Worker)
+npm run build:web      # SPA + marketing site → dist/web (served by the Worker)
 npm run dev            # applies D1 migrations locally, starts the Worker on :8787
 ```
 
-Open http://127.0.0.1:8787. Without `RESEND_API_KEY` the magic-link sign-in
+Open http://127.0.0.1:8787 (site) or http://127.0.0.1:8787/app (dashboard).
+Without `RESEND_API_KEY` the magic-link sign-in
 returns the link directly (dev mode), so no email setup is needed. For UI work,
 `npm run dev:web` starts Vite on :5173 with `/api`, `/auth` and `/embed.js`
 proxied to the Worker.
@@ -40,6 +45,7 @@ proxied to the Worker.
 npm test               # vitest inside workerd + local D1 — no Cloudflare account needed
 npm run typecheck      # Worker types
 npm --prefix web run typecheck
+npm run build:og       # re-render the Open Graph images (needs Playwright; output is committed)
 ```
 
 ## Deploy to Cloudflare
@@ -107,9 +113,14 @@ src/
   do/digest.ts             per-site alert digest Durable Object
   embed_js.txt             the embed script (served at /embed.js)
 migrations/                D1 SQL migrations
-web/src/
-  routes/                  TanStack file routes (app shell, overview, links, crawl, settings)
-  features/<feature>/      queries + components per feature
-  components/ui/           primitives (button, card, table, tabs, charts, …)
+web/
+  app.html                 SPA shell (served for /app and /app/*)
+  src/routes/              TanStack file routes (app shell, login, overview, links, crawl, settings)
+  src/features/<feature>/  queries + components per feature
+  src/components/ui/       primitives (button, card, table, tabs, charts, …)
+site/
+  pages/*.html             marketing pages (index, embed, self-host, agent, 404) + layout.html
+  build.mjs                renders pages into dist/web, writes sitemap.xml + robots.txt
+  og/                      Open Graph image template + renderer → site/assets/og/*.png
 test/                      vitest suites running inside workerd via SELF.fetch()
 ```

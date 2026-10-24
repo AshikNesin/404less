@@ -1,0 +1,69 @@
+<!--meta
+{
+  "path": "/self-host",
+  "nav": "self-host",
+  "title": "Self-host 404less on Cloudflare’s free tier",
+  "ogTitle": "Self-host in one click. Pay nothing at hobby scale.",
+  "description": "Deploy your own 404less: one Cloudflare Worker with D1, Queues and Durable Objects, all on the Workers Free plan. One-click deploy or three commands.",
+  "og": "/og/og-self-host.png"
+}
+-->
+  <main class="doc">
+    <div class="container">
+      <div class="head">
+        <span class="eyebrow">Self-host</span>
+        <h1 style="margin-top:18px">Your own 404less, on Cloudflare’s free tier.</h1>
+        <p class="lead">Everything runs in one Worker with D1 (SQLite), Queues, Durable Objects and two cron triggers. All of it is on the Workers Free plan, so a personal instance costs nothing at hobby scale.</p>
+        <div class="toc"><a href="#one-click">One-click deploy</a><a href="#manual">Manual deploy</a><a href="#email">Email</a><a href="#limits">Limits &amp; budget</a><a href="#update">Updating</a></div>
+      </div>
+      <div class="body">
+        <section id="one-click">
+          <h2>One-click deploy</h2>
+          <p>The Deploy to Cloudflare button clones the repository into your GitHub account and provisions the D1 database, the queue and the Durable Objects declared in <code>wrangler.jsonc</code>. Migrations and the dashboard build run as part of the deploy.</p>
+          <p><a class="btn btn-primary" href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less" rel="noopener">Deploy to Cloudflare</a></p>
+          <p>When it finishes, open your Worker’s URL, sign in with your email, and add your first site. Without an email provider configured, the sign-in link is returned on screen (dev mode) so you can get in immediately.</p>
+        </section>
+
+        <section id="manual">
+          <h2>Manual deploy</h2>
+<pre class="code"><span class="m">$</span> git clone https://github.com/AshikNesin/404less &amp;&amp; cd 404less
+<span class="m">$</span> npm install &amp;&amp; npm --prefix web install
+<span class="m">$</span> npx wrangler d1 create 404less        <span class="c"># paste database_id into wrangler.jsonc</span>
+<span class="m">$</span> npm run deploy                         <span class="c"># builds the dashboard, applies migrations, deploys</span></pre>
+          <h3>Run it locally first</h3>
+<pre class="code"><span class="m">$</span> npm run build:web &amp;&amp; npm run dev       <span class="c"># http://127.0.0.1:8787, local D1, no account needed</span>
+<span class="m">$</span> npm test                              <span class="c"># the suite runs inside workerd against local D1</span></pre>
+        </section>
+
+        <section id="email">
+          <h2>Email</h2>
+          <p>Sign-in links and email digests go out through <a class="link" href="https://resend.com" rel="noopener">Resend</a>, whose free tier covers a personal instance. Slack and Pushover digests work without it.</p>
+<pre class="code"><span class="m">$</span> npx wrangler secret put RESEND_API_KEY
+<span class="m">$</span> npx wrangler secret put MAIL_FROM        <span class="c"># optional, e.g. "404less &lt;no-reply@yourdomain.com&gt;"</span></pre>
+          <div class="callout">No <code>RESEND_API_KEY</code> means dev mode: sign-in links are returned by the API instead of emailed. Fine for a single-user instance behind your own domain; set the key before inviting anyone else.</div>
+        </section>
+
+        <section id="limits">
+          <h2>Limits &amp; budget</h2>
+          <p>Defaults are chosen so a self-hoster never trips a free-plan ceiling by accident. Each is a variable in <code>wrangler.jsonc</code>.</p>
+          <div class="table-wrap"><table class="table">
+            <thead><tr><th>Setting</th><th>Default</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td><code>MAX_SITES_PER_TEAM</code></td><td>5</td><td>Keeps crawl volume and queue ops predictable</td></tr>
+              <tr><td><code>EVENT_RETENTION_DAYS</code></td><td>90</td><td>Nightly prune keeps D1 far under its 500 MB cap</td></tr>
+              <tr><td>Ingest rate limit</td><td>500 hits / site / hour</td><td>Protects the 100k daily D1 write budget</td></tr>
+              <tr><td>Crawl pages per run</td><td>100 (max 500)</td><td>Per-site setting on the Crawler page</td></tr>
+              <tr><td>Crawl schedule</td><td>Every 30 minutes</td><td>Only for sites with scheduling on</td></tr>
+            </tbody>
+          </table></div>
+          <p class="muted">Cloudflare’s own numbers: 100k Worker requests, 100k D1 writes and 5M reads, 10k queue operations and 100k Durable Object requests per day on the Free plan, with three cron triggers per Worker.</p>
+        </section>
+
+        <section id="update">
+          <h2>Updating</h2>
+          <p>Pull the latest commit and run <code>npm run deploy</code> again. Migrations are additive and apply automatically; the managed broken-links list is preserved across upgrades.</p>
+          <p>Custom domains are declared in <code>wrangler.jsonc</code> under <code>routes</code>; remove or replace the <code>404less.com</code> entries with yours.</p>
+        </section>
+      </div>
+    </div>
+  </main>

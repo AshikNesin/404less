@@ -1,0 +1,95 @@
+<!--meta
+{
+  "path": "/embed",
+  "nav": "embed",
+  "title": "Embed — one script tag for your 404 page · 404less",
+  "ogTitle": "One script tag. Visitors get the page they meant.",
+  "description": "Add the 404less snippet to your 404 template. It reports each hit with the referrer and shows visitors the closest matching pages. Toast or inline, themeable, no cookies.",
+  "og": "/og/og-embed.png"
+}
+-->
+  <main class="doc">
+    <div class="container">
+      <div class="head">
+        <span class="eyebrow">Embed</span>
+        <h1 style="margin-top:18px">One script tag on your 404 page.</h1>
+        <p class="lead">The snippet detects a 404, reports the hit to your 404less instance, and shows the visitor a “Looking for something?” card with the closest known pages. Nothing happens on any other page.</p>
+        <div class="toc"><a href="#install">Install</a><a href="#detect">How it detects a 404</a><a href="#options">Options</a><a href="#style">Styling</a><a href="#api">JavaScript API</a><a href="#privacy">Privacy</a></div>
+      </div>
+      <div class="body">
+        <section id="install">
+          <h2>Install</h2>
+          <p>Paste this into your 404 template, replacing the key with the one from <em>Site settings → Install</em>:</p>
+<pre class="code"><span class="m">&lt;</span><span class="k">script</span> <span class="p">src</span><span class="m">=</span><span class="s">"https://your-404less.example/embed.js"</span> <span class="p">data-site</span><span class="m">=</span><span class="s">"SITE_KEY"</span> <span class="p">defer</span><span class="m">&gt;&lt;/</span><span class="k">script</span><span class="m">&gt;</span></pre>
+          <p>Site settings has a <em>Preview the widget</em> button that opens a stand-in 404 page against your key, so you can see the result before touching your site.</p>
+        </section>
+
+        <section id="detect">
+          <h2>How it detects a 404</h2>
+          <p>Browsers don’t expose the HTTP status to scripts, so the snippet checks, in order:</p>
+          <ul>
+            <li><code>data-404="true"</code> on the script tag itself — the explicit option, recommended when you control the template.</li>
+            <li><code>window.__404less.is404 === true</code>, for single-page apps.</li>
+            <li><code>data-404</code> on <code>&lt;html&gt;</code> or <code>&lt;body&gt;</code>.</li>
+            <li>A <code>&lt;meta name="prerender-status-code" content="404"&gt;</code> or <code>&lt;meta name="404less" content="404"&gt;</code> tag.</li>
+            <li>The document title: “404”, “not found”, or “page doesn’t exist”.</li>
+          </ul>
+          <div class="callout">If your 404 template is shared with other error pages, set <code>data-404="false"</code> on those to opt out explicitly.</div>
+        </section>
+
+        <section id="options">
+          <h2>Options</h2>
+          <p>All options are <code>data-</code> attributes on the script tag.</p>
+          <div class="table-wrap"><table class="table">
+            <thead><tr><th>Attribute</th><th>Values</th><th>Default</th></tr></thead>
+            <tbody>
+              <tr><td><code>data-mode</code></td><td><code>toast</code> floating card · <code>inline</code> renders into <code>data-target</code></td><td><code>toast</code></td></tr>
+              <tr><td><code>data-target</code></td><td>CSS selector of the container for inline mode</td><td>the script’s parent</td></tr>
+              <tr><td><code>data-theme</code></td><td><code>auto</code> · <code>light</code> · <code>dark</code></td><td><code>auto</code></td></tr>
+              <tr><td><code>data-accent</code></td><td>Any CSS color, for the icon and the best match</td><td>graphite</td></tr>
+              <tr><td><code>data-title</code>, <code>data-text</code></td><td>Heading and intro copy</td><td>“Looking for something?”</td></tr>
+              <tr><td><code>data-position</code></td><td><code>right</code> · <code>left</code> · <code>center</code> (desktop toast)</td><td><code>right</code></td></tr>
+              <tr><td><code>data-max</code></td><td>1–5 suggestions</td><td><code>3</code></td></tr>
+              <tr><td><code>data-track</code></td><td><code>false</code> to only show suggestions</td><td><code>true</code></td></tr>
+              <tr><td><code>data-branding</code></td><td><code>false</code> to hide “Powered by 404less”</td><td><code>true</code></td></tr>
+              <tr><td><code>data-url</code></td><td>Absolute URL to report instead of <code>location.href</code></td><td>—</td></tr>
+            </tbody>
+          </table></div>
+          <h3>Inline example</h3>
+<pre class="code"><span class="m">&lt;</span><span class="k">div</span> <span class="p">id</span><span class="m">=</span><span class="s">"suggestions"</span><span class="m">&gt;&lt;/</span><span class="k">div</span><span class="m">&gt;</span>
+<span class="m">&lt;</span><span class="k">script</span> <span class="p">src</span><span class="m">=</span><span class="s">"https://your-404less.example/embed.js"</span> <span class="p">data-site</span><span class="m">=</span><span class="s">"SITE_KEY"</span>
+        <span class="p">data-mode</span><span class="m">=</span><span class="s">"inline"</span> <span class="p">data-target</span><span class="m">=</span><span class="s">"#suggestions"</span> <span class="p">data-404</span><span class="m">=</span><span class="s">"true"</span> <span class="p">defer</span><span class="m">&gt;&lt;/</span><span class="k">script</span><span class="m">&gt;</span></pre>
+          <p class="muted">Inline mode also shows a “Go to the homepage” fallback when there is no close match. The toast shows nothing in that case.</p>
+        </section>
+
+        <section id="style">
+          <h2>Styling</h2>
+          <p>The card lives in a shadow root, so your stylesheet can’t accidentally restyle it and it can’t restyle your page. Colors are custom properties you can set on the host element:</p>
+<pre class="code"><span class="k">.f404less</span> {
+  <span class="p">--f404-accent</span>: <span class="s">#e11d48</span>;
+  <span class="p">--f404-bg</span>: <span class="s">#fff</span>;      <span class="p">--f404-fg</span>: <span class="s">#111</span>;
+  <span class="p">--f404-muted</span>: <span class="s">#666</span>;   <span class="p">--f404-border</span>: <span class="s">#ddd</span>;
+  <span class="p">--f404-radius</span>: <span class="s">12px</span>;
+}</pre>
+          <p>Motion follows <code>prefers-reduced-motion</code>; dark mode follows <code>prefers-color-scheme</code> unless you set <code>data-theme</code>. A dismissed toast stays dismissed for the session.</p>
+        </section>
+
+        <section id="api">
+          <h2>JavaScript API</h2>
+          <p>For client-side routers that render a 404 state without a page load, the snippet exposes a small API on <code>window.__404less</code>:</p>
+<pre class="code"><span class="c">// after your router decides the route doesn't exist</span>
+<span class="k">window</span>.__404less.<span class="p">track</span>();                          <span class="c">// report the hit</span>
+<span class="k">window</span>.__404less.<span class="p">suggest</span>().then(d =&gt; <span class="k">window</span>.__404less.<span class="p">render</span>(d.suggestions, d.home));</pre>
+        </section>
+
+        <section id="privacy">
+          <h2>Privacy</h2>
+          <ul>
+            <li>Runs only on pages it detects as a 404. On every other page it exits immediately.</li>
+            <li>Sends the URL (fragment stripped), the referrer and the user agent. No cookies, no fingerprinting, no third parties.</li>
+            <li>Hits are rate-limited per site at the edge and pruned after 90 days by default.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </main>

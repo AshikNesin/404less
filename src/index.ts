@@ -25,6 +25,28 @@ app.route('/api', api);          // dashboard API (session cookie auth)
 app.route('/api', keys);         // API-key management (session cookie auth)
 app.route('/', mcp);             // POST /mcp (MCP streamable HTTP, bearer auth)
 
+// Static assets with explicit routing (html_handling is off in wrangler.jsonc):
+//   /app, /app/*  → the SPA shell (app.html), client-side routed
+//   /foo          → foo.html from the marketing site, else the site's 404 page
+app.get('*', async (c) => {
+  const assets = c.env.ASSETS;
+  if (!assets) return c.json({ error: 'not found' }, 404);
+  const url = new URL(c.req.url);
+  const fetchAsset = (p: string) => assets.fetch(new Request(new URL(p, url.origin), { headers: c.req.raw.headers }));
+  if (url.pathname === '/app' || url.pathname.startsWith('/app/')) {
+    const res = await fetchAsset('/app.html');
+    return new Response(res.body, { status: 200, headers: res.headers });
+  }
+  // marketing pages: / → index.html, /embed → embed.html, …; anything else → 404.html
+  const page = url.pathname === '/' ? '/index.html' : /^\/[a-z0-9-]+$/.test(url.pathname) ? `${url.pathname}.html` : null;
+  if (page) {
+    const res = await fetchAsset(page);
+    if (res.ok) return res;
+  }
+  const nf = await fetchAsset('/404.html');
+  return new Response(nf.body, { status: 404, headers: nf.headers });
+});
+
 // Module-format entrypoint. DO classes must be top-level named exports (wrangler
 // discovers them by name); handlers ride on the default export object.
 export { DigestDO } from './do/digest';

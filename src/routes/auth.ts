@@ -52,7 +52,7 @@ auth.get('/verify', async (c) => {
   const row = await c.env.DB.prepare(
     'SELECT user_id, expires_at FROM magic_tokens WHERE token = ?',
   ).bind(token).first<{ user_id: string; expires_at: number }>();
-  if (!row || row.expires_at < now()) return c.redirect('/?error=expired');
+  if (!row || row.expires_at < now()) return c.redirect('/app/login?error=expired');
 
   await c.env.DB.batch([
     c.env.DB.prepare('DELETE FROM magic_tokens WHERE token = ?').bind(token),
