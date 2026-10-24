@@ -2,4 +2,5 @@ assets/
 stills/
 music.wav
 *.mp4
+!404less-demo.mp4
 .demo.env

@@ -4,6 +4,10 @@ A 65-second, 1080p product demo rendered deterministically from the real app:
 no screen-recording jitter, every frame seeked and captured, music synthesized
 in code so there is nothing to license.
 
+The rendered film is committed next to this file as `404less-demo.mp4` (the
+README links to it through `poster.jpg`); re-render and replace both after a
+UI change.
+
 ```
 docs/demo/
   composition.html   the film: scenes, captions, camera moves, cursor, typing (WAAPI timeline)

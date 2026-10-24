@@ -3,6 +3,11 @@
 Broken links, found and fixed before your visitors give up. Self-hostable on
 Cloudflare's free tier.
 
+<p align="center">
+  <a href="docs/demo/404less-demo.mp4"><img src="docs/demo/poster.jpg" alt="Watch the 404less demo video" width="100%"></a>
+</p>
+<p align="center"><sub><b><a href="docs/demo/404less-demo.mp4">▶ Watch the demo</a></b> · 65 seconds, with sound · rendered from the real app by <a href="docs/demo">docs/demo</a></sub></p>
+
 - **Realtime 404 tracking** — one script tag on your 404 page reports every hit
   (URL, referrer) and shows the visitor a "Looking for something?" card with the
   closest matching pages.
@@ -17,6 +22,21 @@ Cloudflare's free tier.
 - **MCP for your agent** — read-only tools (`list_sites`, `list_broken_links`,
   `get_link_details`, `get_suggestions`) over streamable HTTP so Claude Code or
   Cursor can open the fix PR. 404less never writes to your repo.
+
+## Screenshots
+
+<p align="center">
+  <a href="site/assets/img/overview.webp"><img src="site/assets/img/overview.webp" width="49%" alt="Overview: open broken links, 404 hits per day, and the links that need attention"></a>
+  <a href="site/assets/img/links-sel2.webp"><img src="site/assets/img/links-sel2.webp" width="49%" alt="Broken links list with bulk actions and suggested fixes"></a>
+</p>
+<p align="center">
+  <a href="site/assets/img/detail-vercel.webp"><img src="site/assets/img/detail-vercel.webp" width="49%" alt="Link detail: ranked suggested fixes, referrers, and a copy-paste redirect rule"></a>
+  <a href="site/assets/img/crawl-results.webp"><img src="site/assets/img/crawl-results.webp" width="49%" alt="Crawler results with status, found-on page and redirect chains"></a>
+</p>
+<p align="center">
+  <a href="site/assets/img/widget.webp"><img src="site/assets/img/widget.webp" width="60%" alt="The visitor widget: “Looking for something?” with the three closest matching pages"></a>
+</p>
+<p align="center"><sub>Overview · Broken links · Link detail with redirect rule · Crawler results · The widget visitors see on your 404 page</sub></p>
 
 Stack: Cloudflare Workers + D1 + Queues + Durable Objects, Hono, TypeScript;
 Vite + React 19 + TanStack Router/Query SPA served as Worker static assets.
