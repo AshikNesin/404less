@@ -79,7 +79,7 @@ export type CrawlRow = {
   link_id: string | null; link_status: LinkStatus | null; found_on: string | null;
 };
 
-export type KnownUrl = { url: string; title: string | null; source: string; added_at: number };
+export type KnownUrl = { url: string; title: string | null; title_checked_at: number | null; source: string; added_at: number };
 export type KnownUrlStats = { total: number; crawled: number; from_sitemap: number; titled: number; last_added: number | null };
 
 export type Event = { id: string; url: string; referrer: string | null; user_agent: string | null; ts: number };

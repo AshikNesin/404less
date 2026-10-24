@@ -85,6 +85,9 @@ export function scoreUrl(brokenUrl: string, candidateUrl: string): number {
 }
 
 export function prepareKnown(known: { url: string; title: string | null }[]): PreparedKnown {
+  // a title three or more pages share (an SPA shell, a CMS default) says nothing about the page
+  const uses = new Map<string, number>();
+  for (const k of known) if (k.title) uses.set(k.title, (uses.get(k.title) ?? 0) + 1);
   const out: PreparedKnown = [];
   for (const k of known) {
     let u: URL;
@@ -94,7 +97,8 @@ export function prepareKnown(known: { url: string; title: string | null }[]): Pr
       continue;
     }
     const path = cleanPath(u);
-    out.push({ url: k.url, title: k.title, host: u.host, path, tokens: pathTokens(u.pathname), grams: trigrams(path) });
+    const title = k.title && uses.get(k.title)! < 3 ? k.title : null;
+    out.push({ url: k.url, title, host: u.host, path, tokens: pathTokens(u.pathname), grams: trigrams(path) });
   }
   return out;
 }

@@ -1,4 +1,5 @@
-// Crawl orchestration: seed discovery, budgeting, result persistence.
+// Crawl orchestration: seed discovery, budgeting, result persistence, and the
+// real page titles of known URLs.
 // Findings land in broken_links (see ../links/service), which also decides
 // what counts as a new failure worth alerting.
 import type { CrawlMessage, Env } from '../../../types';
@@ -80,14 +81,15 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     return next;
   }
 
-  // capture the real page title (upgrades slug-guesses from sitemap imports)
+  // capture the real page title (spares the page a separate title fetch)
   const title = pageTitle(html);
   if (title) {
+    const ts = Date.now();
     await env.DB.prepare(
-      `INSERT INTO known_urls (id, website_id, url, title, source, added_at)
-       VALUES (?, ?, ?, ?, 'crawl', ?)
-       ON CONFLICT(website_id, url) DO UPDATE SET title = excluded.title`,
-    ).bind(newId(), site.id, url, title, Date.now()).run();
+      `INSERT INTO known_urls (id, website_id, url, title, source, added_at, title_checked_at)
+       VALUES (?, ?, ?, ?, 'crawl', ?, ?)
+       ON CONFLICT(website_id, url) DO UPDATE SET title = excluded.title, title_checked_at = excluded.title_checked_at`,
+    ).bind(newId(), site.id, url, title, ts, ts).run();
     invalidateKnownUrls(site.id);
   }
 
@@ -136,6 +138,63 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     await env.DB.batch(stmts.slice(i, i + 50));
   }
   return next;
+}
+
+// A few pages per message: up to 10 messages share one consumer invocation, and the
+// Free plan allows 50 subrequests per invocation.
+const TITLES_PER_MESSAGE = 5;
+
+/**
+ * Fetch real <title>s for known pages that haven't been tried yet (sitemap imports
+ * store none). Returns the next message while more pages are waiting, so a site's
+ * backlog drains a few pages at a time, one request at a time.
+ */
+export async function fetchTitles(env: Env, site: CrawlSiteRow): Promise<CrawlMessage[]> {
+  // claim before fetching so overlapping runs never fetch the same page twice
+  const claimed = await env.DB.prepare(
+    `UPDATE known_urls SET title_checked_at = ?
+     WHERE id IN (SELECT id FROM known_urls WHERE website_id = ? AND title_checked_at IS NULL LIMIT ?)
+     RETURNING url`,
+  ).bind(Date.now(), site.id, TITLES_PER_MESSAGE).all<{ url: string }>();
+
+  const stmts = [];
+  for (const { url } of claimed.results) {
+    const title = await fetchTitle(url);
+    if (!title) continue;
+    stmts.push(
+      env.DB.prepare('UPDATE known_urls SET title = ? WHERE website_id = ? AND url = ?').bind(title, site.id, url),
+      env.DB.prepare('UPDATE broken_links SET suggested_title = ? WHERE website_id = ? AND suggested_url = ?').bind(title, site.id, url),
+    );
+  }
+  if (stmts.length) {
+    await env.DB.batch(stmts);
+    invalidateKnownUrls(site.id);
+  }
+  return claimed.results.length === TITLES_PER_MESSAGE ? [{ kind: 'fetch-titles', siteId: site.id }] : [];
+}
+
+/** A page's title, reading only as far as </head>; null for errors, non-HTML and untitled pages. */
+async function fetchTitle(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow', signal: AbortSignal.timeout(10_000) });
+    const type = res.headers.get('content-type');
+    if (!res.ok || !res.body || (type && !/html/i.test(type))) {
+      await res.body?.cancel();
+      return null;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let head = '';
+    while (head.length < 64 * 1024 && !/<\/head>/i.test(head)) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      head += decoder.decode(value, { stream: true });
+    }
+    await reader.cancel();
+    return pageTitle(head);
+  } catch {
+    return null;
+  }
 }
 
 /** Check one URL, persist the check, update broken_links. Returns whether to alert. */

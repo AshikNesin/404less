@@ -144,10 +144,9 @@ test('import-sitemap fetches, parses and stores known urls', async () => {
     expect(urls).toContain('https://import.test/blog/hello-world');
     expect(urls).not.toContain('https://evil.com/elsewhere');
 
-    // slug-guess titles are set on first insert (real titles arrive via crawler)
-    const titled = listed.knownUrls.find((k: any) => k.url.endsWith('posts/alpha'))
-      ?? listed.knownUrls.find((k: any) => k.url.endsWith('hello-world'));
-    expect(titled).toBeTruthy();
+    // sitemaps carry no titles; the fetch-titles job reads them from the pages
+    const hello = listed.knownUrls.find((k: any) => k.url.endsWith('hello-world'));
+    expect(hello.title).toBeNull();
   } finally {
     globalThis.fetch = realFetch;
   }

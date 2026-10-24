@@ -1,16 +1,20 @@
 // Scheduled (cron) + queue consumer handlers for the crawler.
-import { getSite, startCrawl, fetchPage, checkLink, notifyDigest } from './server/features/crawl/service';
+import { getSite, startCrawl, fetchPage, fetchTitles, checkLink, notifyDigest } from './server/features/crawl/service';
 import { pruneEvents } from './server/features/events/retention';
 import type { CrawlMessage, Env } from './types';
 
 const CRAWL_CRON = '*/30 * * * *';
 const RETENTION_CRON = '17 3 * * *';
 
-/** Cron: nightly retention, or enqueue crawl-site for every site with crawling enabled. */
+/** Cron: nightly retention + title backlog, or enqueue crawl-site for every site with crawling enabled. */
 export async function scheduled(controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
   if (controller.cron === RETENTION_CRON) {
     const { deleted, checksDeleted } = await pruneEvents(env);
     console.log(`[404less] retention pruned ${deleted} events, ${checksDeleted} link checks`);
+    // resume title fetching for pages still waiting (e.g. rows from before titles were fetched)
+    const pending = await env.DB.prepare('SELECT DISTINCT website_id FROM known_urls WHERE title_checked_at IS NULL')
+      .all<{ website_id: string }>();
+    await sendAll(env, pending.results.map((r): CrawlMessage => ({ kind: 'fetch-titles', siteId: r.website_id })));
     return;
   }
   if (controller.cron !== CRAWL_CRON && controller.cron !== '') return;
@@ -39,6 +43,8 @@ export async function queue(batch: MessageBatch<CrawlMessage>, env: Env, ctx: Ex
         await sendAll(env, await startCrawl(env, site));
       } else if (m.kind === 'fetch-page') {
         await sendAll(env, await fetchPage(env, site, m.url, m.depth));
+      } else if (m.kind === 'fetch-titles') {
+        await sendAll(env, await fetchTitles(env, site));
       } else if (m.kind === 'check-link') {
         const alert = await checkLink(env, site, m);
         if (alert) ctx.waitUntil(notifyDigest(env, site.id, m.url, m.sourceUrl));
