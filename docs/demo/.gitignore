@@ -1,0 +1,5 @@
+assets/
+stills/
+music.wav
+*.mp4
+.demo.env
