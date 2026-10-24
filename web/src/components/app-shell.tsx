@@ -3,7 +3,7 @@
 import { Link, useLocation, useParams } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Bot, Check, ChevronsUpDown, Globe, KeyRound, LayoutDashboard, LogOut, Menu as MenuIcon, Plus, Settings, Unlink, type LucideIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { api } from '../lib/api';
 import { getLastSiteId, setLastSiteId } from '../lib/site-memory';
 import type { Site } from '../lib/types';
@@ -13,13 +13,40 @@ import { Button } from './ui/button';
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from './ui/menu';
 import { Skeleton } from './ui/skeleton';
 
+/**
+ * The mark: a path that hops over its broken stretch and carries on — what a
+ * redirect does for a visitor. Same geometry as public/favicon.svg.
+ */
 export function BrandMark({ className }: { className?: string }) {
+  const id = useId();
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect width="32" height="32" rx="8" className="fill-primary" />
-      <path d="M9 11v6h5M14 9v12" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path d="M22 11v6h-4M22 9v12" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity=".55" />
-      <circle cx="24" cy="24" r="3" fill="#c7d2fe" />
+      <defs>
+        <linearGradient id={`${id}-g`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#6366f1" />
+          <stop offset="1" stopColor="#4338ca" />
+        </linearGradient>
+        <radialGradient id={`${id}-h`} cx="0.25" cy="0.1" r="0.9">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.16" />
+          <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="32" height="32" rx="8" fill={`url(#${id}-g)`} />
+      <rect width="32" height="32" rx="8" fill={`url(#${id}-h)`} />
+      <path d="M11.5 22.5h8.5" stroke="#fff" strokeOpacity="0.32" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+      <path d="M4.5 22.5h4c2.4 0 2.8-12 7.5-12s5.1 12 7.5 12h2" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M23.8 18.8l3.7 3.7-3.7 3.7" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
+/** The mark without its tile, in the current text color — for inline use on light surfaces. */
+export function BrandGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11.5 22.5h8.5" strokeOpacity="0.3" />
+      <path d="M4.5 22.5h4c2.4 0 2.8-12 7.5-12s5.1 12 7.5 12h2" />
+      <path d="M23.8 18.8l3.7 3.7-3.7 3.7" />
     </svg>
   );
 }
