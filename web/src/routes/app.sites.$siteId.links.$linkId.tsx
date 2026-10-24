@@ -20,6 +20,7 @@ import { ExternalUrl, StatusActions } from '../features/links/parts';
 import { RedirectSnippet } from '../features/links/redirect-snippet';
 import { useCurrentSite } from '../features/sites/queries';
 import { cn } from '../lib/utils';
+import { ApiError } from '../lib/api';
 
 export const Route = createFileRoute('/app/sites/$siteId/links/$linkId')({ component: LinkDetailPage });
 
@@ -37,7 +38,9 @@ function LinkDetailPage() {
     return (
       <Page>
         <BackLink to="/app/sites/$siteId/links" params={{ siteId: site.id }} search={{ status: 'open', sort: 'hits', page: 1 }}>Broken links</BackLink>
-        <QueryError error={q.error} fallback="Could not load this link. It may have been removed." onRetry={() => void q.refetch()} isRetrying={q.isFetching} />
+        {q.error instanceof ApiError && q.error.status === 404
+          ? <EmptyState kind="error" variant="card" size="sm" title="Link not found" description="It may have been removed along with its site, or the address is wrong." />
+          : <QueryError error={q.error} fallback="Could not load this link" onRetry={() => void q.refetch()} isRetrying={q.isFetching} />}
       </Page>
     );
   }

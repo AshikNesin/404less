@@ -65,7 +65,7 @@ function NewSitePage() {
 
 function domainToName(domain: string): string {
   try {
-    const host = new URL(/^https?:\/\//i.test(domain) ? domain : `https://${domain}`).hostname.replace(/^www\./, '');
+    const host = new URL(/^https?:\/\//i.test(domain) ? domain : `https://${domain}`).host.replace(/^www\./, '');
     return host || '';
   } catch {
     return domain.trim();

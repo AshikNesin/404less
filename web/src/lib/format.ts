@@ -73,7 +73,12 @@ export function prettyUrl(url: string): string {
 
 /** Whether a URL belongs to the site's domain (so we can show just the path). */
 export function isOnSite(url: string, domain: string): boolean {
-  return hostOf(url) === domain.replace(/^www\./, '');
+  try {
+    // host, not hostname: a site's domain keeps its port (localhost:8080)
+    return new URL(url).host.replace(/^www\./, '') === domain.replace(/^www\./, '');
+  } catch {
+    return false;
+  }
 }
 
 /** The one-line label for a URL in site context: path when on-site, host+path otherwise. */

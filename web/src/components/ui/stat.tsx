@@ -40,6 +40,6 @@ export function StatCard({ label, value, delta, hint, trend, tone = 'default', c
 
 /** Percent change between two counts; null when the previous period had nothing to compare to. */
 export function percentChange(current: number, previous: number): number | null {
-  if (previous <= 0) return current > 0 ? null : 0;
+  if (previous <= 0) return null; // nothing to compare against
   return Math.round(((current - previous) / previous) * 100);
 }

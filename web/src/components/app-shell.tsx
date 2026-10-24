@@ -185,6 +185,7 @@ function AccountFooter() {
     <div className="border-t border-sidebar-border p-2">
       <Menu
         align="start"
+        side="top"
         width="w-[13.5rem]"
         className="w-full"
         trigger={(props) => (

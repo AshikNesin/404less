@@ -38,6 +38,7 @@ function ChannelsPage() {
     enabled: !!teamId,
   });
   const refresh = () => { void qc.invalidateQueries({ queryKey: ['channels', teamId] }); void qc.invalidateQueries({ queryKey: ['overview'] }); };
+  const failed = (e: unknown) => toast('error', e instanceof Error ? e.message : 'Something went wrong');
 
   async function test(id: string) {
     setTesting(id);
@@ -87,11 +88,11 @@ function ChannelsPage() {
                     <div className="flex items-center gap-1.5">
                       <Button variant="ghost" size="sm" pending={testing === ch.id} onClick={() => test(ch.id)}><Send /> Test</Button>
                       <ConfirmButton variant="ghost" size="sm" confirmLabel="Remove?"
-                        onConfirm={() => api(`/api/teams/${teamId}/channels/${ch.id}`, { method: 'DELETE' }).then(() => { toast('success', `Removed ${ch.name}`); refresh(); })}>
+                        onConfirm={() => api(`/api/teams/${teamId}/channels/${ch.id}`, { method: 'DELETE' }).then(() => { toast('success', `Removed ${ch.name}`); refresh(); }, failed)}>
                         Remove
                       </ConfirmButton>
                       <Switch checked={ch.enabled === 1} label={`${ch.name} enabled`}
-                        onCheckedChange={(v) => api(`/api/teams/${teamId}/channels/${ch.id}`, patch({ enabled: v })).then(refresh)} />
+                        onCheckedChange={(v) => api(`/api/teams/${teamId}/channels/${ch.id}`, patch({ enabled: v })).then(refresh, failed)} />
                     </div>
                   </li>
                 );

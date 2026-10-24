@@ -12,6 +12,15 @@ export type CheckResult = {
 const UA = '404less-bot/0.1 (+https://404less.com)';
 const MAX_REDIRECTS = 6;
 
+function get(url: string): Promise<Response> {
+  const attempt = () => fetch(url, { method: 'GET', redirect: 'manual', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10_000) });
+  // a dropped connection ("Network connection lost") is worth one fresh attempt; a timeout is not
+  return attempt().catch((e: unknown) => {
+    if (e instanceof Error && e.name === 'TimeoutError') throw e;
+    return attempt();
+  });
+}
+
 export async function checkUrl(rawUrl: string, site: Pick<SiteRow, 'ignore_status_codes'>): Promise<CheckResult> {
   let url = rawUrl;
   const chain: { url: string; status: number }[] = [];
@@ -20,14 +29,15 @@ export async function checkUrl(rawUrl: string, site: Pick<SiteRow, 'ignore_statu
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     let res: Response;
     try {
-      res = await fetch(url, { method: 'GET', redirect: 'manual', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10_000) });
+      res = await get(url);
     } catch {
       return { status: 0, ok: false, redirectChain: chain.length > 1 ? chain : null, finalUrl: url };
     }
     status = res.status;
     chain.push({ url, status });
-    // no body needed for classification; consume/cancel to free the connection
-    try { await res.body?.cancel(); } catch {}
+    // no body needed for classification. Redirect bodies are tiny and the next hop usually
+    // reuses the connection: drain them (a cancelled body can leave it dead); cancel the rest.
+    try { await (status >= 300 && status < 400 ? res.arrayBuffer() : res.body?.cancel()); } catch {}
 
     if (status >= 300 && status < 400) {
       const loc = res.headers.get('location');
@@ -38,11 +48,14 @@ export async function checkUrl(rawUrl: string, site: Pick<SiteRow, 'ignore_statu
     break; // terminal status
   }
 
-  let ignore = new Set<number>();
-  try { ignore = new Set(JSON.parse(site.ignore_status_codes ?? '[]') as number[]); } catch {}
+  return { status, ok: isWorking(status, site), redirectChain: chain.length > 1 ? chain : null, finalUrl: url };
+}
 
-  // 2xx/3xx ok; 401/429 tolerated (auth walls / rate limits — not "broken");
-  // codes the site chose to ignore are ok; everything else is broken.
-  const isOk = (status >= 200 && status < 400) || status === 401 || status === 429 || ignore.has(status);
-  return { status, ok: isOk, redirectChain: chain.length > 1 ? chain : null, finalUrl: url };
+/**
+ * 2xx/3xx ok; 401/429 tolerated (auth walls / rate limits — not "broken");
+ * codes the site chose to ignore are ok; everything else is broken.
+ */
+export function isWorking(status: number, site: Pick<SiteRow, 'ignore_status_codes'>): boolean {
+  if ((status >= 200 && status < 400) || status === 401 || status === 429) return true;
+  try { return (JSON.parse(site.ignore_status_codes ?? '[]') as number[]).includes(status); } catch { return false; }
 }

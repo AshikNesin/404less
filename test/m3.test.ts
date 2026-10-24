@@ -94,6 +94,7 @@ test('digest DO: events buffered, flushed once per window, grouped by url', asyn
     expect(sent).toHaveLength(1);
     const text = sent[0].text as string;
     expect(text).toContain('3 broken-link hits on S');
+    expect(text.split('broken-link hits on S').length).toBe(2); // title once, not repeated in the body
   } finally {
     globalThis.fetch = realFetch;
   }
@@ -138,4 +139,18 @@ test('CSV escapes commas/quotes', async () => {
   const line = csv.split('\n').find((l) => l.includes('weird'));
   // CSV-correct: whole field quoted, inner quote doubled -> weird"",path
   expect(line).toContain('weird"",path');
+});
+
+test('removing a channel that already sent digests', async () => {
+  const h = { 'Content-Type': 'application/json', cookie };
+  const created = await SELF.fetch(`http://localhost/api/teams/${teamId}/channels`, {
+    method: 'POST', headers: h, body: JSON.stringify({ type: 'email', config: { to: 'ops@m3.test' } }),
+  });
+  const { channel } = await created.json() as any;
+  await env.DB.prepare('INSERT INTO alerts (id, website_id, channel_id, summary, sent_at) VALUES (?, ?, ?, ?, ?)')
+    .bind(crypto.randomUUID(), siteId, channel.id, 'digest', Date.now()).run();
+  const del = await SELF.fetch(`http://localhost/api/teams/${teamId}/channels/${channel.id}`, { method: 'DELETE', headers: h });
+  expect(del.status).toBe(200);
+  const left = await env.DB.prepare('SELECT COUNT(*) AS n FROM alert_channels WHERE id = ?').bind(channel.id).first<{ n: number }>();
+  expect(left!.n).toBe(0);
 });

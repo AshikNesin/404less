@@ -55,8 +55,20 @@ export function parseRobots(origin: string, body: string): Robots {
   };
 }
 
-/** Fetch + parse robots.txt; failure => allow-all (standard behavior). */
+// Per-isolate cache: every crawled page would otherwise refetch robots.txt (a subrequest each).
+const cache = new Map<string, { at: number; robots: Robots }>();
+const TTL_MS = 5 * 60 * 1000;
+
+/** Fetch + parse robots.txt (cached a few minutes per origin); failure => allow-all (standard behavior). */
 export async function loadRobots(origin: string): Promise<Robots> {
+  const hit = cache.get(origin);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.robots;
+  const robots = await fetchRobots(origin);
+  cache.set(origin, { at: Date.now(), robots });
+  return robots;
+}
+
+async function fetchRobots(origin: string): Promise<Robots> {
   const UA = '404less-bot/0.1 (+https://404less.com)';
   try {
     const res = await fetch(new URL('/robots.txt', origin).toString(), {

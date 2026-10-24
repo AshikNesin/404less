@@ -6,10 +6,18 @@ import { routeTree } from './routeTree.gen';
 import { ToastProvider } from './components/ui/toast';
 import { EmptyState } from './components/ui/empty-state';
 import { Button } from './components/ui/button';
+import { ApiError } from './lib/api';
 import './styles.css';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: true } },
+  defaultOptions: {
+    queries: {
+      // a 4xx (not found, forbidden) won't change on a second try
+      retry: (count, error) => count < 1 && !(error instanceof ApiError && error.status < 500),
+      staleTime: 15_000,
+      refetchOnWindowFocus: true,
+    },
+  },
 });
 
 const router = createRouter({

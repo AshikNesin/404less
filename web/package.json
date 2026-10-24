@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc --noEmit",
-    "typecheck": "vite build --mode development --logLevel error && tsc --noEmit"
+    "typecheck": "vite build --mode development --logLevel error --outDir node_modules/.typecheck-build --emptyOutDir && tsc --noEmit"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",
