@@ -39,7 +39,7 @@ export function UrlCell({ url, domain, httpStatus, source, to, params, className
 export function ExternalUrl({ url, label, className }: { url: string; label?: string; className?: string }) {
   return (
     <a href={url} target="_blank" rel="noreferrer" title={url}
-      className={cn('inline-flex max-w-full items-center gap-1 text-primary underline-offset-4 hover:underline', className)}>
+      className={cn('link inline-flex max-w-full items-center gap-1', className)}>
       <span className="truncate">{label ?? url}</span>
       <ArrowUpRight className="size-3 shrink-0" />
     </a>

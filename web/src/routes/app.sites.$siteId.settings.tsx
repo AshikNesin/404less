@@ -105,7 +105,7 @@ function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Alerts</CardTitle>
-          <CardDescription>Hits and crawler findings are grouped into one digest per window and sent to your team’s <Link to="/app/settings/channels" className="text-primary hover:underline">channels</Link>.</CardDescription>
+          <CardDescription>Hits and crawler findings are grouped into one digest per window and sent to your team’s <Link to="/app/settings/channels" className="link">channels</Link>.</CardDescription>
         </CardHeader>
         <CardContent className="divide-y divide-border">
           <Field label="Send alerts for this site" hint={site.notify_enabled ? `Digest ${digestLabel(site.digest_minutes || 15)}` : 'Paused — nothing is sent for this site'}>

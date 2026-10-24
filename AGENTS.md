@@ -13,8 +13,9 @@ Reference architecture: [open-seo](https://github.com/every-app/open-seo) (adopt
   components live in features.
 - TanStack Query for all server state; TanStack Router with file routes (`app.tsx` guards auth and renders the
   shell, `app.sites.$siteId.tsx` resolves the site for its children). List filters live in the URL (`validateSearch`).
-- Light theme only — no dark mode. Tokens in `web/src/styles.css`; the accent is the only brand color, semantic
-  colors (success/warning/destructive/info) mean state, the data series color is the accent.
+- Light theme only — no dark mode. Tokens in `web/src/styles.css`. Minimal palette: graphite is the only brand
+  color (primary buttons, active nav, toggles, the data series); everything else is neutral, and semantic colors
+  (success/warning/destructive/info) appear only when they mean state. Text links use the `link` utility, not color.
 - Keep free-tier ceilings in mind: batch D1 writes, cap per-site data, prune old events, stay inside the
   per-request CPU budget (the suggestion ranker prefilters + caches the known-URL index per isolate).
 - Tests run inside workerd via `@cloudflare/vitest-plugin`; integration tests hit `SELF.fetch()`.

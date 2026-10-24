@@ -38,7 +38,7 @@ function NewSitePage() {
     <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col justify-center">
       <Card size="lg">
         <CardHeader>
-          <span className="mb-2 grid size-9 place-items-center rounded-lg bg-primary/10 text-primary"><Globe className="size-4.5" /></span>
+          <span className="mb-2 grid size-9 place-items-center rounded-lg bg-foreground/[0.06] text-foreground"><Globe className="size-4.5" /></span>
           <CardTitle className="text-page-title">{first ? 'Add your first site' : 'Add a site'}</CardTitle>
           <CardDescription>
             Enter the domain you want to monitor. You’ll get a snippet for your 404 page next; the crawler and alerts are optional.

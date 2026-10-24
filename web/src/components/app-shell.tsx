@@ -3,7 +3,7 @@
 import { Link, useLocation, useParams } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Bot, Check, ChevronsUpDown, Globe, KeyRound, LayoutDashboard, LogOut, Menu as MenuIcon, Plus, Settings, Unlink, type LucideIcon } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { getLastSiteId, setLastSiteId } from '../lib/site-memory';
 import type { Site } from '../lib/types';
@@ -14,39 +14,29 @@ import { Menu, MenuItem, MenuLabel, MenuSeparator } from './ui/menu';
 import { Skeleton } from './ui/skeleton';
 
 /**
- * The mark: a path that hops over its broken stretch and carries on — what a
- * redirect does for a visitor. Same geometry as public/favicon.svg.
+ * The mark: a "4" whose crossbar runs on into an arrow — 404, moved past.
+ * Graphite tile, white glyph. Same geometry as public/favicon.svg.
  */
 export function BrandMark({ className }: { className?: string }) {
-  const id = useId();
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <defs>
-        <linearGradient id={`${id}-g`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#6366f1" />
-          <stop offset="1" stopColor="#4338ca" />
-        </linearGradient>
-        <radialGradient id={`${id}-h`} cx="0.25" cy="0.1" r="0.9">
-          <stop offset="0" stopColor="#fff" stopOpacity="0.16" />
-          <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="32" height="32" rx="8" fill={`url(#${id}-g)`} />
-      <rect width="32" height="32" rx="8" fill={`url(#${id}-h)`} />
-      <path d="M11.5 22.5h8.5" stroke="#fff" strokeOpacity="0.32" strokeWidth="3.2" strokeLinecap="round" fill="none" />
-      <path d="M4.5 22.5h4c2.4 0 2.8-12 7.5-12s5.1 12 7.5 12h2" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path d="M23.8 18.8l3.7 3.7-3.7 3.7" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <rect width="32" height="32" rx="8" className="fill-primary" />
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.5 7.5v18" />
+        <path d="M17.5 7.5 7.5 19.5h17" />
+        <path d="m21.5 16 3.5 3.5-3.5 3.5" />
+      </g>
     </svg>
   );
 }
 
-/** The mark without its tile, in the current text color — for inline use on light surfaces. */
+/** The mark without its tile, in the current text color — for inline use. */
 export function BrandGlyph({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11.5 22.5h8.5" strokeOpacity="0.3" />
-      <path d="M4.5 22.5h4c2.4 0 2.8-12 7.5-12s5.1 12 7.5 12h2" />
-      <path d="M23.8 18.8l3.7 3.7-3.7 3.7" />
+    <svg viewBox="0 0 32 32" className={className} aria-hidden fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.5 7.5v18" />
+      <path d="M17.5 7.5 7.5 19.5h17" />
+      <path d="m21.5 16 3.5 3.5-3.5 3.5" />
     </svg>
   );
 }
@@ -55,7 +45,7 @@ export function Brand({ className }: { className?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-2 font-semibold tracking-tight', className)}>
       <BrandMark className="size-6" />
-      <span className="text-[0.9375rem]">404<span className="text-primary">less</span></span>
+      <span className="text-[0.9375rem]">404<span className="font-medium text-muted-foreground">less</span></span>
     </span>
   );
 }
@@ -158,7 +148,7 @@ function SiteSwitcher({ active, sites, isPending }: { active: Site | null; sites
           {...props}
           className="flex h-12 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-sidebar-border bg-card px-2.5 text-left shadow-xs transition-colors hover:bg-foreground/[0.02] aria-expanded:bg-foreground/[0.02]"
         >
-          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-foreground/[0.06] text-foreground">
             <Globe className="size-3.5" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
@@ -250,7 +240,7 @@ function NavLink({ to, icon: Icon, label, params, exact, badge }: {
         'data-[status=active]:before:absolute data-[status=active]:before:inset-y-1.5 data-[status=active]:before:-left-3 data-[status=active]:before:w-[3px] data-[status=active]:before:rounded-r-full data-[status=active]:before:bg-primary',
       )}
     >
-      <Icon className="size-4 shrink-0 text-sidebar-foreground/55 group-data-[status=active]:text-primary" />
+      <Icon className="size-4 shrink-0 text-sidebar-foreground/55 group-data-[status=active]:text-foreground" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {badge !== undefined && <span className="num rounded-md bg-destructive/10 px-1.5 text-[0.6875rem] font-medium text-destructive">{badge}</span>}
     </Link>

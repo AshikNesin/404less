@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
 /* ============================================================
-   404less design tokens.
-   Light only. One accent (indigo) for actions, links, focus and
-   the active nav item; semantic colors carry meaning only; the
-   data series color is the accent. Modeled on open-seo's shadcn
-   token set so primitives port 1:1.
+   404less design tokens — minimal.
+   Light only. Graphite is the only "brand" color: primary buttons, the
+   active nav bar, toggles, the data series. Everything else is neutral,
+   and color appears only when it means state (success / warning /
+   destructive / info). Modeled on open-seo's shadcn token set so
+   primitives port 1:1.
    ============================================================ */
 
 @theme inline {
@@ -47,41 +48,43 @@
   color-scheme: light;
   --radius: 0.5rem;
 
-  --background: oklch(97.4% 0.002 270);
-  --foreground: oklch(21% 0.012 270);
+  --background: oklch(100% 0 0);
+  --foreground: oklch(18% 0.006 270);
   --card: oklch(100% 0 0);
-  --card-foreground: oklch(21% 0.012 270);
+  --card-foreground: oklch(18% 0.006 270);
   --popover: oklch(100% 0 0);
-  --popover-foreground: oklch(21% 0.012 270);
-  --muted: oklch(96.2% 0.003 270);
-  --muted-foreground: oklch(21% 0.012 270 / 58%);
-  --subtle: oklch(21% 0.012 270 / 36%);
-  --secondary: oklch(96.2% 0.003 270);
-  --secondary-foreground: oklch(21% 0.012 270);
-  --accent: oklch(95% 0.004 270);
-  --accent-foreground: oklch(21% 0.012 270);
+  --popover-foreground: oklch(18% 0.006 270);
+  --muted: oklch(96.8% 0.002 270);
+  --muted-foreground: oklch(18% 0.006 270 / 56%);
+  --subtle: oklch(18% 0.006 270 / 34%);
+  --secondary: oklch(96.8% 0.002 270);
+  --secondary-foreground: oklch(18% 0.006 270);
+  --accent: oklch(95.5% 0.003 270);
+  --accent-foreground: oklch(18% 0.006 270);
 
-  --primary: oklch(50% 0.19 275);
+  /* graphite */
+  --primary: oklch(22% 0.006 270);
   --primary-foreground: oklch(100% 0 0);
 
-  --destructive: oklch(55% 0.19 25);
-  --success: oklch(56% 0.14 155);
-  --warning: oklch(76% 0.15 80);
-  --warning-foreground: oklch(38% 0.08 70);
-  --info: oklch(58% 0.13 240);
+  /* state only */
+  --destructive: oklch(54% 0.17 25);
+  --success: oklch(52% 0.12 155);
+  --warning: oklch(74% 0.13 80);
+  --warning-foreground: oklch(38% 0.07 70);
+  --info: oklch(54% 0.1 240);
 
-  --border: oklch(91% 0.004 270);
-  --input: oklch(86% 0.005 270);
-  --ring: oklch(50% 0.19 275);
+  --border: oklch(90.5% 0.004 270);
+  --input: oklch(85% 0.005 270);
+  --ring: oklch(22% 0.006 270);
 
-  --chart: oklch(50% 0.19 275);
-  --chart-muted: oklch(50% 0.19 275 / 28%);
+  --chart: oklch(30% 0.006 270);
+  --chart-muted: oklch(30% 0.006 270 / 26%);
 
-  --sidebar: oklch(93.8% 0.004 270);
-  --sidebar-foreground: oklch(21% 0.012 270);
-  --sidebar-accent: oklch(21% 0.012 270 / 7%);
-  --sidebar-accent-foreground: oklch(21% 0.012 270);
-  --sidebar-border: oklch(88.5% 0.005 270);
+  --sidebar: oklch(97.4% 0.002 270);
+  --sidebar-foreground: oklch(18% 0.006 270);
+  --sidebar-accent: oklch(18% 0.006 270 / 6%);
+  --sidebar-accent-foreground: oklch(18% 0.006 270);
+  --sidebar-border: oklch(90% 0.004 270);
 }
 
 html,
@@ -142,6 +145,18 @@ body {
   font-size: 0.8125rem;
 }
 
+/* Inline text link: foreground with a quiet underline that darkens on hover. */
+@utility link {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in oklch, var(--foreground) 28%, transparent);
+  transition: text-decoration-color 0.15s;
+  &:hover {
+    text-decoration-color: var(--foreground);
+  }
+}
+
 /* Row actions that appear on hover; keyboard focus and touch show them too. Put `group` on the row. */
 @utility reveal-on-hover {
   @apply opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100;
@@ -149,12 +164,12 @@ body {
 
 /* Focus — one standard, everywhere. */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid color-mix(in oklch, var(--ring) 55%, transparent);
+  outline: 2px solid color-mix(in oklch, var(--ring) 45%, transparent);
   outline-offset: 1px;
 }
 
 ::selection {
-  background: color-mix(in oklch, var(--primary) 14%, transparent);
+  background: color-mix(in oklch, var(--foreground) 12%, transparent);
 }
 
 /* Thin scrollbars in the muted ink. */

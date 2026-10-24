@@ -13,7 +13,7 @@ export const buttonVariants = cva(
         secondary: 'bg-foreground/[0.06] text-foreground hover:bg-foreground/[0.1]',
         ghost: 'text-foreground/75 hover:bg-foreground/[0.06] hover:text-foreground aria-expanded:bg-foreground/[0.06]',
         destructive: 'bg-destructive/10 text-destructive hover:bg-destructive hover:text-primary-foreground',
-        link: 'h-auto px-0 text-primary underline-offset-4 hover:underline',
+        link: 'link h-auto px-0 font-medium',
       },
       size: {
         default: 'h-8 px-3.5',

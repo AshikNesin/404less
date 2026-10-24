@@ -101,7 +101,7 @@ function CrawlPage() {
                 ))}
               </div>
             )}
-            <p className="pt-3 text-meta">Excluded URL patterns from <Link to="/app/sites/$siteId/settings" params={{ siteId: site.id }} className="text-primary hover:underline">site settings</Link> are skipped by the crawler too. It respects robots.txt and identifies as <code className="text-code">404less-bot</code>.</p>
+            <p className="pt-3 text-meta">Excluded URL patterns from <Link to="/app/sites/$siteId/settings" params={{ siteId: site.id }} className="link">site settings</Link> are skipped by the crawler too. It respects robots.txt and identifies as <code className="text-code">404less-bot</code>.</p>
           </CardContent>
         </Card>
 

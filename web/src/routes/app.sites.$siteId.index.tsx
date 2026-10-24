@@ -159,7 +159,7 @@ function OverviewPage() {
             {!site.crawl_enabled && (
               <div className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-meta">
                 <Bot className="mt-0.5 size-3.5 shrink-0" />
-                <span>The crawler is off. Turn it on from the <Link to="/app/sites/$siteId/crawl" params={{ siteId: site.id }} className="text-primary hover:underline">Crawler page</Link> to catch broken links before visitors do.</span>
+                <span>The crawler is off. Turn it on from the <Link to="/app/sites/$siteId/crawl" params={{ siteId: site.id }} className="link">Crawler page</Link> to catch broken links before visitors do.</span>
               </div>
             )}
           </CardContent>

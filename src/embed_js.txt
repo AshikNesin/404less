@@ -86,10 +86,10 @@
   // ---------- rendering ----------
   var CSS =
     ':host{all:initial;display:block}' +
-    '.root{--bg:var(--f404-bg,#fff);--fg:var(--f404-fg,#111827);--muted:var(--f404-muted,#6b7280);--border:var(--f404-border,#e5e7eb);--hover:var(--f404-hover,#f3f4f6);--accent:var(--f404-accent,#4f46e5);--radius:var(--f404-radius,14px);--shadow:0 16px 40px rgba(15,23,42,.18),0 1px 2px rgba(15,23,42,.08);' +
+    '.root{--bg:var(--f404-bg,#fff);--fg:var(--f404-fg,#111827);--muted:var(--f404-muted,#6b7280);--border:var(--f404-border,#e5e7eb);--hover:var(--f404-hover,#f3f4f6);--accent:var(--f404-accent,#1f1f23);--radius:var(--f404-radius,14px);--shadow:0 16px 40px rgba(15,23,42,.18),0 1px 2px rgba(15,23,42,.08);' +
       'font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased;text-align:left;box-sizing:border-box}' +
     '.root *{box-sizing:border-box}' +
-    '.root.dark{--bg:var(--f404-bg,#17181c);--fg:var(--f404-fg,#f3f4f6);--muted:var(--f404-muted,#9ca3af);--border:var(--f404-border,#2b2d33);--hover:var(--f404-hover,rgba(255,255,255,.06));--accent:var(--f404-accent,#818cf8);--shadow:0 16px 40px rgba(0,0,0,.55)}' +
+    '.root.dark{--bg:var(--f404-bg,#17181c);--fg:var(--f404-fg,#f3f4f6);--muted:var(--f404-muted,#9ca3af);--border:var(--f404-border,#2b2d33);--hover:var(--f404-hover,rgba(255,255,255,.06));--accent:var(--f404-accent,#e4e4e7);--shadow:0 16px 40px rgba(0,0,0,.55)}' +
     '.toast{position:fixed;z-index:2147483000;left:12px;right:12px;bottom:12px}' +
     '@media(min-width:640px){.toast{left:auto;right:20px;bottom:20px;width:380px}.toast.left{left:20px;right:auto}.toast.center{left:50%;right:auto;transform:translateX(-50%)}}' +
     '.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:f404in .24s cubic-bezier(.2,.8,.2,1)}' +
@@ -124,7 +124,7 @@
 
   var ICON_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
   var ICON_CLOSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
-  var ICON_BRAND = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 22.5h8.5" stroke-opacity=".35"/><path d="M4.5 22.5h4c2.4 0 2.8-12 7.5-12s5.1 12 7.5 12h2"/><path d="M23.8 18.8l3.7 3.7-3.7 3.7"/></svg>';
+  var ICON_BRAND = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 7.5v18"/><path d="M17.5 7.5 7.5 19.5h17"/><path d="m21.5 16 3.5 3.5-3.5 3.5"/></svg>';
   var ICON_ARROW = '<svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>';
 
   function el(tag, cls, text) {

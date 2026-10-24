@@ -68,7 +68,7 @@ function LoginPage() {
           <ul className="space-y-4">
             {FEATURES.map(({ Icon, title, text }) => (
               <li key={title} className="flex gap-3">
-                <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-primary shadow-xs"><Icon className="size-4" /></span>
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-foreground shadow-xs"><Icon className="size-4" /></span>
                 <span><span className="block text-[0.875rem] font-medium">{title}</span><span className="block text-[0.8125rem] text-muted-foreground">{text}</span></span>
               </li>
             ))}

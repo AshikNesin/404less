@@ -34,7 +34,7 @@ auth.post('/magic', async (c) => {
       subject: 'Your 404less sign-in link',
       html: `<div style="font-family:system-ui,sans-serif;color:#1b1e27;max-width:480px">
         <p style="font-size:15px">Click the button to sign in to 404less. The link expires in 15 minutes.</p>
-        <p><a href="${link}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600">Sign in to 404less</a></p>
+        <p><a href="${link}" style="display:inline-block;background:#1f1f23;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600">Sign in to 404less</a></p>
         <p style="font-size:12px;color:#6b7280">Or paste this link into your browser:<br>${link}</p>
         <p style="font-size:12px;color:#6b7280">If you didn’t request this, you can ignore this email.</p></div>`,
       text: `Sign in to 404less: ${link}\nThe link expires in 15 minutes.`,

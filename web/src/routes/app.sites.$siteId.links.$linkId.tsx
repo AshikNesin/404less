@@ -84,7 +84,7 @@ function LinkDetailPage() {
             <CardContent>
               {suggestions.length === 0 ? (
                 <EmptyState size="sm" variant="plain" icon={null} title="No close matches"
-                  description={<>Import a sitemap or run a crawl on the <Link to="/app/sites/$siteId/crawl" params={{ siteId: site.id }} className="text-primary hover:underline">Crawler page</Link> so there are pages to match against.</>} />
+                  description={<>Import a sitemap or run a crawl on the <Link to="/app/sites/$siteId/crawl" params={{ siteId: site.id }} className="link">Crawler page</Link> so there are pages to match against.</>} />
               ) : (
                 <ul className="-mx-4 divide-y divide-border">
                   {suggestions.map((s, i) => {
