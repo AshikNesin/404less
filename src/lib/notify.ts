@@ -21,7 +21,8 @@ export function buildDigest(
     const ref = g.topReferrer ? ` ← ${g.topReferrer}` : '';
     return `${g.count}× ${g.url}${ref}`;
   });
-  const text = [title, '', ...lines].join('\n');
+  // the title travels separately (Slack's first line, Pushover's title, the email subject)
+  const text = lines.join('\n');
   const items = groups
     .map((g) => {
       const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -6,10 +6,12 @@ import { cn } from '../../lib/utils';
 
 type TriggerProps = { onClick: () => void; 'aria-expanded': boolean; 'aria-haspopup': 'menu'; 'aria-controls': string };
 
-export function Menu({ trigger, children, align = 'start', className, width = 'w-56' }: {
+export function Menu({ trigger, children, align = 'start', side = 'bottom', className, width = 'w-56' }: {
   trigger: (props: TriggerProps, open: boolean) => React.ReactNode;
   children: React.ReactNode | ((close: () => void) => React.ReactNode);
   align?: 'start' | 'end';
+  /** `top` opens above the trigger, for triggers pinned to the bottom of the screen. */
+  side?: 'top' | 'bottom';
   className?: string;
   width?: string;
 }) {
@@ -33,7 +35,8 @@ export function Menu({ trigger, children, align = 'start', className, width = 'w
           id={id}
           role="menu"
           className={cn(
-            'animate-fade-up absolute z-40 mt-1.5 min-w-[10rem] overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg',
+            'animate-fade-up absolute z-40 min-w-[10rem] overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg',
+            side === 'top' ? 'bottom-full mb-1.5' : 'mt-1.5',
             width,
             align === 'end' ? 'right-0' : 'left-0',
           )}

@@ -22,5 +22,6 @@ function SiteLayout() {
       </div>
     );
   }
-  return <Outlet />;
+  // keyed: switching sites keeps the route mounted, and page state (form fields, selections) must not carry over
+  return <Outlet key={siteId} />;
 }

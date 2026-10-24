@@ -8,18 +8,19 @@ import { loadRobots, type Robots } from './robots';
 import { newId } from '../../../lib/auth';
 import { urlMatchesPattern } from '../../../lib/suggest';
 import { invalidateKnownUrls, openVisitorLinks, recordCrawlResult, refreshSuggestions } from '../links/service';
-import { checkUrl } from './checker';
+import { checkUrl, isWorking } from './checker';
 
 export type CrawlSiteRow = {
   id: string; domain: string; crawl_enabled: number; crawl_max_pages: number;
   exclude_patterns: string; ignore_status_codes: string; name: string; title_job: string | null;
+  last_crawl_at: number | null;
 };
 
 const UA = '404less-bot/0.1 (+https://404less.com)';
 
 export async function getSite(env: Env, siteId: string): Promise<CrawlSiteRow | null> {
   return env.DB.prepare(
-    'SELECT id, name, domain, crawl_enabled, crawl_max_pages, exclude_patterns, ignore_status_codes, title_job FROM websites WHERE id = ?',
+    'SELECT id, name, domain, crawl_enabled, crawl_max_pages, exclude_patterns, ignore_status_codes, title_job, last_crawl_at FROM websites WHERE id = ?',
   ).bind(siteId).first<CrawlSiteRow>();
 }
 
@@ -62,12 +63,23 @@ function excluded(url: string, patterns: string[]): boolean {
 export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth: number): Promise<CrawlMessage[]> {
   const next: CrawlMessage[] = [];
   if (depth > 2) return next;
+  // many pages link to the same page: fetch it once per run (crawl_sources is reset at run start),
+  // and not at all once its link check failed
+  const done = await env.DB.prepare(
+    `SELECT 1 AS ok FROM crawl_sources WHERE website_id = ?1 AND source_url = ?2
+     UNION ALL SELECT 1 FROM link_checks WHERE website_id = ?1 AND url = ?2 AND ok = 0 AND checked_at >= ?3 LIMIT 1`,
+  ).bind(site.id, url, site.last_crawl_at ?? Date.now()).first();
+  if (done) return next;
+  const host = site.domain.replace(/^www\./, '');
 
   let html: string;
   try {
     const res = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow', signal: AbortSignal.timeout(10_000) });
     if (!res.ok) {
-      // a seed page (sitemap entry / linked page) that is itself broken is a finding
+      // a broken seed page (sitemap entry, homepage) is a finding; a linked page is checked
+      // from the page that links to it, which also records where it was found
+      await res.body?.cancel();
+      if (depth > 0 || isWorking(res.status, site)) return next;
       const ts = Date.now();
       await env.DB.prepare(
         'INSERT INTO link_checks (id, website_id, url, status, ok, redirect_chain, checked_at) VALUES (?, ?, ?, ?, 0, NULL, ?)',
@@ -76,6 +88,10 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
       if (outcome.alert) await notifyDigest(env, site.id, url, null);
       return next;
     }
+    // a redirect to another site isn't one of our pages; a same-site redirect is the page it lands on
+    const landed = new URL(res.url || url);
+    if (landed.host.replace(/^www\./, '') !== host) { await res.body?.cancel(); return next; }
+    url = landed.toString();
     html = await res.text();
   } catch {
     return next;
@@ -96,7 +112,6 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
   const { links, assets } = extractLinks(url, html);
   let excludes: string[] = [];
   try { excludes = JSON.parse(site.exclude_patterns ?? '[]'); } catch {}
-  const host = site.domain.replace(/^www\./, '');
 
   const stmts = [];
   for (const l of links) {
@@ -125,7 +140,7 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     for (const l of links) {
       let u: URL;
       try { u = new URL(l.url); } catch { continue; }
-      if (u.hostname.replace(/^www\./, '') !== host) continue;
+      if (u.host.replace(/^www\./, '') !== host) continue;
       if (u.hash || u.search) continue;
       if (excluded(l.url, excludes)) continue;
       robots ??= await loadRobots(siteOrigin(site.domain));
@@ -206,6 +221,12 @@ async function fetchTitle(url: string): Promise<string | null> {
 
 /** Check one URL, persist the check, update broken_links. Returns whether to alert. */
 export async function checkLink(env: Env, site: CrawlSiteRow, msg: Extract<CrawlMessage, { kind: 'check-link' }>): Promise<boolean> {
+  // every page linking to a URL enqueues a check for it: check it once per run
+  if (site.last_crawl_at) {
+    const done = await env.DB.prepare('SELECT 1 AS ok FROM link_checks WHERE website_id = ? AND url = ? AND checked_at >= ? LIMIT 1')
+      .bind(site.id, msg.url, site.last_crawl_at).first();
+    if (done) return false;
+  }
   const result = await checkUrl(msg.url, site);
   const ts = Date.now();
   await env.DB.prepare(

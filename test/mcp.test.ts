@@ -121,6 +121,7 @@ test('mcp: unknown site -> structured error, not a crash', async () => {
   }));
   const inner = JSON.parse(body.result.content[0].text);
   expect(inner.error).toMatch(/unknown site/);
+  expect(body.result.isError).toBe(true);
 });
 
 test('mcp: unknown tool and unknown method handled', async () => {

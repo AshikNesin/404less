@@ -87,7 +87,7 @@ api.post('/sites', async (c) => {
     host = u.hostname.replace(/^www\./, '') + (u.port ? `:${u.port}` : '');
     if (!host || !/^[a-z0-9.:-]+$/i.test(host)) throw new Error('bad host');
   } catch {
-    return c.json({ error: 'invalid domain' }, 400);
+    return c.json({ error: 'enter a domain like example.com' }, 400);
   }
   const dup = await c.env.DB.prepare('SELECT id FROM websites WHERE team_id = ? AND domain = ?').bind(team.id, host).first();
   if (dup) return c.json({ error: `${host} is already monitored by this team` }, 409);
@@ -153,7 +153,15 @@ api.post('/sites/:id/crawl', async (c) => {
   const found = await siteForUser(c.env, c.req.param('id'), c.get('userId'));
   if ('error' in found) return c.json({ error: found.error }, found.status as 403 | 404);
   if (found.role === 'viewer') return c.json({ error: 'forbidden' }, 403);
-  await c.env.CRAWLQ.send({ kind: 'crawl-site', siteId: found.site.id, manual: true });
+  // stamp the run now: until the queue picks it up the dashboard would show the previous run as current
+  const stamp = (ts: number | null) => c.env.DB.prepare('UPDATE websites SET last_crawl_at = ? WHERE id = ?').bind(ts, found.site.id).run();
+  await stamp(now());
+  try {
+    await c.env.CRAWLQ.send({ kind: 'crawl-site', siteId: found.site.id, manual: true });
+  } catch (err) {
+    await stamp(found.site.last_crawl_at); // nothing was queued: the previous run is still the current one
+    throw err;
+  }
   return c.json({ ok: true, started: true });
 });
 

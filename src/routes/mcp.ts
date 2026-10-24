@@ -24,11 +24,12 @@ const TOOLS = [
   },
   {
     name: 'list_broken_links',
-    description: 'Aggregated broken (404) URLs for a site, optionally since an ISO timestamp.',
+    description: 'Broken URLs for a site (open by default), most-hit first, optionally since an ISO timestamp.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         site: { type: 'string', description: 'Site id, domain, or name' },
+        status: { type: 'string', enum: ['open', 'resolved', 'ignored', 'all'], description: 'Triage status (default open)' },
         since: { type: 'string', description: 'ISO 8601 timestamp lower bound' },
         limit: { type: 'number', description: 'Max URLs to return (default 50, max 200)' },
       },
@@ -117,7 +118,9 @@ mcp.on(['POST', 'GET', 'DELETE'], '/mcp', async (c) => {
       else if (name === 'get_link_details')
         result = await getLinkDetails(c.env, teamId, args as never);
       else return c.json({ jsonrpc: '2.0', error: { code: -32602, message: `unknown tool: ${name}` }, id: rpc.id }, 200);
-      return ok({ content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }, rpc.id);
+      // services answer { error } for bad input (unknown site): a tool error the agent can see
+      const isError = !!result && typeof result === 'object' && 'error' in result;
+      return ok({ content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], ...(isError ? { isError } : {}) }, rpc.id);
     } catch (err) {
       return ok({ content: [{ type: 'text', text: `error: ${err instanceof Error ? err.message : String(err)}` }], isError: true }, rpc.id);
     }

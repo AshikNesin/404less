@@ -35,15 +35,22 @@ app.get('*', async (c) => {
   const fetchAsset = (p: string) => assets.fetch(new Request(new URL(p, url.origin), { headers: c.req.raw.headers }));
   if (url.pathname === '/app' || url.pathname.startsWith('/app/')) {
     const res = await fetchAsset('/app.html');
+    // 304 (If-None-Match): the browser's cached copy is app.html already; rewrapping it as 200 would serve an empty page
+    if (res.status === 304) return res;
     return new Response(res.body, { status: 200, headers: res.headers });
+  }
+  // trailing slash on a marketing page (/embed/ → /embed)
+  if (/^\/[a-z0-9-]+\/$/.test(url.pathname)) {
+    return c.redirect(url.pathname.slice(0, -1) + url.search, 301);
   }
   // marketing pages: / → index.html, /embed → embed.html, …; anything else → 404.html
   const page = url.pathname === '/' ? '/index.html' : /^\/[a-z0-9-]+$/.test(url.pathname) ? `${url.pathname}.html` : null;
   if (page) {
     const res = await fetchAsset(page);
-    if (res.ok) return res;
+    if (res.ok || res.status === 304) return res;
   }
-  const nf = await fetchAsset('/404.html');
+  // no conditional headers: a 304 can't carry the 404 status, and its empty body would replace the page
+  const nf = await assets.fetch(new Request(new URL('/404.html', url.origin)));
   return new Response(nf.body, { status: 404, headers: nf.headers });
 });
 

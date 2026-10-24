@@ -100,10 +100,10 @@ test('import-sitemap validates and reports unusable sitemaps', async () => {
     method: 'POST', headers: h,
     body: JSON.stringify({ sitemapUrl: 'https://import.test/sitemap.xml' }),
   });
-  // outbound fetch will fail in tests (no real site) -> 422 "no usable urls"
+  // outbound fetch fails in tests (no real site) -> 422 naming the sitemap that couldn't be read
   const body = await r.json() as any;
-  expect([422, 200]).toContain(r.status);
-  if (r.status === 422) expect(body.error).toMatch(/no usable|invalid/i);
+  expect(r.status).toBe(422);
+  expect(body.error).toBe('could not fetch https://import.test/sitemap.xml');
 });
 
 test('known-urls listing', async () => {

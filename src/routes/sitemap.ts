@@ -6,7 +6,7 @@ import { isValidHttpUrl, parseSitemap } from '../lib/sitemap';
 import { newId, now } from '../lib/auth';
 import { siteForUser } from '../server/features/sites/service';
 import { refreshSuggestions } from '../server/features/links/service';
-import { startTitleJobs } from '../server/features/crawl/service';
+import { siteOrigin, startTitleJobs } from '../server/features/crawl/service';
 import type { Env } from '../types';
 
 export const sitemap = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
@@ -21,7 +21,7 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const sitemapUrl =
     (body?.sitemapUrl as string | undefined) ??
-    `https://${site.site.domain}/sitemap.xml`;
+    `${siteOrigin(site.site.domain)}/sitemap.xml`;
   const parsedInput = isValidHttpUrl(sitemapUrl);
   if (!parsedInput) return c.json({ error: 'invalid sitemap url' }, 400);
 
@@ -30,10 +30,12 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
   let toFetch = [parsedInput.toString()];
   const seen = new Set<string>();
   let hops = 0;
+  let rootError = null as string | null; // why the sitemap itself couldn't be read (set inside the fetches)
 
   while (toFetch.length && collected.length < MAX_URLS && hops < 12) {
     const batch = toFetch.splice(0, 5);
     hops++;
+    const root = hops === 1;
     const docs = await Promise.all(
       batch.map(async (u) => {
         try {
@@ -42,11 +44,18 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
             headers: { 'User-Agent': '404less-bot/0.1 (+https://404less.com)' },
             signal: AbortSignal.timeout(10_000),
           });
-          if (!res.ok) return null;
+          if (!res.ok) {
+            if (root) rootError = `${u} responded with HTTP ${res.status}`;
+            return null;
+          }
           const text = await res.text();
-          if (text.length > MAX_SITEMAP_BYTES) return null;
+          if (text.length > MAX_SITEMAP_BYTES) {
+            if (root) rootError = `${u} is larger than 5 MB`;
+            return null;
+          }
           return parseSitemap(text);
         } catch {
+          if (root) rootError = `could not fetch ${u}`;
           return null;
         }
       }),
@@ -63,20 +72,30 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
     }
   }
 
-  // Keep only same-host URLs, dedupe
+  if (rootError) return c.json({ error: rootError }, 422);
+
+  // Keep only same-host URLs, dedupe (the domain carries the port, if any)
   const host = site.site.domain.replace(/^www\./, '');
   const rows = new Map<string, string>(); // url -> id
+  let onSite = 0;
   for (const u of collected) {
     const parsed = isValidHttpUrl(u);
     if (!parsed) continue;
-    const h = parsed.hostname.replace(/^www\./, '');
+    const h = parsed.host.replace(/^www\./, '');
     if (h !== host) continue;
+    onSite++;
     if (parsed.hash || parsed.search) continue; // canonical pages only
     rows.set(parsed.toString(), newId());
     if (rows.size >= MAX_URLS) break;
   }
 
-  if (!rows.size) return c.json({ error: 'no usable urls found in sitemap' }, 422);
+  if (!rows.size) {
+    return c.json({
+      error: !collected.length ? 'no page URLs found in the sitemap (is it a <urlset> or <sitemapindex>?)'
+        : !onSite ? `none of the ${collected.length} URLs in the sitemap are on ${site.site.domain}`
+        : `all ${onSite} URLs on ${site.site.domain} carry a query string or #fragment; only canonical pages are imported`,
+    }, 422);
+  }
 
   // Insert in chunks (D1 batch limits)
   const ts = now();

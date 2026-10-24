@@ -55,8 +55,22 @@ export function parseRobots(origin: string, body: string): Robots {
   };
 }
 
-/** Fetch + parse robots.txt; failure => allow-all (standard behavior). */
+// Per-isolate cache: every crawled page would otherwise refetch robots.txt (a subrequest each).
+const cache = new Map<string, { at: number; robots: Robots }>();
+const TTL_MS = 5 * 60 * 1000;
+
+/** Fetch + parse robots.txt (cached a few minutes per origin); failure => allow-all (standard behavior). */
 export async function loadRobots(origin: string): Promise<Robots> {
+  const hit = cache.get(origin);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.robots;
+  const robots = await fetchRobots(origin);
+  // an unreachable robots.txt allows this page but isn't remembered: the next page asks again
+  if (robots) cache.set(origin, { at: Date.now(), robots });
+  return robots ?? { allowed: () => true };
+}
+
+/** null when robots.txt couldn't be read (network error, 5xx); a 4xx means no rules (RFC 9309). */
+async function fetchRobots(origin: string): Promise<Robots | null> {
   const UA = '404less-bot/0.1 (+https://404less.com)';
   try {
     const res = await fetch(new URL('/robots.txt', origin).toString(), {
@@ -64,9 +78,10 @@ export async function loadRobots(origin: string): Promise<Robots> {
       redirect: 'follow',
       signal: AbortSignal.timeout(5_000),
     });
+    if (res.status >= 500) return null;
     if (!res.ok) return { allowed: () => true };
     return parseRobots(origin, await res.text());
   } catch {
-    return { allowed: () => true };
+    return null;
   }
 }

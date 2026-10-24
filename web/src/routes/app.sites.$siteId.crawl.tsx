@@ -44,7 +44,8 @@ function CrawlPage() {
     mutationFn: () => api(`/api/sites/${site.id}/crawl`, json({})),
     onSuccess: () => {
       toast('info', 'Crawl started. Results appear below as links are checked.');
-      setTimeout(() => { void qc.invalidateQueries({ queryKey: ['overview', site.id] }); void qc.invalidateQueries({ queryKey: ['crawl-report', site.id] }); }, 1500);
+      void qc.invalidateQueries({ queryKey: ['overview', site.id] });
+      void qc.invalidateQueries({ queryKey: ['crawl-report', site.id] });
     },
     onError: (e: Error) => toast('error', e.message),
   });
@@ -76,8 +77,15 @@ function CrawlPage() {
               <Switch checked={site.crawl_enabled === 1} label="Scheduled crawling" onCheckedChange={(v) => patchSite.mutate({ crawl_enabled: v })} />
             </Field>
             <Field label="Pages per crawl" hint="Starting pages per run (sitemap or homepage). Keeps you inside free-tier limits.">
-              <Input type="number" min={1} max={500} defaultValue={site.crawl_max_pages || 100} className="w-20 text-right"
-                onBlur={(e) => { const v = Number(e.target.value); if (v >= 1 && v <= 500 && v !== site.crawl_max_pages) patchSite.mutate({ crawl_max_pages: v }); }} />
+              <form onSubmit={(e) => { e.preventDefault(); (e.currentTarget.elements[0] as HTMLInputElement).blur(); }}>
+                <Input type="number" min={1} max={500} defaultValue={site.crawl_max_pages || 100} className="w-20 text-right" aria-label="Pages per crawl"
+                  onBlur={(e) => {
+                    const v = Number(e.target.value);
+                    if (v === site.crawl_max_pages) return;
+                    if (!Number.isInteger(v) || v < 1 || v > 500) { toast('error', 'Pages per crawl must be between 1 and 500'); e.target.value = String(site.crawl_max_pages); return; }
+                    patchSite.mutate({ crawl_max_pages: v }, { onSuccess: () => toast('success', `Crawls start from up to ${plural(v, 'page')}`) });
+                  }} />
+              </form>
             </Field>
             <Field label="Treat as working" hint="Status codes that should not count as broken (e.g. 403 behind a login, 405 on form endpoints). 401 and 429 are always tolerated.">
               <form className="flex items-center gap-1.5" onSubmit={(e) => {

@@ -69,7 +69,7 @@ function ApiKeysPage() {
                   <code className="text-code min-w-0 flex-1 truncate">{k.prefix}…</code>
                   <span className="text-meta">created {relTime(k.created_at)}</span>
                   <ConfirmButton variant="ghost" size="sm" confirmLabel="Revoke?"
-                    onConfirm={() => api(`/api/teams/${teamId}/keys/${k.id}`, { method: 'DELETE' }).then(() => { toast('success', `Revoked ${k.prefix}…`); void qc.invalidateQueries({ queryKey: ['keys', teamId] }); })}>
+                    onConfirm={() => api(`/api/teams/${teamId}/keys/${k.id}`, { method: 'DELETE' }).then(() => { toast('success', `Revoked ${k.prefix}…`); void qc.invalidateQueries({ queryKey: ['keys', teamId] }); }, (e: Error) => toast('error', e.message))}>
                     Revoke
                   </ConfirmButton>
                 </li>
@@ -85,7 +85,8 @@ function ApiKeysPage() {
           <CardDescription>Streamable-HTTP MCP server, read-only. Ask Claude Code or Cursor to list broken links and draft the redirects.</CardDescription>
           <CardAction><code className="text-code text-muted-foreground">{window.location.origin}/mcp</code></CardAction>
         </CardHeader>
-        <CardContent><McpSetup keyPlaceholder={secret || list[0] ? (secret || `${list[0].prefix}…`) : '404l_your_key'} /></CardContent>
+        {/* a truncated real key would copy into a command that fails auth: the full secret or a placeholder */}
+        <CardContent><McpSetup keyPlaceholder={secret || '404l_your_key'} /></CardContent>
       </Card>
     </Page>
   );

@@ -64,8 +64,12 @@ channels.delete('/teams/:teamId/channels/:id', async (c) => {
   const role = await teamRole(c.env, teamId, c.get('userId'));
   if (!role) return c.json({ error: 'not found' }, 404);
   if (role === 'viewer') return c.json({ error: 'viewers cannot manage channels' }, 403);
-  await c.env.DB.prepare('DELETE FROM alert_channels WHERE id = ? AND team_id = ?')
-    .bind(c.req.param('id'), teamId).run();
+  // its alert history goes too (alerts.channel_id references it, and history is shown per channel)
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM alerts WHERE channel_id IN (SELECT id FROM alert_channels WHERE id = ? AND team_id = ?)')
+      .bind(c.req.param('id'), teamId),
+    c.env.DB.prepare('DELETE FROM alert_channels WHERE id = ? AND team_id = ?').bind(c.req.param('id'), teamId),
+  ]);
   return c.json({ ok: true });
 });
 

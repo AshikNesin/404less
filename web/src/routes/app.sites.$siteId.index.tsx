@@ -30,7 +30,7 @@ function OverviewPage() {
     mutationFn: () => api(`/api/sites/${site.id}/crawl`, json({})),
     onSuccess: () => {
       toast('info', 'Crawl started — results land on the Crawler page as links are checked');
-      setTimeout(() => void qc.invalidateQueries({ queryKey: ['overview', site.id] }), 1500);
+      void qc.invalidateQueries({ queryKey: ['overview', site.id] });
     },
     onError: (e: Error) => toast('error', e.message),
   });
@@ -71,7 +71,7 @@ function OverviewPage() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Open broken links" value={o.counts.open.toLocaleString()} tone={o.counts.open > 0 ? 'destructive' : 'default'}
-          hint={`${plural(o.counts.resolved, 'resolved')} · ${o.counts.ignored} ignored`} />
+          hint={`${o.counts.resolved.toLocaleString()} resolved · ${o.counts.ignored.toLocaleString()} ignored`} />
         <StatCard label="404 hits, last 7 days" value={compact(o.hits7d)} trend={trend14}
           delta={delta === null ? null : { value: delta, period: 'previous 7 days', upIsGood: false }}
           hint={delta === null ? 'no hits in the previous 7 days' : undefined} />
@@ -125,7 +125,7 @@ function OverviewPage() {
                       <SuggestionCell url={l.suggested_url} title={l.suggested_title} domain={site.domain} />
                     </div>
                     <div className="col-start-2 row-start-1 text-right sm:col-auto sm:row-auto">
-                      <div className="num text-[0.8125rem] font-semibold">{compact(l.hits)}<span className="text-meta font-normal"> hits</span></div>
+                      <div className="num text-[0.8125rem] font-semibold">{compact(l.hits)}<span className="text-meta font-normal"> {l.hits === 1 ? 'hit' : 'hits'}</span></div>
                       <div className="text-meta" title={fullTime(l.last_seen)}>{relTime(l.last_seen)}</div>
                     </div>
                   </li>

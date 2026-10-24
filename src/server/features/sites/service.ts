@@ -6,8 +6,10 @@ import type { SiteRow } from './helpers';
 export * from './helpers';
 
 const DAY = 86_400_000;
-// A crawl is "running" while checks keep landing; the queue has no end signal.
-const CRAWL_ACTIVE_WINDOW_MS = 90_000;
+// A crawl is "running" while checks keep landing; the queue has no end signal. Before the
+// first check, allow for the queue to start and the first pages to load.
+const CRAWL_START_WINDOW_MS = 90_000;
+const CRAWL_IDLE_WINDOW_MS = 45_000;
 
 export type SiteSummary = Omit<SiteRow, 'ignore_status_codes' | 'exclude_patterns'> & {
   ignore_status_codes: number[];
@@ -75,8 +77,9 @@ export async function siteOverview(env: Env, site: SiteRow & { team_id: string; 
     ).bind(site.id),
     env.DB.prepare('SELECT id, url, referrer, ts FROM not_found_events WHERE website_id = ? ORDER BY ts DESC LIMIT 8').bind(site.id),
     env.DB.prepare(
-      `SELECT COUNT(*) AS checked, SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS broken, MAX(checked_at) AS last_check_at
-       FROM link_checks WHERE website_id = ? AND checked_at >= ?`,
+      // one row per URL, its latest check (SQLite returns the bare ok from the MAX row), like crawlReport
+      `SELECT COUNT(*) AS checked, SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS broken, MAX(at) AS last_check_at
+       FROM (SELECT ok, MAX(checked_at) AS at FROM link_checks WHERE website_id = ? AND checked_at >= ? GROUP BY url)`,
     ).bind(site.id, crawlSince),
     env.DB.prepare('SELECT COUNT(*) AS n FROM known_urls WHERE website_id = ?').bind(site.id),
     env.DB.prepare('SELECT COUNT(*) AS n FROM alert_channels WHERE team_id = ? AND enabled = 1').bind(site.team_id),
@@ -86,7 +89,7 @@ export async function siteOverview(env: Env, site: SiteRow & { team_id: string; 
   const c = crawl.results[0] as { checked: number; broken: number | null; last_check_at: number | null };
   const lastCheckAt = c.last_check_at ?? null;
   const running = !!site.last_crawl_at && (
-    now - site.last_crawl_at < CRAWL_ACTIVE_WINDOW_MS || (!!lastCheckAt && now - lastCheckAt < CRAWL_ACTIVE_WINDOW_MS)
+    lastCheckAt ? now - lastCheckAt < CRAWL_IDLE_WINDOW_MS : now - site.last_crawl_at < CRAWL_START_WINDOW_MS
   );
   return {
     counts: byStatus,
