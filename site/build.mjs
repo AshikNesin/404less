@@ -14,6 +14,15 @@ fs.mkdirSync(OUT, { recursive: true });
 // assets (css, images, og) → dist/web/
 fs.cpSync(path.join(ROOT, 'assets'), OUT, { recursive: true });
 
+// the product demo (rendered by docs/demo, committed there) → dist/web/demo/
+const DEMO = path.resolve(ROOT, '..', 'docs', 'demo', '404less-demo.mp4');
+if (fs.existsSync(DEMO)) {
+  fs.mkdirSync(path.join(OUT, 'demo'), { recursive: true });
+  fs.copyFileSync(DEMO, path.join(OUT, 'demo', '404less-demo.mp4'));
+} else {
+  console.warn('site: docs/demo/404less-demo.mp4 missing; the hero player will have no video');
+}
+
 const urls = [];
 for (const file of fs.readdirSync(path.join(ROOT, 'pages')).filter((f) => f.endsWith('.html')).sort()) {
   const src = fs.readFileSync(path.join(ROOT, 'pages', file), 'utf8');
@@ -24,15 +33,25 @@ for (const file of fs.readdirSync(path.join(ROOT, 'pages')).filter((f) => f.ends
   const canonical = SITE_URL + (meta.path === '/' ? '/' : meta.path);
   const jsonld = JSON.stringify(meta.path === '/' ? {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: '404less',
-    applicationCategory: 'DeveloperApplication',
-    operatingSystem: 'Web',
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    description: meta.description,
-    url: SITE_URL,
-    license: 'https://opensource.org/licenses/MIT',
-    codeRepository: 'https://github.com/AshikNesin/404less',
+    '@graph': [{
+      '@type': 'SoftwareApplication',
+      name: '404less',
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description: meta.description,
+      url: SITE_URL,
+      license: 'https://opensource.org/licenses/MIT',
+      codeRepository: 'https://github.com/AshikNesin/404less',
+    }, {
+      '@type': 'VideoObject',
+      name: '404less product demo',
+      description: 'One script tag, one list of broken links, one fix. A 65-second tour of 404less.',
+      thumbnailUrl: SITE_URL + '/img/demo-poster.webp',
+      contentUrl: SITE_URL + '/demo/404less-demo.mp4',
+      uploadDate: '2026-10-24',
+      duration: 'PT1M5S',
+    }],
   } : { '@context': 'https://schema.org', '@type': 'WebPage', name: meta.title, description: meta.description, url: canonical });
   const html = layout
     .replaceAll('{{title}}', esc(meta.title))

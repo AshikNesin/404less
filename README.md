@@ -140,7 +140,7 @@ web/
   src/components/ui/       primitives (button, card, table, tabs, charts, …)
 site/
   pages/*.html             marketing pages (index, embed, self-host, agent, 404) + layout.html
-  build.mjs                renders pages into dist/web, writes sitemap.xml + robots.txt
+  build.mjs                renders pages into dist/web, copies the demo video, writes sitemap.xml + robots.txt
   og/                      Open Graph image template + renderer → site/assets/og/*.png
 test/                      vitest suites running inside workerd via SELF.fetch()
 ```

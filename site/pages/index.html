@@ -22,12 +22,25 @@
   </section>
   <div class="shot-wrap">
     <div class="container">
-      <div class="frame">
-        <div class="bar"><i></i><i></i><i></i><span class="url">app.404less.com/sites/acme-docs</span></div>
-        <div class="crop" style="aspect-ratio: 1440 / 900"><img src="/img/overview.webp" alt="The 404less overview: open broken links, 404 hits per day, and the links that need attention with suggested fixes" width="2400" height="1500" loading="eager" fetchpriority="high"></div>
+      <div class="player" id="demo">
+        <video id="demo-video" preload="none" playsinline poster="/img/demo-poster.webp" width="1920" height="1080" aria-label="404less product demo, 65 seconds with sound">
+          <source src="/demo/404less-demo.mp4" type="video/mp4">
+        </video>
+        <button class="play" type="button" aria-label="Play the demo (65 seconds, with sound)">
+          <span class="disc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg></span>
+          <span class="pill">Watch the demo<em>1:05</em></span>
+        </button>
       </div>
     </div>
   </div>
+  <script>
+    (function () {
+      var v = document.getElementById('demo-video'), b = v.nextElementSibling, p = v.parentNode;
+      b.addEventListener('click', function () { v.controls = true; v.play(); });
+      v.addEventListener('play', function () { p.classList.add('playing'); });
+      v.addEventListener('ended', function () { p.classList.remove('playing'); v.controls = false; v.load(); });
+    })();
+  </script>
 
   <section class="section" id="how">
     <div class="container">
