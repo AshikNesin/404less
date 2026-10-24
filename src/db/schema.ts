@@ -1,4 +1,4 @@
-// D1 (SQLite) schema types for 404less — matches migrations/0001_init.sql.
+// D1 (SQLite) schema types for 404less — mirrors migrations/*.sql (typed reference; queries are plain SQL).
 import type { InferSelectModel } from 'drizzle-orm';
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
@@ -32,6 +32,11 @@ export const websites = sqliteTable('websites', {
   ignoreStatusCodes: text('ignore_status_codes').notNull().default('[]'),
   excludePatterns: text('exclude_patterns').notNull().default('[]'),
   createdAt: integer('created_at').notNull(),
+  notifyEnabled: integer('notify_enabled').notNull().default(1),
+  digestMinutes: integer('digest_minutes').notNull().default(15),
+  crawlEnabled: integer('crawl_enabled').notNull().default(0),
+  crawlMaxPages: integer('crawl_max_pages').notNull().default(100),
+  lastCrawlAt: integer('last_crawl_at'),
 });
 
 export const notFoundEvents = sqliteTable('not_found_events', {
@@ -41,6 +46,21 @@ export const notFoundEvents = sqliteTable('not_found_events', {
   referrer: text('referrer'),
   userAgent: text('user_agent'),
   ts: integer('ts').notNull(),
+});
+
+export const brokenLinks = sqliteTable('broken_links', {
+  id: text('id').primaryKey(),
+  websiteId: text('website_id').notNull(),
+  url: text('url').notNull(),
+  status: text('status').notNull().default('open'),      // open|resolved|ignored
+  source: text('source').notNull().default('visitor'),   // visitor|crawler|both
+  hits: integer('hits').notNull().default(0),
+  httpStatus: integer('http_status'),
+  firstSeen: integer('first_seen').notNull(),
+  lastSeen: integer('last_seen').notNull(),
+  resolvedAt: integer('resolved_at'),
+  suggestedUrl: text('suggested_url'),
+  suggestedTitle: text('suggested_title'),
 });
 
 export const magicTokens = sqliteTable('magic_tokens', {
@@ -60,3 +80,4 @@ export const apiKeys = sqliteTable('api_keys', {
 export type User = InferSelectModel<typeof users>;
 export type Website = InferSelectModel<typeof websites>;
 export type NotFoundEvent = InferSelectModel<typeof notFoundEvents>;
+export type BrokenLink = InferSelectModel<typeof brokenLinks>;

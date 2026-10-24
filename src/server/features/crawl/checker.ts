@@ -9,7 +9,7 @@ export type CheckResult = {
   finalUrl: string;
 };
 
-const UA = '404less-bot/0.1 (+https://404less.dev)';
+const UA = '404less-bot/0.1 (+https://404less.com)';
 const MAX_REDIRECTS = 6;
 
 export async function checkUrl(rawUrl: string, site: Pick<SiteRow, 'ignore_status_codes'>): Promise<CheckResult> {

@@ -1,53 +1,49 @@
-// Notification channels: list / add / toggle / test / remove.
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// Notification channels (team-wide): list / add / toggle / test / remove.
+import { createFileRoute } from '@tanstack/react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useToast } from '../components/ui/toast';
-import { Megaphone, Send } from 'lucide-react';
-import { api } from '../lib/api';
-import type { Channel, Team } from '../lib/types';
+import { Bell, Mail, MessageSquare, Send, Smartphone, type LucideIcon } from 'lucide-react';
+import { api, patch } from '../lib/api';
+import type { Channel } from '../lib/types';
+import { relTime } from '../lib/format';
 import { Button } from '../components/ui/button';
-import { ConfirmButton } from '../components/ui/confirm-button';
-import { Input, Select } from '../components/ui/input';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { EmptyState } from '../components/ui/empty-state';
 import { Badge } from '../components/ui/badge';
+import { ConfirmButton } from '../components/ui/confirm-button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { EmptyState } from '../components/ui/empty-state';
+import { Switch } from '../components/ui/switch';
+import { TableSkeleton } from '../components/ui/skeleton';
+import { useToast } from '../components/ui/toast';
+import { Page, PageHeader } from '../components/page-header';
+import { meQuery } from '../features/sites/queries';
+import { ChannelForm } from '../features/channels/channel-form';
 
 export const Route = createFileRoute('/app/settings/channels')({ component: ChannelsPage });
 
+const TYPE: Record<Channel['type'], { label: string; Icon: LucideIcon }> = {
+  slack: { label: 'Slack', Icon: MessageSquare },
+  email: { label: 'Email', Icon: Mail },
+  pushover: { label: 'Pushover', Icon: Smartphone },
+};
+
 function ChannelsPage() {
   const qc = useQueryClient();
-  const [type, setType] = useState<'slack' | 'pushover' | 'email'>('slack');
-  const [value, setValue] = useState('');
   const toast = useToast();
+  const me = useQuery(meQuery);
+  const teamId = me.data?.teams[0]?.id;
   const [testing, setTesting] = useState<string | null>(null);
-
-  const { data: teamsData } = useQuery({ queryKey: ['teams'], queryFn: () => api<{ teams: Team[] }>('/api/teams') });
-  const teamId = teamsData?.teams?.[0]?.id;
-  const { data: chansData, refetch } = useQuery({
+  const channels = useQuery({
     queryKey: ['channels', teamId],
     queryFn: () => api<{ channels: Channel[] }>(`/api/teams/${teamId}/channels`),
     enabled: !!teamId,
   });
-  const channels = chansData?.channels ?? [];
-
-  const add = useMutation({
-    mutationFn: async () => {
-      const config =
-        type === 'slack' ? { url: value } :
-        type === 'email' ? { to: value } :
-        (() => { const [user, token] = value.split(':'); return { token, user }; })(); // pushover format: user:token
-      return api(`/api/teams/${teamId}/channels`, { method: 'POST', body: JSON.stringify({ type, config }) });
-    },
-    onSuccess: () => { setValue(''); toast('success', 'Channel added'); refetch(); },
-    onError: (e: Error) => toast('error', e.message),
-  });
+  const refresh = () => { void qc.invalidateQueries({ queryKey: ['channels', teamId] }); void qc.invalidateQueries({ queryKey: ['overview'] }); };
 
   async function test(id: string) {
     setTesting(id);
     try {
-      const r = await api<{ ok?: boolean; error?: string }>(`/api/teams/${teamId}/channels/${id}/test`, { method: 'POST', body: '{}' });
-      r.ok ? toast('success', 'Test sent — check the channel') : toast('error', `Failed: ${r.error}`);
+      await api(`/api/teams/${teamId}/channels/${id}/test`, { method: 'POST', body: '{}' });
+      toast('success', 'Test sent — check the channel');
     } catch (e) {
       toast('error', e instanceof Error ? e.message : 'Test failed');
     } finally {
@@ -55,68 +51,63 @@ function ChannelsPage() {
     }
   }
 
+  const list = channels.data?.channels ?? [];
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Notifications</h1>
-        <p className="text-sm text-muted-foreground">Where 404 digests and crawl-failure alerts are sent.</p>
-      </div>
-
-      {channels.length === 0 ? (
-        <EmptyState
-          icon={Megaphone}
-          title="No channels yet"
-          description="Add a Slack webhook, Pushover token, or email address below."
-        />
-      ) : (
-        <div className="space-y-3">
-          {channels.map((ch) => (
-            <Card key={ch.id} size="sm">
-              <CardHeader className="pb-0">
-                <CardTitle className="flex items-center gap-2">
-                  <Badge tone="accent">{ch.type}</Badge> {ch.name}
-                  {ch.enabled === 0 && <Badge tone="outline">disabled</Badge>}
-                </CardTitle>
-                <CardAction>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" pending={testing === ch.id} onClick={() => test(ch.id)}>
-                      <Send /> Test
-                    </Button>
-                    <Button variant="outline" size="sm"
-                      onClick={() => api(`/api/teams/${teamId}/channels/${ch.id}`, { method: 'PATCH', body: JSON.stringify({ enabled: ch.enabled === 0 }) }).then(() => refetch())}>
-                      {ch.enabled ? 'Disable' : 'Enable'}
-                    </Button>
-                    <ConfirmButton size="sm" confirmLabel="Remove?"
-                      onConfirm={() => api(`/api/teams/${teamId}/channels/${ch.id}`, { method: 'DELETE' }).then(() => { toast('success', `Channel "${ch.name}" removed`); refetch(); })}>
-                      Remove
-                    </ConfirmButton>
-                  </div>
-                </CardAction>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      )}
+    <Page>
+      <PageHeader
+        title="Notifications"
+        description="Where digests go. Every site on your team uses these channels; each site decides whether to send and how often."
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Add channel</CardTitle>
-          <CardDescription>Slack: webhook URL · Pushover: user:token · Email: address</CardDescription>
+          <CardTitle>Channels</CardTitle>
+          <CardDescription>{list.length === 0 ? 'None yet.' : `${list.filter((c) => c.enabled).length} of ${list.length} enabled`}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); add.mutate(); }} className="flex flex-wrap gap-2">
-            <Select value={type} onChange={(e) => setType(e.target.value as never)}>
-              <option value="slack">Slack</option>
-              <option value="pushover">Pushover</option>
-              <option value="email">Email</option>
-            </Select>
-            <Input value={value} onChange={(e) => setValue(e.target.value)}
-              placeholder={type === 'slack' ? 'https://hooks.slack.com/services/…' : type === 'email' ? 'you@example.com' : 'user:token'}
-              className="flex-1 min-w-64" />
-            <Button type="submit" pending={add.isPending} disabled={!teamId}>Add channel</Button>
-          </form>
+          {channels.isPending || !teamId ? (
+            <TableSkeleton rows={2} cols={3} />
+          ) : list.length === 0 ? (
+            <EmptyState variant="plain" icon={Bell} title="No channels yet" description="Add one below. Hits are grouped per site into one digest per window, so a bad deploy is one message, not hundreds." />
+          ) : (
+            <ul className="-mx-4 divide-y divide-border">
+              {list.map((ch) => {
+                const { label, Icon } = TYPE[ch.type];
+                return (
+                  <li key={ch.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-muted-foreground"><Icon className="size-4" /></span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 text-[0.8125rem] font-medium">
+                        <span className="truncate">{ch.name}</span>
+                        <Badge tone="outline" size="sm">{label}</Badge>
+                        {!ch.enabled && <Badge tone="neutral" size="sm">Paused</Badge>}
+                      </div>
+                      <div className="text-meta">added {relTime(ch.created_at)}</div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button variant="ghost" size="sm" pending={testing === ch.id} onClick={() => test(ch.id)}><Send /> Test</Button>
+                      <ConfirmButton variant="ghost" size="sm" confirmLabel="Remove?"
+                        onConfirm={() => api(`/api/teams/${teamId}/channels/${ch.id}`, { method: 'DELETE' }).then(() => { toast('success', `Removed ${ch.name}`); refresh(); })}>
+                        Remove
+                      </ConfirmButton>
+                      <Switch checked={ch.enabled === 1} label={`${ch.name} enabled`}
+                        onCheckedChange={(v) => api(`/api/teams/${teamId}/channels/${ch.id}`, patch({ enabled: v })).then(refresh)} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </CardContent>
       </Card>
-    </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Add a channel</CardTitle>
+          <CardDescription>Secrets are stored once and never shown again. Use “Test” to confirm the wiring.</CardDescription>
+        </CardHeader>
+        <CardContent>{teamId && <ChannelForm teamId={teamId} />}</CardContent>
+      </Card>
+    </Page>
   );
 }

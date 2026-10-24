@@ -33,7 +33,22 @@ test('magic-link flow issues session cookie; token is single-use', async () => {
   const first = await SELF.fetch(devLink, { redirect: 'manual' });
   expect(first.status).toBe(302);
   const replay = await SELF.fetch(devLink, { redirect: 'manual' });
-  expect(replay.status).toBe(400);
+  expect(replay.status).toBe(302); // used/expired tokens bounce to the login page with an error
+  expect(replay.headers.get('location')).toContain('error=expired');
+});
+
+test('first sign-in creates a personal team; sites can be added without naming one', async () => {
+  const h = { 'Content-Type': 'application/json', cookie };
+  const me = await (await SELF.fetch('http://localhost/api/me', { headers: { cookie } })).json() as any;
+  expect(me.user.email).toBe('tester@example.com');
+  expect(me.teams.length).toBeGreaterThanOrEqual(1);
+  expect(me.teams[0].role).toBe('owner');
+  const r = await SELF.fetch('http://localhost/api/sites', { method: 'POST', headers: h, body: JSON.stringify({ name: 'Implicit', domain: 'https://www.implicit.example/' }) });
+  expect(r.status).toBe(201);
+  const { site } = await r.json() as any;
+  expect(site.domain).toBe('implicit.example');
+  const dup = await SELF.fetch('http://localhost/api/sites', { method: 'POST', headers: h, body: JSON.stringify({ name: 'Again', domain: 'implicit.example' }) });
+  expect(dup.status).toBe(409);
 });
 
 test('dashboard API requires auth', async () => {

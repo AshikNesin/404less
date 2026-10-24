@@ -16,6 +16,12 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppSettingsApiKeysRouteImport } from './routes/app.settings.api-keys'
 import { Route as AppSettingsChannelsRouteImport } from './routes/app.settings.channels'
 import { Route as AppSitesSiteIdRouteImport } from './routes/app.sites.$siteId'
+import { Route as AppSitesNewRouteImport } from './routes/app.sites.new'
+import { Route as AppSitesSiteIdIndexRouteImport } from './routes/app.sites.$siteId.index'
+import { Route as AppSitesSiteIdCrawlRouteImport } from './routes/app.sites.$siteId.crawl'
+import { Route as AppSitesSiteIdSettingsRouteImport } from './routes/app.sites.$siteId.settings'
+import { Route as AppSitesSiteIdLinksIndexRouteImport } from './routes/app.sites.$siteId.links.index'
+import { Route as AppSitesSiteIdLinksLinkIdRouteImport } from './routes/app.sites.$siteId.links.$linkId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +58,38 @@ const AppSitesSiteIdRoute = AppSitesSiteIdRouteImport.update({
   path: '/sites/$siteId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSitesNewRoute = AppSitesNewRouteImport.update({
+  id: '/sites/new',
+  path: '/sites/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSitesSiteIdIndexRoute = AppSitesSiteIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSitesSiteIdRoute,
+} as any)
+const AppSitesSiteIdCrawlRoute = AppSitesSiteIdCrawlRouteImport.update({
+  id: '/crawl',
+  path: '/crawl',
+  getParentRoute: () => AppSitesSiteIdRoute,
+} as any)
+const AppSitesSiteIdSettingsRoute = AppSitesSiteIdSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppSitesSiteIdRoute,
+} as any)
+const AppSitesSiteIdLinksIndexRoute =
+  AppSitesSiteIdLinksIndexRouteImport.update({
+    id: '/links/',
+    path: '/links/',
+    getParentRoute: () => AppSitesSiteIdRoute,
+  } as any)
+const AppSitesSiteIdLinksLinkIdRoute =
+  AppSitesSiteIdLinksLinkIdRouteImport.update({
+    id: '/links/$linkId',
+    path: '/links/$linkId',
+    getParentRoute: () => AppSitesSiteIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,7 +98,13 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/channels': typeof AppSettingsChannelsRoute
-  '/app/sites/$siteId': typeof AppSitesSiteIdRoute
+  '/app/sites/$siteId': typeof AppSitesSiteIdRouteWithChildren
+  '/app/sites/new': typeof AppSitesNewRoute
+  '/app/sites/$siteId/crawl': typeof AppSitesSiteIdCrawlRoute
+  '/app/sites/$siteId/settings': typeof AppSitesSiteIdSettingsRoute
+  '/app/sites/$siteId/': typeof AppSitesSiteIdIndexRoute
+  '/app/sites/$siteId/links/$linkId': typeof AppSitesSiteIdLinksLinkIdRoute
+  '/app/sites/$siteId/links/': typeof AppSitesSiteIdLinksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,7 +112,12 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/channels': typeof AppSettingsChannelsRoute
-  '/app/sites/$siteId': typeof AppSitesSiteIdRoute
+  '/app/sites/new': typeof AppSitesNewRoute
+  '/app/sites/$siteId/crawl': typeof AppSitesSiteIdCrawlRoute
+  '/app/sites/$siteId/settings': typeof AppSitesSiteIdSettingsRoute
+  '/app/sites/$siteId': typeof AppSitesSiteIdIndexRoute
+  '/app/sites/$siteId/links/$linkId': typeof AppSitesSiteIdLinksLinkIdRoute
+  '/app/sites/$siteId/links': typeof AppSitesSiteIdLinksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,7 +127,13 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/channels': typeof AppSettingsChannelsRoute
-  '/app/sites/$siteId': typeof AppSitesSiteIdRoute
+  '/app/sites/$siteId': typeof AppSitesSiteIdRouteWithChildren
+  '/app/sites/new': typeof AppSitesNewRoute
+  '/app/sites/$siteId/crawl': typeof AppSitesSiteIdCrawlRoute
+  '/app/sites/$siteId/settings': typeof AppSitesSiteIdSettingsRoute
+  '/app/sites/$siteId/': typeof AppSitesSiteIdIndexRoute
+  '/app/sites/$siteId/links/$linkId': typeof AppSitesSiteIdLinksLinkIdRoute
+  '/app/sites/$siteId/links/': typeof AppSitesSiteIdLinksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,6 +145,12 @@ export interface FileRouteTypes {
     | '/app/settings/api-keys'
     | '/app/settings/channels'
     | '/app/sites/$siteId'
+    | '/app/sites/new'
+    | '/app/sites/$siteId/crawl'
+    | '/app/sites/$siteId/settings'
+    | '/app/sites/$siteId/'
+    | '/app/sites/$siteId/links/$linkId'
+    | '/app/sites/$siteId/links/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -97,7 +158,12 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/settings/api-keys'
     | '/app/settings/channels'
+    | '/app/sites/new'
+    | '/app/sites/$siteId/crawl'
+    | '/app/sites/$siteId/settings'
     | '/app/sites/$siteId'
+    | '/app/sites/$siteId/links/$linkId'
+    | '/app/sites/$siteId/links'
   id:
     | '__root__'
     | '/'
@@ -107,6 +173,12 @@ export interface FileRouteTypes {
     | '/app/settings/api-keys'
     | '/app/settings/channels'
     | '/app/sites/$siteId'
+    | '/app/sites/new'
+    | '/app/sites/$siteId/crawl'
+    | '/app/sites/$siteId/settings'
+    | '/app/sites/$siteId/'
+    | '/app/sites/$siteId/links/$linkId'
+    | '/app/sites/$siteId/links/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -166,21 +238,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSitesSiteIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/sites/new': {
+      id: '/app/sites/new'
+      path: '/sites/new'
+      fullPath: '/app/sites/new'
+      preLoaderRoute: typeof AppSitesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/sites/$siteId/': {
+      id: '/app/sites/$siteId/'
+      path: '/'
+      fullPath: '/app/sites/$siteId/'
+      preLoaderRoute: typeof AppSitesSiteIdIndexRouteImport
+      parentRoute: typeof AppSitesSiteIdRoute
+    }
+    '/app/sites/$siteId/crawl': {
+      id: '/app/sites/$siteId/crawl'
+      path: '/crawl'
+      fullPath: '/app/sites/$siteId/crawl'
+      preLoaderRoute: typeof AppSitesSiteIdCrawlRouteImport
+      parentRoute: typeof AppSitesSiteIdRoute
+    }
+    '/app/sites/$siteId/settings': {
+      id: '/app/sites/$siteId/settings'
+      path: '/settings'
+      fullPath: '/app/sites/$siteId/settings'
+      preLoaderRoute: typeof AppSitesSiteIdSettingsRouteImport
+      parentRoute: typeof AppSitesSiteIdRoute
+    }
+    '/app/sites/$siteId/links/': {
+      id: '/app/sites/$siteId/links/'
+      path: '/links'
+      fullPath: '/app/sites/$siteId/links/'
+      preLoaderRoute: typeof AppSitesSiteIdLinksIndexRouteImport
+      parentRoute: typeof AppSitesSiteIdRoute
+    }
+    '/app/sites/$siteId/links/$linkId': {
+      id: '/app/sites/$siteId/links/$linkId'
+      path: '/links/$linkId'
+      fullPath: '/app/sites/$siteId/links/$linkId'
+      preLoaderRoute: typeof AppSitesSiteIdLinksLinkIdRouteImport
+      parentRoute: typeof AppSitesSiteIdRoute
+    }
   }
 }
+
+interface AppSitesSiteIdRouteChildren {
+  AppSitesSiteIdCrawlRoute: typeof AppSitesSiteIdCrawlRoute
+  AppSitesSiteIdSettingsRoute: typeof AppSitesSiteIdSettingsRoute
+  AppSitesSiteIdIndexRoute: typeof AppSitesSiteIdIndexRoute
+  AppSitesSiteIdLinksLinkIdRoute: typeof AppSitesSiteIdLinksLinkIdRoute
+  AppSitesSiteIdLinksIndexRoute: typeof AppSitesSiteIdLinksIndexRoute
+}
+
+const AppSitesSiteIdRouteChildren: AppSitesSiteIdRouteChildren = {
+  AppSitesSiteIdCrawlRoute: AppSitesSiteIdCrawlRoute,
+  AppSitesSiteIdSettingsRoute: AppSitesSiteIdSettingsRoute,
+  AppSitesSiteIdIndexRoute: AppSitesSiteIdIndexRoute,
+  AppSitesSiteIdLinksLinkIdRoute: AppSitesSiteIdLinksLinkIdRoute,
+  AppSitesSiteIdLinksIndexRoute: AppSitesSiteIdLinksIndexRoute,
+}
+
+const AppSitesSiteIdRouteWithChildren = AppSitesSiteIdRoute._addFileChildren(
+  AppSitesSiteIdRouteChildren,
+)
 
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppSettingsApiKeysRoute: typeof AppSettingsApiKeysRoute
   AppSettingsChannelsRoute: typeof AppSettingsChannelsRoute
-  AppSitesSiteIdRoute: typeof AppSitesSiteIdRoute
+  AppSitesSiteIdRoute: typeof AppSitesSiteIdRouteWithChildren
+  AppSitesNewRoute: typeof AppSitesNewRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppSettingsApiKeysRoute: AppSettingsApiKeysRoute,
   AppSettingsChannelsRoute: AppSettingsChannelsRoute,
-  AppSitesSiteIdRoute: AppSitesSiteIdRoute,
+  AppSitesSiteIdRoute: AppSitesSiteIdRouteWithChildren,
+  AppSitesNewRoute: AppSitesNewRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

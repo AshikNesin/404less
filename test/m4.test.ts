@@ -169,7 +169,8 @@ test('crawl-report endpoint returns broken with sources', async () => {
   const dead = broken.find((b: any) => b.url === 'https://ext.example/x');
   expect(dead).toBeDefined();
   expect(dead.status).toBe(404);
-  expect(dead.sources.map((s: any) => s.source_url)).toContain('https://crawl.test/');
+  expect(dead.found_on).toBe('https://crawl.test/');
+  expect(dead.link_status).toBe('open'); // crawler findings land in broken_links
 });
 
 test('POST /crawl starts a crawl (auth + role checked)', async () => {

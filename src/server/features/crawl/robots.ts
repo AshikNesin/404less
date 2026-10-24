@@ -57,7 +57,7 @@ export function parseRobots(origin: string, body: string): Robots {
 
 /** Fetch + parse robots.txt; failure => allow-all (standard behavior). */
 export async function loadRobots(origin: string): Promise<Robots> {
-  const UA = '404less-bot/0.1 (+https://404less.dev)';
+  const UA = '404less-bot/0.1 (+https://404less.com)';
   try {
     const res = await fetch(new URL('/robots.txt', origin).toString(), {
       headers: { 'User-Agent': UA },

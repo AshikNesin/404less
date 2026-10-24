@@ -12,7 +12,7 @@ export type Env = {
 };
 
 export type CrawlMessage =
-  | { kind: 'crawl-site'; siteId: string }                 // start a site crawl (enqueue seed pages)
+  | { kind: 'crawl-site'; siteId: string; manual?: boolean }          // start a run (enqueue seed pages + rechecks)
   | { kind: 'fetch-page'; siteId: string; url: string; depth: number } // fetch page, extract links
   | { kind: 'check-link'; siteId: string; url: string; sourceUrl: string; anchor?: string };
 

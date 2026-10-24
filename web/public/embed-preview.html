@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" data-404="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>404 — Page not found · 404less embed preview</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; min-height: 100vh; font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #fafafa; color: #1f2937; }
+    @media (prefers-color-scheme: dark) { body { background: #0f1115; color: #e5e7eb; } .bar { background: #17181c !important; border-color: #2b2d33 !important; } }
+    .bar { position: sticky; top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 16px; background: #fff; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+    .bar label { display: inline-flex; align-items: center; gap: 6px; }
+    .bar select, .bar input[type=text] { font: inherit; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 6px; background: transparent; color: inherit; }
+    .bar input[type=text] { width: 22rem; max-width: 60vw; }
+    .bar button { font: inherit; padding: 4px 10px; border-radius: 6px; border: 1px solid #4f46e5; background: #4f46e5; color: #fff; cursor: pointer; }
+    main { max-width: 640px; margin: 0 auto; padding: 72px 20px 160px; text-align: center; }
+    h1 { font-size: 72px; margin: 0; letter-spacing: -0.04em; color: #4f46e5; }
+    h2 { font-size: 22px; margin: 8px 0; }
+    p { color: #6b7280; }
+    #suggestions { max-width: 480px; margin: 28px auto 0; text-align: left; }
+    .note { font-size: 12px; color: #9ca3af; margin-top: 40px; }
+    code { font-size: 12px; background: rgba(127,127,127,.12); padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <form class="bar" id="ctl">
+    <strong>Embed preview</strong>
+    <label>Mode <select name="mode"><option value="toast">toast</option><option value="inline">inline</option></select></label>
+    <label>Theme <select name="theme"><option value="auto">auto</option><option value="light">light</option><option value="dark">dark</option></select></label>
+    <label>Position <select name="position"><option value="right">right</option><option value="left">left</option><option value="center">center</option></select></label>
+    <label>Visitor URL <input type="text" name="url" placeholder="https://example.com/some/missing-page" /></label>
+    <label><input type="checkbox" name="track" /> record this hit</label>
+    <button type="submit">Reload</button>
+  </form>
+
+  <main>
+    <h1>404</h1>
+    <h2>Page not found</h2>
+    <p>This is a stand-in for your real 404 page. The widget below comes from <code>/embed.js</code> with the options above.</p>
+    <div id="suggestions"></div>
+    <p class="note">Hits are <strong>not</strong> recorded unless you tick “record this hit”. Add <code>data-url</code> or use the field above to try a URL close to one of your known pages.</p>
+  </main>
+
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var site = q.get('site');
+      var form = document.getElementById('ctl');
+      ['mode', 'theme', 'position', 'url'].forEach(function (k) { if (q.get(k)) form.elements[k].value = q.get(k); });
+      form.elements.track.checked = q.get('track') === 'true';
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var next = new URLSearchParams();
+        if (site) next.set('site', site);
+        ['mode', 'theme', 'position', 'url'].forEach(function (k) { var v = form.elements[k].value; if (v) next.set(k, v); });
+        if (form.elements.track.checked) next.set('track', 'true');
+        try { sessionStorage.removeItem('f404:dismissed:' + location.pathname); } catch (err) {}
+        location.search = next.toString();
+      });
+      if (!site) {
+        document.querySelector('main p').textContent = 'Add ?site=YOUR_SITE_KEY to the URL (the “Preview the widget” button in Site settings does this for you).';
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = '/embed.js';
+      s.defer = true;
+      s.setAttribute('data-site', site);
+      s.setAttribute('data-404', 'true');
+      s.setAttribute('data-mode', q.get('mode') || 'toast');
+      s.setAttribute('data-target', '#suggestions');
+      s.setAttribute('data-theme', q.get('theme') || 'auto');
+      s.setAttribute('data-position', q.get('position') || 'right');
+      s.setAttribute('data-track', q.get('track') === 'true' ? 'true' : 'false');
+      if (q.get('url')) s.setAttribute('data-url', q.get('url'));
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>

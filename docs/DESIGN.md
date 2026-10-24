@@ -1,6 +1,6 @@
 # 404less — High-Level Tech Design Doc
 
-**Version:** 0.1 (draft) · **Date:** Oct 2026 · **Status:** For review — no code yet
+**Version:** 0.2 · **Date:** Oct 2026 · **Status:** Implemented through M4 + the broken-links triage model (see §11)
 
 > A self-hostable broken-link monitoring platform built entirely on Cloudflare's free tier,
 > deployable by anyone in one click via Deploy to Cloudflare.
@@ -243,3 +243,29 @@ CRUD /api/teams, /api/sites, /api/channels, /api/prefs
 - PRD & feature roadmap: your uploaded Claude chat + feature-research artifact (Phase 1/2 scope,
   RICE-ranked features: exclusions 203 > CSV 153 > scheduling 128 > assets 120 > redirect chains 99;
   MCP auto-fix invalidated)
+
+## 11. Status & deltas from the draft (Oct 2026)
+
+Shipped: M1–M4 plus the read-only MCP server. Deviations from the sections above, all deliberate:
+
+- **One Worker, not three.** Ingest, dashboard API, cron and queue consumer live in a single Worker
+  (`src/index.ts`); simpler to deploy with one click and well within free-plan limits.
+- **`broken_links` is the managed entity** (migration 0005). Raw visitor events and crawler checks still land in
+  `not_found_events` / `link_checks`, but both detectors upsert one row per (site, url) carrying a triage status
+  (open · resolved · ignored), the detector (visitor · crawler · both), hit count, last HTTP status and a stored
+  suggested fix. Visitor hits reopen resolved rows, crawler success resolves open rows, ignored rows never alert.
+  The crawler also re-checks open visitor-reported links at the start of each run so fixes auto-resolve.
+- **Dashboard IA (open-seo style):** sidebar with a site switcher and site-scoped nav — Overview (setup checklist,
+  stat tiles, 30-day hits chart, needs-attention list, recent activity, crawl status), Broken links (status tabs,
+  search, source/sort filters, bulk resolve/ignore/reopen, CSV), Link detail (ranked fixes, redirect rule for
+  `_redirects`/Vercel/Next.js/Nginx/Apache, referrers, linking pages, redirect chain, hits series, re-check),
+  Crawler (schedule/budget, ignored status codes, known pages + sitemap import, latest results), Site settings
+  (install + preview, filters, alerts, delete). Team pages: Notifications, API & MCP.
+- **Embed v2:** shadow-DOM widget with toast and inline modes, theme/accent/copy options, better 404 detection,
+  session-scoped dismissal, a small `window.__404less` API, and a `/embed-preview.html` page for self-hosters.
+- **Suggestions engine:** trigram + token prefilter before Levenshtein, prepared index cached per site per isolate,
+  so ranking stays inside the Workers CPU budget with thousands of known URLs.
+- **Auth:** first sign-in creates a personal team; sites can be added without a team step. Expired links bounce to
+  the sign-in page with an error instead of a bare 400.
+- **Retention:** nightly prune of events (90d default) and crawler check history (30d). Managed rows are kept.
+

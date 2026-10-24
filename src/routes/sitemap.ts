@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { isValidHttpUrl, parseSitemap, titleFromUrl } from '../lib/sitemap';
 import { newId, now } from '../lib/auth';
 import { siteForUser } from '../server/features/sites/service';
+import { refreshSuggestions } from '../server/features/links/service';
 import type { Env } from '../types';
 
 export const sitemap = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
@@ -36,7 +37,7 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
         try {
           const res = await fetch(u, {
             redirect: 'follow',
-            headers: { 'User-Agent': '404less-bot/0.1 (+https://404less.dev)' },
+            headers: { 'User-Agent': '404less-bot/0.1 (+https://404less.com)' },
             signal: AbortSignal.timeout(10_000),
           });
           if (!res.ok) return null;
@@ -91,6 +92,8 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
     inserted += results.filter((r) => r.success).length;
   }
 
+  // new pages may be better matches for links already open
+  c.executionCtx.waitUntil(refreshSuggestions(c.env, site.site.id).catch(() => {}));
   return c.json({ ok: true, imported: rows.size, inserted });
 });
 

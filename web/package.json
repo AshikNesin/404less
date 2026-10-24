@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build"
+    "build": "vite build && tsc --noEmit",
+    "typecheck": "vite build --mode development --logLevel error && tsc --noEmit"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
+    "@tanstack/router-plugin": "^1.168.48",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",

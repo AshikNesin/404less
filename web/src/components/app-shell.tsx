@@ -1,102 +1,201 @@
-// App shell — quiet sidebar, context header, designed like a Stripe dashboard.
-import { Link, useLocation } from '@tanstack/react-router';
+// App shell: a quiet sidebar (brand, site switcher, site-scoped nav, team nav,
+// account) and an inset content panel. Mobile gets a top bar + drawer.
+import { Link, useLocation, useParams } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Globe, LayoutDashboard, LogOut, Bell, KeyRound, Menu, type LucideIcon } from 'lucide-react';
+import { Bell, Bot, Check, ChevronsUpDown, Globe, KeyRound, LayoutDashboard, LogOut, Menu as MenuIcon, Plus, Settings, Unlink, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { getLastSiteId, setLastSiteId } from '../lib/site-memory';
 import type { Site } from '../lib/types';
 import { cn } from '../lib/utils';
+import { meQuery, useSites } from '../features/sites/queries';
 import { Button } from './ui/button';
+import { Menu, MenuItem, MenuLabel, MenuSeparator } from './ui/menu';
+import { Skeleton } from './ui/skeleton';
 
 export function BrandMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect width="32" height="32" rx="7" className="fill-primary" />
-      <text x="15" y="21.5" fontSize="13" fontWeight="700" fill="#fff" textAnchor="middle" fontFamily="ui-monospace,monospace">404</text>
-      <rect x="23" y="23" width="5" height="5" rx="1.5" fill="#a5a0ff" />
+      <rect width="32" height="32" rx="8" className="fill-primary" />
+      <path d="M9 11v6h5M14 9v12" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M22 11v6h-4M22 9v12" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity=".55" />
+      <circle cx="24" cy="24" r="3" fill="#c7d2fe" />
     </svg>
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const { data } = useQuery({ queryKey: ['sites'], queryFn: () => api<{ sites: Site[] }>('/api/sites') });
-  const qc = useQueryClient();
-  const sites = data?.sites ?? [];
-  const [mobileNav, setMobileNav] = useState(false);
+export function Brand({ className }: { className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center gap-2 font-semibold tracking-tight', className)}>
+      <BrandMark className="size-6" />
+      <span className="text-[0.9375rem]">404<span className="text-primary">less</span></span>
+    </span>
+  );
+}
 
-  // Keyboard shortcuts: Alt+1 overview, Alt+2 notifications, Alt+3 API keys
+/** The site the sidebar is scoped to: the route's, else the last visited, else the first. */
+export function useActiveSite(): { site: Site | null; sites: Site[]; isPending: boolean } {
+  const { siteId } = useParams({ strict: false }) as { siteId?: string };
+  const sitesQ = useSites();
+  const sites = sitesQ.data ?? [];
+  const remembered = getLastSiteId();
+  const site = sites.find((s) => s.id === siteId) ?? sites.find((s) => s.id === remembered) ?? sites[0] ?? null;
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!e.altKey) return;
-      if (e.key === '1') window.location.assign('/app');
-      else if (e.key === '2') window.location.assign('/app/settings/channels');
-      else if (e.key === '3') window.location.assign('/app/settings/api-keys');
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+    if (siteId && sites.some((s) => s.id === siteId)) setLastSiteId(siteId);
+  }, [siteId, sites]);
+  return { site, sites, isPending: sitesQ.isPending };
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const [mobileNav, setMobileNav] = useState(false);
+  const location = useLocation();
+  useEffect(() => setMobileNav(false), [location.pathname]);
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className={cn(
-        'fixed inset-y-0 left-0 z-30 flex w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0',
-        mobileNav ? 'translate-x-0' : '-translate-x-full',
-      )}>
-        <div className="flex h-13 items-center gap-2 px-4 py-3.5">
-          <BrandMark className="size-5" />
-          <span className="text-[1.0625rem] font-semibold tracking-tight">
-            404<span className="text-primary">less</span>
-          </span>
-        </div>
-        <nav className="flex-1 space-y-4 overflow-y-auto p-2">
-          <NavGroup label="Monitor">
-            <NavLink to="/app" icon={LayoutDashboard} label="Overview" exact />
-          </NavGroup>
-          <NavGroup label="Sites">
-            {sites.length === 0 && (
-              <p className="px-3 py-1 text-meta">No sites yet</p>
-            )}
-            {sites.map((s) => (
-              <NavLink key={s.id} to="/app/sites/$siteId" params={{ siteId: s.id }} icon={Globe} label={s.name} />
-            ))}
-          </NavGroup>
-          <NavGroup label="Team">
-            <NavLink to="/app/settings/channels" icon={Bell} label="Notifications" />
-            <NavLink to="/app/settings/api-keys" icon={KeyRound} label="API keys" />
-          </NavGroup>
-        </nav>
-        <div className="border-t border-sidebar-border p-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-foreground/60 hover:text-foreground"
-            onClick={async () => {
-              await api('/auth/logout', { method: 'POST' });
-              qc.clear();
-              window.location.href = '/';
-            }}
-          >
-            <LogOut /> Sign out
-          </Button>
-        </div>
+    <div className="flex min-h-screen bg-sidebar">
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0',
+          mobileNav ? 'translate-x-0 shadow-2xl' : '-translate-x-full',
+        )}
+      >
+        <SidebarContent />
       </aside>
+      {mobileNav && <div className="fixed inset-0 z-20 bg-foreground/25 md:hidden" onClick={() => setMobileNav(false)} />}
 
-      {/* Mobile scrim */}
-      {mobileNav && (
-        <div className="fixed inset-0 z-20 bg-foreground/20 md:hidden" onClick={() => setMobileNav(false)} />
-      )}
-
-      {/* Main */}
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-10 flex h-13 items-center gap-3 border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:px-6">
-          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setMobileNav(true)} aria-label="Menu">
-            <Menu />
-          </Button>
-          <PageTitle />
-        </header>
-        <main className="mx-auto max-w-4xl space-y-8 p-4 py-6 md:p-6 md:py-8">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col md:pt-2">
+        <div className="flex min-h-full flex-1 flex-col bg-background md:rounded-tl-xl md:border-t md:border-l md:border-sidebar-border">
+          <header className="flex h-12 items-center gap-2 border-b border-border bg-card px-3 md:hidden">
+            <Button variant="ghost" size="icon-sm" onClick={() => setMobileNav(true)} aria-label="Open menu"><MenuIcon /></Button>
+            <Brand />
+          </header>
+          <main className="flex-1 px-4 py-5 md:px-8 md:py-7">{children}</main>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function SidebarContent() {
+  const { site, sites, isPending } = useActiveSite();
+  return (
+    <>
+      <div className="px-3 pt-4 pb-2">
+        <Link to="/app" className="flex items-center px-1 pb-3"><Brand /></Link>
+        <SiteSwitcher active={site} sites={sites} isPending={isPending} />
+      </div>
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2" aria-label="Main navigation">
+        {site ? (
+          <NavGroup label="Site">
+            <NavLink to="/app/sites/$siteId" params={{ siteId: site.id }} icon={LayoutDashboard} label="Overview" exact />
+            <NavLink to="/app/sites/$siteId/links" params={{ siteId: site.id }} icon={Unlink} label="Broken links" badge={site.open_links || undefined} />
+            <NavLink to="/app/sites/$siteId/crawl" params={{ siteId: site.id }} icon={Bot} label="Crawler" />
+            <NavLink to="/app/sites/$siteId/settings" params={{ siteId: site.id }} icon={Settings} label="Site settings" />
+          </NavGroup>
+        ) : isPending ? (
+          <div className="space-y-2 px-2 py-1" aria-busy>
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-7" />)}
+          </div>
+        ) : (
+          <NavGroup label="Site">
+            <NavLink to="/app/sites/new" icon={Plus} label="Add your first site" />
+          </NavGroup>
+        )}
+        <NavGroup label="Team">
+          <NavLink to="/app/settings/channels" icon={Bell} label="Notifications" />
+          <NavLink to="/app/settings/api-keys" icon={KeyRound} label="API & MCP" />
+        </NavGroup>
+      </nav>
+      <AccountFooter />
+    </>
+  );
+}
+
+function SiteSwitcher({ active, sites, isPending }: { active: Site | null; sites: Site[]; isPending: boolean }) {
+  const location = useLocation();
+  if (isPending) {
+    return (
+      <div className="flex h-12 items-center rounded-lg border border-sidebar-border bg-card px-3" aria-busy>
+        <div className="space-y-1.5"><Skeleton className="h-3 w-24" /><Skeleton className="h-2.5 w-16" /></div>
+      </div>
+    );
+  }
+  // Keep the current section when switching sites (overview/links/crawl/settings).
+  const section = location.pathname.match(/^\/app\/sites\/[^/]+\/(links|crawl|settings)(?=\/|$)/)?.[1];
+  const hrefFor = (s: Site) => `/app/sites/${s.id}${section ? `/${section}` : ''}`;
+  return (
+    <Menu
+      width="w-[13.5rem]"
+      trigger={(props) => (
+        <button
+          {...props}
+          className="flex h-12 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-sidebar-border bg-card px-2.5 text-left shadow-xs transition-colors hover:bg-foreground/[0.02] aria-expanded:bg-foreground/[0.02]"
+        >
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+            <Globe className="size-3.5" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-[0.8125rem] font-medium">{active?.name ?? 'Select a site'}</span>
+            <span className="truncate text-meta">{active?.domain ?? `${sites.length} sites`}</span>
+          </span>
+          <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+        </button>
+      )}
+    >
+      <MenuLabel>Sites</MenuLabel>
+      {sites.map((s) => (
+        <Link key={s.id} to={hrefFor(s)} className="block">
+          <MenuItem active={s.id === active?.id}>
+            <span className="min-w-0 flex-1 truncate">{s.name}</span>
+            {s.open_links > 0 && <span className="num rounded bg-destructive/10 px-1 text-[0.6875rem] font-medium text-destructive">{s.open_links}</span>}
+            {s.id === active?.id && <Check />}
+          </MenuItem>
+        </Link>
+      ))}
+      <MenuSeparator />
+      <Link to="/app/sites/new" className="block">
+        <MenuItem><Plus /> Add site</MenuItem>
+      </Link>
+    </Menu>
+  );
+}
+
+function AccountFooter() {
+  const me = useQuery(meQuery);
+  const qc = useQueryClient();
+  const email = me.data?.user.email;
+  return (
+    <div className="border-t border-sidebar-border p-2">
+      <Menu
+        align="start"
+        width="w-[13.5rem]"
+        className="w-full"
+        trigger={(props) => (
+          <button {...props} className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sidebar-accent aria-expanded:bg-sidebar-accent">
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-foreground/[0.08] text-[0.6875rem] font-semibold uppercase">
+              {email?.[0] ?? '…'}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-foreground/80">{email ?? 'Account'}</span>
+            <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+          </button>
+        )}
+      >
+        <MenuLabel>Signed in as</MenuLabel>
+        <div className="truncate px-2 pb-1.5 text-[0.8125rem]">{email}</div>
+        <MenuSeparator />
+        <a href="https://github.com/AshikNesin/404less" target="_blank" rel="noreferrer" className="block">
+          <MenuItem><Globe /> Docs &amp; source</MenuItem>
+        </a>
+        <MenuItem
+          onClick={async () => {
+            await api('/auth/logout', { method: 'POST' });
+            qc.clear();
+            window.location.href = '/';
+          }}
+        >
+          <LogOut /> Sign out
+        </MenuItem>
+      </Menu>
     </div>
   );
 }
@@ -104,38 +203,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function NavGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="px-3 pb-1.5 pt-2 text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-subtle">
-        {label}
-      </div>
+      <div className="px-2 pb-1.5 text-eyebrow text-sidebar-foreground/45">{label}</div>
       <div className="space-y-0.5">{children}</div>
     </div>
   );
 }
 
-function NavLink({
-  to, icon: Icon, label, params, exact,
-}: { to: string; icon: LucideIcon; label: string; params?: Record<string, string>; exact?: boolean }) {
-  const location = useLocation();
-  const target = params && to.includes('$siteId') ? to.replace('$siteId', params.siteId) : to;
-  const active = exact ? location.pathname === target : location.pathname.startsWith(target);
+function NavLink({ to, icon: Icon, label, params, exact, badge }: {
+  to: string; icon: LucideIcon; label: string; params?: Record<string, string>; exact?: boolean; badge?: number;
+}) {
   return (
     <Link
       to={to as never}
       params={params as never}
+      activeOptions={{ exact: !!exact, includeSearch: false }}
       className={cn(
-        'flex items-center gap-2 rounded-md px-3 py-1.5 text-[0.8125rem] text-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-foreground',
-        active && 'bg-sidebar-accent font-medium text-foreground',
+        'group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+        'data-[status=active]:bg-sidebar-accent data-[status=active]:font-medium data-[status=active]:text-sidebar-foreground',
+        'data-[status=active]:before:absolute data-[status=active]:before:inset-y-1.5 data-[status=active]:before:-left-3 data-[status=active]:before:w-[3px] data-[status=active]:before:rounded-r-full data-[status=active]:before:bg-primary',
       )}
     >
-      <Icon className="size-[15px] shrink-0" />
-      <span className="truncate">{label}</span>
+      <Icon className="size-4 shrink-0 text-sidebar-foreground/55 group-data-[status=active]:text-primary" />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {badge !== undefined && <span className="num rounded-md bg-destructive/10 px-1.5 text-[0.6875rem] font-medium text-destructive">{badge}</span>}
     </Link>
   );
-}
-
-// Header context label per section.
-function PageTitle() {
-  const location = useLocation();
-  const m = location.pathname.match(/^\/app\/sites\/([^/]+)/);
-  return <span className="text-[0.8125rem] font-medium text-foreground/80">{m ? 'Sites' : location.pathname === '/app' ? 'Overview' : location.pathname.includes('channels') ? 'Settings' : 'Settings'}</span>;
 }

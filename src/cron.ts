@@ -1,19 +1,29 @@
 // Scheduled (cron) + queue consumer handlers for the crawler.
-import { getSite, seedUrls, fetchPage, checkLink } from './server/features/crawl/service';
+import { getSite, startCrawl, fetchPage, checkLink, notifyDigest } from './server/features/crawl/service';
+import { pruneEvents } from './server/features/events/retention';
 import type { CrawlMessage, Env } from './types';
 
-/** Cron: enqueue crawl-site for every site with crawling enabled. */
-export async function scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-  // nightly retention prune (17:03 UTC cron)
-  if (controller.cron === '17 3 * * *') {
-    const { pruneEvents } = await import('./server/features/events/retention');
-    const { deleted } = await pruneEvents(env);
-    console.log(`[404less] retention pruned ${deleted} events`);
+const CRAWL_CRON = '*/30 * * * *';
+const RETENTION_CRON = '17 3 * * *';
+
+/** Cron: nightly retention, or enqueue crawl-site for every site with crawling enabled. */
+export async function scheduled(controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+  if (controller.cron === RETENTION_CRON) {
+    const { deleted, checksDeleted } = await pruneEvents(env);
+    console.log(`[404less] retention pruned ${deleted} events, ${checksDeleted} link checks`);
     return;
   }
+  if (controller.cron !== CRAWL_CRON && controller.cron !== '') return;
   const sites = await env.DB.prepare('SELECT id FROM websites WHERE crawl_enabled = 1').all<{ id: string }>();
   const messages = sites.results.map((s) => ({ body: { kind: 'crawl-site', siteId: s.id } as CrawlMessage }));
   if (messages.length) await env.CRAWLQ.sendBatch(messages);
+}
+
+async function sendAll(env: Env, messages: CrawlMessage[]): Promise<void> {
+  // budget guard: cap batch size to protect free-tier queue limits
+  for (let i = 0; i < messages.length; i += 50) {
+    await env.CRAWLQ.sendBatch(messages.slice(i, i + 50).map((b) => ({ body: b })));
+  }
 }
 
 /** Queue consumer: process crawl messages, enqueue follow-ups in batches. */
@@ -22,42 +32,18 @@ export async function queue(batch: MessageBatch<CrawlMessage>, env: Env, ctx: Ex
   for (const msg of batch.messages) {
     const m = msg.body;
     try {
+      const site = await getSite(env, m.siteId);
+      // manual "crawl now" works with scheduling off; scheduled runs require it on
+      if (!site || (m.kind === 'crawl-site' && !site.crawl_enabled && !m.manual)) { msg.ack(); continue; }
       if (m.kind === 'crawl-site') {
-        const site = await getSite(env, m.siteId);
-        if (!site || !site.crawl_enabled) { msg.ack(); continue; }
-        // fresh run: clear sources, enqueue seed pages (budgeted)
-        await env.DB.prepare('DELETE FROM crawl_sources WHERE website_id = ?').bind(site.id).run();
-        const seeds = await seedUrls(env, site);
-        await env.CRAWLQ.sendBatch(
-          seeds.slice(0, site.crawl_max_pages).map((url) => ({ body: { kind: 'fetch-page' as const, siteId: site.id, url, depth: 0 } })),
-        );
-        msg.ack();
+        await sendAll(env, await startCrawl(env, site));
       } else if (m.kind === 'fetch-page') {
-        const site = await getSite(env, m.siteId);
-        if (!site || !site.crawl_enabled) { msg.ack(); continue; }
-        const followUps = await fetchPage(env, site, m.url, m.depth);
-        // budget guard: cap enqueued follow-ups per message to protect free-tier queue limits
-        for (let i = 0; i < followUps.length; i += 50) {
-          await env.CRAWLQ.sendBatch(followUps.slice(i, i + 50).map((b) => ({ body: b })));
-        }
-        msg.ack();
+        await sendAll(env, await fetchPage(env, site, m.url, m.depth));
       } else if (m.kind === 'check-link') {
-        const site = await getSite(env, m.siteId);
-        if (!site || !site.crawl_enabled) { msg.ack(); continue; }
-        const isNewFailure = await checkLink(env, site, m);
-        if (isNewFailure) {
-          // notify via the per-site digest DO (groups with realtime 404 alerts)
-          const doStub = env.DIGEST.get(env.DIGEST.idFromName(site.id));
-          ctx.waitUntil(doStub.fetch('https://digest/event', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: m.url, ts: Date.now(), referrer: m.sourceUrl }),
-          }));
-        }
-        msg.ack();
-      } else {
-        msg.ack();
+        const alert = await checkLink(env, site, m);
+        if (alert) ctx.waitUntil(notifyDigest(env, site.id, m.url, m.sourceUrl));
       }
+      msg.ack();
     } catch (err) {
       console.error('crawl message failed', JSON.stringify(m), err);
       msg.retry();
