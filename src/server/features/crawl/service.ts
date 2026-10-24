@@ -7,19 +7,19 @@ import { extractLinks, pageTitle } from './html';
 import { loadRobots, type Robots } from './robots';
 import { newId } from '../../../lib/auth';
 import { urlMatchesPattern } from '../../../lib/suggest';
-import { invalidateKnownUrls, openVisitorLinks, recordCrawlResult } from '../links/service';
+import { invalidateKnownUrls, openVisitorLinks, recordCrawlResult, refreshSuggestions } from '../links/service';
 import { checkUrl } from './checker';
 
 export type CrawlSiteRow = {
   id: string; domain: string; crawl_enabled: number; crawl_max_pages: number;
-  exclude_patterns: string; ignore_status_codes: string; name: string;
+  exclude_patterns: string; ignore_status_codes: string; name: string; title_job: string | null;
 };
 
 const UA = '404less-bot/0.1 (+https://404less.com)';
 
 export async function getSite(env: Env, siteId: string): Promise<CrawlSiteRow | null> {
   return env.DB.prepare(
-    'SELECT id, name, domain, crawl_enabled, crawl_max_pages, exclude_patterns, ignore_status_codes FROM websites WHERE id = ?',
+    'SELECT id, name, domain, crawl_enabled, crawl_max_pages, exclude_patterns, ignore_status_codes, title_job FROM websites WHERE id = ?',
   ).bind(siteId).first<CrawlSiteRow>();
 }
 
@@ -144,33 +144,40 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
 // Free plan allows 50 subrequests per invocation.
 const TITLES_PER_MESSAGE = 5;
 
+/** Start title jobs for these sites, replacing any job already running. Returns the first messages to send. */
+export async function startTitleJobs(env: Env, siteIds: string[]): Promise<CrawlMessage[]> {
+  const jobs = siteIds.map((siteId) => ({ kind: 'fetch-titles' as const, siteId, job: crypto.randomUUID() }));
+  for (let i = 0; i < jobs.length; i += 50) {
+    await env.DB.batch(jobs.slice(i, i + 50).map((j) => env.DB.prepare('UPDATE websites SET title_job = ? WHERE id = ?').bind(j.job, j.siteId)));
+  }
+  return jobs;
+}
+
 /**
  * Fetch real <title>s for known pages that haven't been tried yet (sitemap imports
  * store none). Returns the next message while more pages are waiting, so a site's
  * backlog drains a few pages at a time, one request at a time.
  */
-export async function fetchTitles(env: Env, site: CrawlSiteRow): Promise<CrawlMessage[]> {
-  // claim before fetching so overlapping runs never fetch the same page twice
-  const claimed = await env.DB.prepare(
-    `UPDATE known_urls SET title_checked_at = ?
-     WHERE id IN (SELECT id FROM known_urls WHERE website_id = ? AND title_checked_at IS NULL LIMIT ?)
-     RETURNING url`,
-  ).bind(Date.now(), site.id, TITLES_PER_MESSAGE).all<{ url: string }>();
+export async function fetchTitles(env: Env, site: CrawlSiteRow, job: string): Promise<CrawlMessage[]> {
+  if (site.title_job !== job) return []; // a newer job took over
+  const pending = await env.DB.prepare('SELECT url FROM known_urls WHERE website_id = ? AND title_checked_at IS NULL LIMIT ?')
+    .bind(site.id, TITLES_PER_MESSAGE).all<{ url: string }>();
 
   const stmts = [];
-  for (const { url } of claimed.results) {
+  for (const { url } of pending.results) {
     const title = await fetchTitle(url);
-    if (!title) continue;
-    stmts.push(
-      env.DB.prepare('UPDATE known_urls SET title = ? WHERE website_id = ? AND url = ?').bind(title, site.id, url),
-      env.DB.prepare('UPDATE broken_links SET suggested_title = ? WHERE website_id = ? AND suggested_url = ?').bind(title, site.id, url),
-    );
+    // no title found: keep what's there (NULL, or a slug guess from before titles were fetched)
+    stmts.push(env.DB.prepare('UPDATE known_urls SET title = COALESCE(?, title), title_checked_at = ? WHERE website_id = ? AND url = ?')
+      .bind(title, Date.now(), site.id, url));
   }
-  if (stmts.length) {
-    await env.DB.batch(stmts);
+  if (stmts.length) await env.DB.batch(stmts);
+  if (pending.results.length === TITLES_PER_MESSAGE) {
     invalidateKnownUrls(site.id);
+    return [{ kind: 'fetch-titles', siteId: site.id, job }];
   }
-  return claimed.results.length === TITLES_PER_MESSAGE ? [{ kind: 'fetch-titles', siteId: site.id }] : [];
+  // done: re-rank open links so their stored suggestions carry the titles (shared ones dropped)
+  await refreshSuggestions(env, site.id, 50);
+  return [];
 }
 
 /** A page's title, reading only as far as </head>; null for errors, non-HTML and untitled pages. */

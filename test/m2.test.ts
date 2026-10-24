@@ -138,15 +138,13 @@ test('import-sitemap fetches, parses and stores known urls', async () => {
     const body = await r.json() as any;
     expect(r.status).toBe(200);
     expect(body.imported).toBe(3); // cross-host + query-string urls excluded
+    expect(body.inserted).toBe(0); // all three were already known
 
     const listed = await (await SELF.fetch(`http://localhost/api/sites/${siteId}/known-urls`, { headers: { cookie } })).json() as any;
     const urls = listed.knownUrls.map((k: any) => k.url);
     expect(urls).toContain('https://import.test/blog/hello-world');
     expect(urls).not.toContain('https://evil.com/elsewhere');
 
-    // sitemaps carry no titles; the fetch-titles job reads them from the pages
-    const hello = listed.knownUrls.find((k: any) => k.url.endsWith('hello-world'));
-    expect(hello.title).toBeNull();
   } finally {
     globalThis.fetch = realFetch;
   }

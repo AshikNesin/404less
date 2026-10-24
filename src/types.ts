@@ -17,7 +17,7 @@ export type CrawlMessage =
   | { kind: 'crawl-site'; siteId: string; manual?: boolean }          // start a run (enqueue seed pages + rechecks)
   | { kind: 'fetch-page'; siteId: string; url: string; depth: number } // fetch page, extract links
   | { kind: 'check-link'; siteId: string; url: string; sourceUrl: string; anchor?: string }
-  | { kind: 'fetch-titles'; siteId: string };                         // fill real <title>s for untitled known URLs
+  | { kind: 'fetch-titles'; siteId: string; job: string };            // fill real <title>s for untitled known URLs
 
 export type AuthContext = {
   userId: string;

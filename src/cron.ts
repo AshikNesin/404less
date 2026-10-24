@@ -1,5 +1,5 @@
 // Scheduled (cron) + queue consumer handlers for the crawler.
-import { getSite, startCrawl, fetchPage, fetchTitles, checkLink, notifyDigest } from './server/features/crawl/service';
+import { getSite, startCrawl, fetchPage, fetchTitles, startTitleJobs, checkLink, notifyDigest } from './server/features/crawl/service';
 import { pruneEvents } from './server/features/events/retention';
 import type { CrawlMessage, Env } from './types';
 
@@ -14,7 +14,7 @@ export async function scheduled(controller: ScheduledController, env: Env, _ctx:
     // resume title fetching for pages still waiting (e.g. rows from before titles were fetched)
     const pending = await env.DB.prepare('SELECT DISTINCT website_id FROM known_urls WHERE title_checked_at IS NULL')
       .all<{ website_id: string }>();
-    await sendAll(env, pending.results.map((r): CrawlMessage => ({ kind: 'fetch-titles', siteId: r.website_id })));
+    await sendAll(env, await startTitleJobs(env, pending.results.map((r) => r.website_id)));
     return;
   }
   if (controller.cron !== CRAWL_CRON && controller.cron !== '') return;
@@ -44,7 +44,7 @@ export async function queue(batch: MessageBatch<CrawlMessage>, env: Env, ctx: Ex
       } else if (m.kind === 'fetch-page') {
         await sendAll(env, await fetchPage(env, site, m.url, m.depth));
       } else if (m.kind === 'fetch-titles') {
-        await sendAll(env, await fetchTitles(env, site));
+        await sendAll(env, await fetchTitles(env, site, m.job));
       } else if (m.kind === 'check-link') {
         const alert = await checkLink(env, site, m);
         if (alert) ctx.waitUntil(notifyDigest(env, site.id, m.url, m.sourceUrl));

@@ -53,15 +53,16 @@ export function pageTitle(html: string): string | null {
   return null;
 }
 
-const NAMED: Record<string, string> = {
+const NAMED = new Map(Object.entries({
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’',
   ldquo: '“', rdquo: '”', hellip: '…', middot: '·', bull: '•', laquo: '«', raquo: '»', copy: '©', reg: '®', trade: '™',
-};
+  AMP: '&', LT: '<', GT: '>', QUOT: '"', COPY: '©', REG: '®', TRADE: '™',
+}));
 
 /** Numeric (&#8211; &#x2014;) and common named entities, in one pass so &amp;lt; stays &lt;. */
 function decodeEntities(s: string): string {
   return s.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (m, e: string) => {
-    if (e[0] !== '#') return NAMED[e] ?? m;
+    if (e[0] !== '#') return NAMED.get(e) ?? m;
     const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
     return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
   });

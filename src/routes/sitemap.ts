@@ -6,6 +6,7 @@ import { isValidHttpUrl, parseSitemap } from '../lib/sitemap';
 import { newId, now } from '../lib/auth';
 import { siteForUser } from '../server/features/sites/service';
 import { refreshSuggestions } from '../server/features/links/service';
+import { startTitleJobs } from '../server/features/crawl/service';
 import type { Env } from '../types';
 
 export const sitemap = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
@@ -95,7 +96,8 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
 
   // new pages may be better matches for links already open; their titles arrive in the background
   c.executionCtx.waitUntil(refreshSuggestions(c.env, site.site.id).catch(() => {}));
-  c.executionCtx.waitUntil(c.env.CRAWLQ.send({ kind: 'fetch-titles', siteId: site.site.id }).catch(() => {}));
+  const [titles] = await startTitleJobs(c.env, [site.site.id]);
+  c.executionCtx.waitUntil(c.env.CRAWLQ.send(titles).catch(() => {}));
   return c.json({ ok: true, imported: rows.size, inserted });
 });
 
