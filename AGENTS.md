@@ -31,6 +31,10 @@ Reference architecture: [open-seo](https://github.com/every-app/open-seo) (adopt
   (`recordVisitorHit`, `recordCrawlResult`); never write the table from routes.
 - Visitor hits reopen resolved rows; crawler success resolves open rows; ignored rows stay ignored and never alert.
 - `not_found_events` is the raw visitor log (pruned nightly); `link_checks` is crawler history (30 days).
+- `known_urls` (sitemap import + crawler) feeds suggestions. `title` is the page's real `<title>`: imports
+  store none, and a `fetch-titles` queue job reads them a few pages per message (`title_checked_at` marks a
+  finished attempt; `websites.title_job` keeps one job per site; the nightly cron resumes any backlog). Rows
+  imported before 0006 keep their slug guess if the page has no title. The ranker drops a title 3+ pages share.
 
 ## Dev
 

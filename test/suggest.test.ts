@@ -22,6 +22,14 @@ test('suggests the closest url first', () => {
   expect(out[0].url).toBe('https://example.com/blog/hello-word-2');
 });
 
+test('a title shared by three or more pages is dropped', () => {
+  const spa = ['/docs/install', '/docs/intro', '/docs/api'].map((p) => ({ url: `https://example.com${p}`, title: 'Acme App' }));
+  const out = rankSuggestions('https://example.com/docs/instal', [...spa, { url: 'https://example.com/docs/installing', title: 'Installing Acme' }], 4);
+  expect(out.find((s) => s.url.endsWith('/docs/install'))!.title).toBeNull();
+  expect(out.find((s) => s.url.endsWith('/docs/installing'))!.title).toBe('Installing Acme');
+  expect(rankSuggestions('https://example.com/docs/instal', spa.slice(0, 2))[0].title).toBe('Acme App'); // two is fine
+});
+
 test('no plausible match -> empty', () => {
   expect(rankSuggestions('https://example.com/zzzzz/qqqqq', known)).toHaveLength(0);
 });

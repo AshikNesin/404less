@@ -11,7 +11,7 @@ export function extractLinks(base: string, html: string): ExtractedLinks {
   try { baseU = new URL(base); } catch { return out; }
 
   const abs = (href: string): string | null => {
-    const v = decodeXml(href.trim());
+    const v = decodeEntities(href.trim());
     if (!v || v.startsWith('#') || /^(mailto:|tel:|javascript:|data:)/i.test(v)) return null;
     try { return new URL(v, baseU).toString(); } catch { return null; }
   };
@@ -41,18 +41,29 @@ function stripTags(s: string): string {
 export function pageTitle(html: string): string | null {
   const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   if (m) {
-    const t = decodeXml(m[1]).replace(/\s+/g, ' ').trim();
+    const t = decodeEntities(m[1]).replace(/\s+/g, ' ').trim();
     if (t) return t.slice(0, 300);
   }
   const og = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
     || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
   if (og) {
-    const t = decodeXml(og[1]).replace(/\s+/g, ' ').trim();
+    const t = decodeEntities(og[1]).replace(/\s+/g, ' ').trim();
     if (t) return t.slice(0, 300);
   }
   return null;
 }
 
-function decodeXml(s: string): string {
-  return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+const NAMED = new Map(Object.entries({
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’',
+  ldquo: '“', rdquo: '”', hellip: '…', middot: '·', bull: '•', laquo: '«', raquo: '»', copy: '©', reg: '®', trade: '™',
+  AMP: '&', LT: '<', GT: '>', QUOT: '"', COPY: '©', REG: '®', TRADE: '™',
+}));
+
+/** Numeric (&#8211; &#x2014;) and common named entities, in one pass so &amp;lt; stays &lt;. */
+function decodeEntities(s: string): string {
+  return s.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (m, e: string) => {
+    if (e[0] !== '#') return NAMED.get(e) ?? m;
+    const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+    return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
+  });
 }

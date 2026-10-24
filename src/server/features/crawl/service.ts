@@ -1,4 +1,5 @@
-// Crawl orchestration: seed discovery, budgeting, result persistence.
+// Crawl orchestration: seed discovery, budgeting, result persistence, and the
+// real page titles of known URLs.
 // Findings land in broken_links (see ../links/service), which also decides
 // what counts as a new failure worth alerting.
 import type { CrawlMessage, Env } from '../../../types';
@@ -6,19 +7,19 @@ import { extractLinks, pageTitle } from './html';
 import { loadRobots, type Robots } from './robots';
 import { newId } from '../../../lib/auth';
 import { urlMatchesPattern } from '../../../lib/suggest';
-import { invalidateKnownUrls, openVisitorLinks, recordCrawlResult } from '../links/service';
+import { invalidateKnownUrls, openVisitorLinks, recordCrawlResult, refreshSuggestions } from '../links/service';
 import { checkUrl } from './checker';
 
 export type CrawlSiteRow = {
   id: string; domain: string; crawl_enabled: number; crawl_max_pages: number;
-  exclude_patterns: string; ignore_status_codes: string; name: string;
+  exclude_patterns: string; ignore_status_codes: string; name: string; title_job: string | null;
 };
 
 const UA = '404less-bot/0.1 (+https://404less.com)';
 
 export async function getSite(env: Env, siteId: string): Promise<CrawlSiteRow | null> {
   return env.DB.prepare(
-    'SELECT id, name, domain, crawl_enabled, crawl_max_pages, exclude_patterns, ignore_status_codes FROM websites WHERE id = ?',
+    'SELECT id, name, domain, crawl_enabled, crawl_max_pages, exclude_patterns, ignore_status_codes, title_job FROM websites WHERE id = ?',
   ).bind(siteId).first<CrawlSiteRow>();
 }
 
@@ -80,14 +81,15 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     return next;
   }
 
-  // capture the real page title (upgrades slug-guesses from sitemap imports)
+  // capture the real page title (spares the page a separate title fetch)
   const title = pageTitle(html);
   if (title) {
+    const ts = Date.now();
     await env.DB.prepare(
-      `INSERT INTO known_urls (id, website_id, url, title, source, added_at)
-       VALUES (?, ?, ?, ?, 'crawl', ?)
-       ON CONFLICT(website_id, url) DO UPDATE SET title = excluded.title`,
-    ).bind(newId(), site.id, url, title, Date.now()).run();
+      `INSERT INTO known_urls (id, website_id, url, title, source, added_at, title_checked_at)
+       VALUES (?, ?, ?, ?, 'crawl', ?, ?)
+       ON CONFLICT(website_id, url) DO UPDATE SET title = excluded.title, title_checked_at = excluded.title_checked_at`,
+    ).bind(newId(), site.id, url, title, ts, ts).run();
     invalidateKnownUrls(site.id);
   }
 
@@ -136,6 +138,70 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     await env.DB.batch(stmts.slice(i, i + 50));
   }
   return next;
+}
+
+// A few pages per message: up to 10 messages share one consumer invocation, and the
+// Free plan allows 50 subrequests per invocation.
+const TITLES_PER_MESSAGE = 5;
+
+/** Start title jobs for these sites, replacing any job already running. Returns the first messages to send. */
+export async function startTitleJobs(env: Env, siteIds: string[]): Promise<CrawlMessage[]> {
+  const jobs = siteIds.map((siteId) => ({ kind: 'fetch-titles' as const, siteId, job: crypto.randomUUID() }));
+  for (let i = 0; i < jobs.length; i += 50) {
+    await env.DB.batch(jobs.slice(i, i + 50).map((j) => env.DB.prepare('UPDATE websites SET title_job = ? WHERE id = ?').bind(j.job, j.siteId)));
+  }
+  return jobs;
+}
+
+/**
+ * Fetch real <title>s for known pages that haven't been tried yet (sitemap imports
+ * store none). Returns the next message while more pages are waiting, so a site's
+ * backlog drains a few pages at a time, one request at a time.
+ */
+export async function fetchTitles(env: Env, site: CrawlSiteRow, job: string): Promise<CrawlMessage[]> {
+  if (site.title_job !== job) return []; // a newer job took over
+  const pending = await env.DB.prepare('SELECT url FROM known_urls WHERE website_id = ? AND title_checked_at IS NULL LIMIT ?')
+    .bind(site.id, TITLES_PER_MESSAGE).all<{ url: string }>();
+
+  const stmts = [];
+  for (const { url } of pending.results) {
+    const title = await fetchTitle(url);
+    // no title found: keep what's there (NULL, or a slug guess from before titles were fetched)
+    stmts.push(env.DB.prepare('UPDATE known_urls SET title = COALESCE(?, title), title_checked_at = ? WHERE website_id = ? AND url = ?')
+      .bind(title, Date.now(), site.id, url));
+  }
+  if (stmts.length) await env.DB.batch(stmts);
+  if (pending.results.length === TITLES_PER_MESSAGE) {
+    invalidateKnownUrls(site.id);
+    return [{ kind: 'fetch-titles', siteId: site.id, job }];
+  }
+  // done: re-rank open links so their stored suggestions carry the titles (shared ones dropped)
+  await refreshSuggestions(env, site.id, 50);
+  return [];
+}
+
+/** A page's title, reading only as far as </head>; null for errors, non-HTML and untitled pages. */
+async function fetchTitle(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow', signal: AbortSignal.timeout(10_000) });
+    const type = res.headers.get('content-type');
+    if (!res.ok || !res.body || (type && !/html/i.test(type))) {
+      await res.body?.cancel();
+      return null;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let head = '';
+    while (head.length < 64 * 1024 && !/<\/head>/i.test(head)) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      head += decoder.decode(value, { stream: true });
+    }
+    await reader.cancel();
+    return pageTitle(head);
+  } catch {
+    return null;
+  }
 }
 
 /** Check one URL, persist the check, update broken_links. Returns whether to alert. */

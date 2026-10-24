@@ -163,6 +163,8 @@ function KnownPages({ siteId, domain }: { siteId: string; domain: string }) {
     queryKey: ['known-urls', siteId, debounced],
     queryFn: () => api<{ knownUrls: KnownUrl[]; stats: KnownUrlStats }>(`/api/sites/${siteId}/known-urls?limit=12${debounced ? `&q=${encodeURIComponent(debounced)}` : ''}`),
     placeholderData: (p) => p,
+    // titles arrive in the background after an import; keep the list live until they do
+    refetchInterval: (query) => (query.state.data?.knownUrls.some((k) => !k.title && !k.title_checked_at) ? 10_000 : false),
   });
   const importSitemap = useMutation({
     mutationFn: () => api<{ imported: number; inserted: number }>(`/api/sites/${siteId}/import-sitemap`, json(sitemapUrl.trim() ? { sitemapUrl: sitemapUrl.trim() } : {})),
@@ -202,7 +204,7 @@ function KnownPages({ siteId, domain }: { siteId: string; domain: string }) {
             {known.data.knownUrls.map((k) => (
               <li key={k.url} className="flex items-center gap-3 px-3 py-1.5">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[0.8125rem]">{k.title || <span className="text-muted-foreground italic">untitled</span>}</div>
+                  <div className="truncate text-[0.8125rem]">{k.title || <span className="text-muted-foreground italic">{k.title_checked_at ? 'untitled' : 'fetching title…'}</span>}</div>
                   <div className="text-meta truncate" title={k.url}>{urlLabel(k.url, domain)}</div>
                 </div>
                 <Badge tone={k.source === 'crawl' ? 'success' : 'outline'} size="sm">{k.source === 'crawl' ? 'crawled' : 'sitemap'}</Badge>

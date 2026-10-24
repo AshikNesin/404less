@@ -32,21 +32,6 @@ export function isValidHttpUrl(raw: string): URL | null {
   }
 }
 
-/** Human-readable label from a URL path: /blog/my-post/ -> "My Post". */
-export function titleFromUrl(raw: string): string {
-  try {
-    const u = new URL(raw);
-    const seg = u.pathname.replace(/\/+$/, '').split('/').filter(Boolean).pop() ?? u.hostname;
-    return decodeURIComponent(seg)
-      .replace(/\.(html?|php|aspx?)$/i, '')
-      .replace(/[-_]+/g, ' ')
-      .replace(/\b\w/g, (ch) => ch.toUpperCase())
-      .trim() || u.hostname;
-  } catch {
-    return raw;
-  }
-}
-
 function decodeXml(s: string): string {
   return s
     .replace(/&lt;/g, '<')

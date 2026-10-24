@@ -1,10 +1,12 @@
 // Authenticated: POST /api/sites/:id/import-sitemap — fetch sitemap.xml (follows
 // one level of <sitemapindex>), store known URLs in D1 for the suggestions engine.
+// Sitemaps carry no titles: a fetch-titles queue job reads them from the pages.
 import { Hono } from 'hono';
-import { isValidHttpUrl, parseSitemap, titleFromUrl } from '../lib/sitemap';
+import { isValidHttpUrl, parseSitemap } from '../lib/sitemap';
 import { newId, now } from '../lib/auth';
 import { siteForUser } from '../server/features/sites/service';
 import { refreshSuggestions } from '../server/features/links/service';
+import { startTitleJobs } from '../server/features/crawl/service';
 import type { Env } from '../types';
 
 export const sitemap = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
@@ -63,14 +65,14 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
 
   // Keep only same-host URLs, dedupe
   const host = site.site.domain.replace(/^www\./, '');
-  const rows = new Map<string, [string, string]>(); // url -> [id, title]
+  const rows = new Map<string, string>(); // url -> id
   for (const u of collected) {
     const parsed = isValidHttpUrl(u);
     if (!parsed) continue;
     const h = parsed.hostname.replace(/^www\./, '');
     if (h !== host) continue;
     if (parsed.hash || parsed.search) continue; // canonical pages only
-    rows.set(parsed.toString(), [newId(), titleFromUrl(parsed.toString())]);
+    rows.set(parsed.toString(), newId());
     if (rows.size >= MAX_URLS) break;
   }
 
@@ -81,19 +83,21 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
   let inserted = 0;
   const entries = [...rows.entries()];
   for (let i = 0; i < entries.length; i += 50) {
-    const stmts = entries.slice(i, i + 50).map(([url, [id, title]]) =>
+    const stmts = entries.slice(i, i + 50).map(([url, id]) =>
       c.env.DB.prepare(
         `INSERT INTO known_urls (id, website_id, url, title, source, added_at)
-         VALUES (?, ?, ?, ?, 'sitemap', ?)
+         VALUES (?, ?, ?, NULL, 'sitemap', ?)
          ON CONFLICT(website_id, url) DO NOTHING`,
-      ).bind(id, site.site.id, url, title, ts),
+      ).bind(id, site.site.id, url, ts),
     );
     const results = await c.env.DB.batch(stmts);
-    inserted += results.filter((r) => r.success).length;
+    inserted += results.reduce((n, r) => n + (r.meta.changes ?? 0), 0);
   }
 
-  // new pages may be better matches for links already open
+  // new pages may be better matches for links already open; their titles arrive in the background
   c.executionCtx.waitUntil(refreshSuggestions(c.env, site.site.id).catch(() => {}));
+  const [titles] = await startTitleJobs(c.env, [site.site.id]);
+  c.executionCtx.waitUntil(c.env.CRAWLQ.send(titles).catch(() => {}));
   return c.json({ ok: true, imported: rows.size, inserted });
 });
 
@@ -104,12 +108,12 @@ sitemap.get('/sites/:id/known-urls', async (c) => {
   const q = c.req.query('q')?.toLowerCase();
   const rows = q
     ? await c.env.DB.prepare(
-        `SELECT url, title, source, added_at FROM known_urls
+        `SELECT url, title, title_checked_at, source, added_at FROM known_urls
          WHERE website_id = ? AND (instr(lower(url), ?) > 0 OR instr(lower(coalesce(title, '')), ?) > 0)
          ORDER BY added_at DESC LIMIT ?`,
       ).bind(site.site.id, q, q, limit).all()
     : await c.env.DB.prepare(
-        'SELECT url, title, source, added_at FROM known_urls WHERE website_id = ? ORDER BY added_at DESC LIMIT ?',
+        'SELECT url, title, title_checked_at, source, added_at FROM known_urls WHERE website_id = ? ORDER BY added_at DESC LIMIT ?',
       ).bind(site.site.id, limit).all();
   const stats = await c.env.DB.prepare(
     `SELECT COUNT(*) AS total,
