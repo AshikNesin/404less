@@ -77,11 +77,13 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
   // Keep only same-host URLs, dedupe (the domain carries the port, if any)
   const host = site.site.domain.replace(/^www\./, '');
   const rows = new Map<string, string>(); // url -> id
+  let onSite = 0;
   for (const u of collected) {
     const parsed = isValidHttpUrl(u);
     if (!parsed) continue;
     const h = parsed.host.replace(/^www\./, '');
     if (h !== host) continue;
+    onSite++;
     if (parsed.hash || parsed.search) continue; // canonical pages only
     rows.set(parsed.toString(), newId());
     if (rows.size >= MAX_URLS) break;
@@ -89,9 +91,9 @@ sitemap.post('/sites/:id/import-sitemap', async (c) => {
 
   if (!rows.size) {
     return c.json({
-      error: collected.length
-        ? `none of the ${collected.length} URLs in the sitemap are on ${site.site.domain}`
-        : 'no page URLs found in the sitemap (is it a <urlset> or <sitemapindex>?)',
+      error: !collected.length ? 'no page URLs found in the sitemap (is it a <urlset> or <sitemapindex>?)'
+        : !onSite ? `none of the ${collected.length} URLs in the sitemap are on ${site.site.domain}`
+        : `all ${onSite} URLs on ${site.site.domain} carry a query string or #fragment; only canonical pages are imported`,
     }, 422);
   }
 

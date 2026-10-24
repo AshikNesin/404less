@@ -4,6 +4,7 @@ import { SELF, env, createExecutionContext, waitOnExecutionContext, createMessag
 import { beforeAll, expect, test } from 'vitest';
 import { queue as queueHandler } from '../src/cron';
 import { checkUrl } from '../src/server/features/crawl/checker';
+import worker from '../src/index';
 
 let cookie = '';
 let siteId = '';
@@ -139,5 +140,66 @@ test('checkUrl retries a dropped connection once', async () => {
     const r = await checkUrl('https://flaky.test/', { ignore_status_codes: '[]' });
     expect(r).toMatchObject({ status: 200, ok: true });
     expect(calls).toBe(2);
+  } finally { globalThis.fetch = real; }
+});
+
+test('overview counts each URL by its latest check (a re-check that passes is not broken)', async () => {
+  const site = await env.DB.prepare('SELECT last_crawl_at FROM websites WHERE id = ?').bind(siteId).first<{ last_crawl_at: number }>();
+  const insert = (ok: number, at: number) => env.DB.prepare('INSERT INTO link_checks (id, website_id, url, status, ok, checked_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(crypto.randomUUID(), siteId, 'http://localhost:8080/fixed', ok ? 200 : 404, ok, at).run();
+  const before = (await (await SELF.fetch(`http://localhost/api/sites/${siteId}/overview`, { headers: { cookie } })).json() as any).crawl;
+  await insert(0, site!.last_crawl_at + 1);
+  await insert(1, site!.last_crawl_at + 2);
+  const after = (await (await SELF.fetch(`http://localhost/api/sites/${siteId}/overview`, { headers: { cookie } })).json() as any).crawl;
+  expect(after.checked).toBe(before.checked + 1);
+  expect(after.broken).toBe(before.broken);
+});
+
+test('a robots.txt that fails to load is not remembered', async () => {
+  const { loadRobots } = await import('../src/server/features/crawl/robots');
+  const real = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => (++calls === 1 ? new Response('down', { status: 503 }) : new Response('User-agent: *\nDisallow: /private'))) as typeof fetch;
+  try {
+    expect((await loadRobots('https://robots-flaky.test')).allowed('/private/x')).toBe(true); // unknown: allowed this once
+    expect((await loadRobots('https://robots-flaky.test')).allowed('/private/x')).toBe(false); // asked again
+    await loadRobots('https://robots-flaky.test');
+    expect(calls).toBe(2); // the real rules are cached
+  } finally { globalThis.fetch = real; }
+});
+
+test('sitemap import explains when every on-site URL carries a query string', async () => {
+  PAGES['http://localhost:8080/params.xml'] = { status: 200, body: '<urlset><url><loc>http://localhost:8080/?p=1</loc></url></urlset>' };
+  const restore = stub();
+  try {
+    const r = await SELF.fetch(`http://localhost/api/sites/${siteId}/import-sitemap`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ sitemapUrl: 'http://localhost:8080/params.xml' }),
+    });
+    expect(r.status).toBe(422);
+    expect((await r.json() as any).error).toMatch(/carry a query string/);
+  } finally { restore(); }
+});
+
+test('"crawl now" keeps the previous run current when nothing could be queued', async () => {
+  const before = await env.DB.prepare('SELECT last_crawl_at FROM websites WHERE id = ?').bind(siteId).first<{ last_crawl_at: number }>();
+  const CRAWLQ = { send: async () => { throw new Error('queue down'); } };
+  const res = await worker.fetch(new Request(`http://localhost/api/sites/${siteId}/crawl`, { method: 'POST', headers: { cookie } }),
+    { ...env, CRAWLQ } as never, createExecutionContext());
+  expect(res.status).toBe(500);
+  const after = await env.DB.prepare('SELECT last_crawl_at FROM websites WHERE id = ?').bind(siteId).first<{ last_crawl_at: number }>();
+  expect(after!.last_crawl_at).toBe(before!.last_crawl_at);
+});
+
+test('checkUrl stops reading a redirect body after 64 KB', async () => {
+  const real = globalThis.fetch;
+  let pulled = 0;
+  const endless = () => new ReadableStream({ pull(c) { pulled++; c.enqueue(new Uint8Array(16 * 1024)); } });
+  globalThis.fetch = (async (input: RequestInfo | URL) => String(input).endsWith('/to')
+    ? new Response('ok')
+    : new Response(endless(), { status: 302, headers: { location: '/to' } })) as typeof fetch;
+  try {
+    const r = await checkUrl('https://huge-redirect.test/from', { ignore_status_codes: '[]' });
+    expect(r).toMatchObject({ status: 200, ok: true });
+    expect(pulled).toBeLessThan(10);
   } finally { globalThis.fetch = real; }
 });

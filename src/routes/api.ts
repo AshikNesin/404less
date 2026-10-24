@@ -154,8 +154,14 @@ api.post('/sites/:id/crawl', async (c) => {
   if ('error' in found) return c.json({ error: found.error }, found.status as 403 | 404);
   if (found.role === 'viewer') return c.json({ error: 'forbidden' }, 403);
   // stamp the run now: until the queue picks it up the dashboard would show the previous run as current
-  await c.env.DB.prepare('UPDATE websites SET last_crawl_at = ? WHERE id = ?').bind(now(), found.site.id).run();
-  await c.env.CRAWLQ.send({ kind: 'crawl-site', siteId: found.site.id, manual: true });
+  const stamp = (ts: number | null) => c.env.DB.prepare('UPDATE websites SET last_crawl_at = ? WHERE id = ?').bind(ts, found.site.id).run();
+  await stamp(now());
+  try {
+    await c.env.CRAWLQ.send({ kind: 'crawl-site', siteId: found.site.id, manual: true });
+  } catch (err) {
+    await stamp(found.site.last_crawl_at); // nothing was queued: the previous run is still the current one
+    throw err;
+  }
   return c.json({ ok: true, started: true });
 });
 

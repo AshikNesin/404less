@@ -21,6 +21,18 @@ function get(url: string): Promise<Response> {
   });
 }
 
+/** Read and discard a body, up to 64 KB; a bigger one (an untrusted server's) is cancelled. */
+async function drain(res: Response): Promise<void> {
+  if (!res.body) return;
+  const reader = res.body.getReader();
+  for (let read = 0; read < 64 * 1024;) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    read += value.byteLength;
+  }
+  await reader.cancel();
+}
+
 export async function checkUrl(rawUrl: string, site: Pick<SiteRow, 'ignore_status_codes'>): Promise<CheckResult> {
   let url = rawUrl;
   const chain: { url: string; status: number }[] = [];
@@ -35,9 +47,9 @@ export async function checkUrl(rawUrl: string, site: Pick<SiteRow, 'ignore_statu
     }
     status = res.status;
     chain.push({ url, status });
-    // no body needed for classification. Redirect bodies are tiny and the next hop usually
+    // no body needed for classification. Redirect bodies are usually tiny and the next hop
     // reuses the connection: drain them (a cancelled body can leave it dead); cancel the rest.
-    try { await (status >= 300 && status < 400 ? res.arrayBuffer() : res.body?.cancel()); } catch {}
+    try { await (status >= 300 && status < 400 ? drain(res) : res.body?.cancel()); } catch {}
 
     if (status >= 300 && status < 400) {
       const loc = res.headers.get('location');
