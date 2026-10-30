@@ -15,6 +15,7 @@ import { CopyButton } from '../components/copy-button';
 import { useToast } from '../components/ui/toast';
 import { Page, PageHeader } from '../components/page-header';
 import { InstallSnippet } from '../features/sites/install-snippet';
+import { PlatformSnippet } from '../features/sites/platform-snippet';
 import { useCurrentSite } from '../features/sites/queries';
 
 export const Route = createFileRoute('/app/sites/$siteId/settings')({ component: SettingsPage });
@@ -52,7 +53,10 @@ function SettingsPage() {
           <CardTitle>Install the snippet</CardTitle>
           <CardDescription>Paste this into your 404 page template. It reports each hit and shows visitors the closest matching pages.</CardDescription>
         </CardHeader>
-        <CardContent><InstallSnippet siteKey={site.site_key} domain={site.domain} /></CardContent>
+        <CardContent>
+          <PlatformSnippet siteKey={site.site_key} domain={site.domain} />
+          <InstallSnippet siteKey={site.site_key} domain={site.domain} compact hideCode className="mt-4" />
+        </CardContent>
       </Card>
 
       <Card>

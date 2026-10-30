@@ -23,6 +23,7 @@
           <h3>Claude Code</h3>
 <pre class="code"><span class="m">$</span> claude mcp add --transport http 404less https://your-404less.example/mcp \
     --header <span class="s">"Authorization: Bearer 404l_…"</span></pre>
+          <p class="muted">The dashboard’s <em>API &amp; MCP</em> page has an <em>Ask your agent</em> tab: it generates this exact prompt with your key filled in, ready to paste.</p>
           <h3>Cursor, Claude Desktop and others</h3>
 <pre class="code">{
   <span class="p">"mcpServers"</span>: {
@@ -42,7 +43,7 @@
             <thead><tr><th>Tool</th><th>What it returns</th></tr></thead>
             <tbody>
               <tr><td><code>list_sites</code></td><td>The team’s sites with their open broken-link counts.</td></tr>
-              <tr><td><code>list_broken_links</code></td><td>Links for a site (by id, domain or name), filtered by status and time, ranked by hits, each with its stored suggested fix.</td></tr>
+              <tr><td><code>list_broken_links</code></td><td>Links for a site (by id, domain or name), filtered by status and time, ranked by hits, each with its page title and stored suggested fix.</td></tr>
               <tr><td><code>get_link_details</code></td><td>One URL: hits, first/last seen, status, last crawler check with redirect chain, top referrers, pages linking to it, ranked fixes.</td></tr>
               <tr><td><code>get_suggestions</code></td><td>Ranked replacement candidates for any URL on a site.</td></tr>
             </tbody>

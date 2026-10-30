@@ -16,6 +16,7 @@ import { useToast } from '../components/ui/toast';
 import { Page, PageHeader } from '../components/page-header';
 import { overviewQuery } from '../features/sites/queries';
 import { SetupChecklist } from '../features/sites/setup-checklist';
+import { VerifyInstall } from '../features/sites/verify-install';
 import { SuggestionCell, UrlCell } from '../features/links/parts';
 import { useCurrentSite } from '../features/sites/queries';
 
@@ -68,6 +69,7 @@ function OverviewPage() {
       />
 
       <SetupChecklist site={site} overview={o} />
+      <VerifyInstall site={site} overview={o} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Open broken links" value={o.counts.open.toLocaleString()} tone={o.counts.open > 0 ? 'destructive' : 'default'}
