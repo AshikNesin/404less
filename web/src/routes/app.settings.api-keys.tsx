@@ -1,8 +1,8 @@
 // API keys + MCP setup. Secrets are shown once.
 import { createFileRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { KeyRound, Plus } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { KeyRound, Plus, Sparkles } from 'lucide-react';
 import { api } from '../lib/api';
 import type { ApiKey } from '../lib/types';
 import { relTime } from '../lib/format';
@@ -36,6 +36,14 @@ function ApiKeysPage() {
     onSuccess: (d) => { setSecret(d.secret); void qc.invalidateQueries({ queryKey: ['keys', teamId] }); },
     onError: (e: Error) => toast('error', e.message),
   });
+  // first visit with no keys: make one so the agent prompt below is immediately usable
+  const autoCreated = useRef(false);
+  useEffect(() => {
+    if (teamId && keys.data && keys.data.keys.length === 0 && !secret && !autoCreated.current) {
+      autoCreated.current = true;
+      create.mutate();
+    }
+  }, [teamId, keys.data]);
   const list = keys.data?.keys ?? [];
 
   return (
@@ -51,6 +59,16 @@ function ApiKeysPage() {
           <CodeBlock code={secret} label="Copy API key" className="mt-2" />
         </Alert>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Sparkles className="size-4 text-muted-foreground" /> Connect your agent</CardTitle>
+          <CardDescription>Hand this whole setup to Claude Code, Cursor or any MCP client. It lists broken links, reads referrers and suggested fixes, and opens the PR.</CardDescription>
+          <CardAction><code className="text-code text-muted-foreground">{window.location.origin}/mcp</code></CardAction>
+        </CardHeader>
+        {/* a truncated real key would copy into a command that fails auth: the full secret or a placeholder */}
+        <CardContent><McpSetup apiKey={secret || '404l_your_key'} /></CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -77,16 +95,6 @@ function ApiKeysPage() {
             </ul>
           )}
         </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Connect your agent</CardTitle>
-          <CardDescription>Streamable-HTTP MCP server, read-only. Ask Claude Code or Cursor to list broken links and draft the redirects.</CardDescription>
-          <CardAction><code className="text-code text-muted-foreground">{window.location.origin}/mcp</code></CardAction>
-        </CardHeader>
-        {/* a truncated real key would copy into a command that fails auth: the full secret or a placeholder */}
-        <CardContent><McpSetup keyPlaceholder={secret || '404l_your_key'} /></CardContent>
       </Card>
     </Page>
   );
