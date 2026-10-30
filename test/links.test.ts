@@ -9,10 +9,10 @@ let siteId = '';
 let siteKey = '';
 const h = () => ({ 'Content-Type': 'application/json', cookie });
 
-async function track(url: string, referrer: string | null = null) {
+async function track(url: string, referrer: string | null = null, title: string | null = null) {
   const r = await SELF.fetch('http://localhost/api/track', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ siteKey, url, referrer }),
+    body: JSON.stringify({ siteKey, url, referrer, title }),
   });
   expect(r.status).toBe(200);
   return r.json() as Promise<any>;
@@ -194,8 +194,18 @@ test('overview: counts, series, top open, crawl summary; links csv', async () =>
   expect(typeof s.open_links).toBe('number');
 
   const csv = await (await SELF.fetch(`http://localhost/api/sites/${siteId}/links.csv?status=all`, { headers: { cookie } })).text();
-  expect(csv.split('\n')[0]).toBe('url,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url');
-  expect(csv).toContain('https://links.test/old-pricing,ignored,visitor,2');
+  expect(csv.split('\n')[0]).toBe('url,title,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url');
+  expect(csv).toContain('https://links.test/old-pricing,,ignored,visitor,2');
+});
+
+test('titles: the 404 page title a visitor saw is stored on the event and the link', async () => {
+  await track('https://links.test/legacy/download', 'https://links.test/', 'Page not found · Acme');
+  const event = await env.DB.prepare("SELECT title FROM not_found_events WHERE url = 'https://links.test/legacy/download' ORDER BY ts DESC LIMIT 1")
+    .first<{ title: string | null }>();
+  expect(event!.title).toBe('Page not found · Acme');
+  const { links } = await list('?status=all');
+  const row = links.find((l: any) => l.url === 'https://links.test/legacy/download');
+  expect(row.title).toBe('Page not found · Acme');
 });
 
 test('delete site removes everything, viewers and strangers cannot', async () => {

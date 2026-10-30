@@ -144,7 +144,7 @@ function LinksPage() {
                     <Td className="pr-0"><Checkbox aria-label={`Select ${l.url}`} checked={isSel}
                       onChange={(e) => setSelected((s) => { const n = new Set(s); e.target.checked ? n.add(l.id) : n.delete(l.id); return n; })} /></Td>
                     <Td className="max-w-[26rem] min-w-[14rem]">
-                      <UrlCell url={l.url} domain={site.domain} httpStatus={l.http_status} source={l.source}
+                      <UrlCell url={l.url} domain={site.domain} httpStatus={l.http_status} source={l.source} title={l.title}
                         to="/app/sites/$siteId/links/$linkId" params={{ siteId: site.id, linkId: l.id }} />
                     </Td>
                     <Td className="num text-right font-medium">{l.hits ? compact(l.hits) : <span className="text-muted-foreground">—</span>}</Td>

@@ -101,11 +101,17 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
   const title = pageTitle(html);
   if (title) {
     const ts = Date.now();
-    await env.DB.prepare(
-      `INSERT INTO known_urls (id, website_id, url, title, source, added_at, title_checked_at)
-       VALUES (?, ?, ?, ?, 'crawl', ?, ?)
-       ON CONFLICT(website_id, url) DO UPDATE SET title = excluded.title, title_checked_at = excluded.title_checked_at`,
-    ).bind(newId(), site.id, url, title, ts, ts).run();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO known_urls (id, website_id, url, title, source, added_at, title_checked_at)
+         VALUES (?, ?, ?, ?, 'crawl', ?, ?)
+         ON CONFLICT(website_id, url) DO UPDATE SET title = excluded.title, title_checked_at = excluded.title_checked_at`,
+      ).bind(newId(), site.id, url, title, ts, ts),
+      // a working page's title is the best title a broken row could ever show
+      env.DB.prepare(
+        'UPDATE broken_links SET title = ? WHERE website_id = ? AND url = ? AND (title IS NULL OR title != ?)',
+      ).bind(title, site.id, url, title),
+    ]);
     invalidateKnownUrls(site.id);
   }
 
@@ -118,9 +124,9 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     if (excluded(l.url, excludes)) continue;
     stmts.push(
       env.DB.prepare(
-        `INSERT INTO crawl_sources (website_id, source_url, target_url, anchor) VALUES (?, ?, ?, ?)
-         ON CONFLICT(website_id, source_url, target_url) DO UPDATE SET anchor = excluded.anchor`,
-      ).bind(site.id, url, l.url, l.anchor),
+        `INSERT INTO crawl_sources (website_id, source_url, source_title, target_url, anchor) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(website_id, source_url, target_url) DO UPDATE SET anchor = excluded.anchor, source_title = COALESCE(excluded.source_title, crawl_sources.source_title)`,
+      ).bind(site.id, url, title, l.url, l.anchor),
     );
     next.push({ kind: 'check-link', siteId: site.id, url: l.url, sourceUrl: url, anchor: l.anchor ?? undefined });
   }
@@ -128,9 +134,9 @@ export async function fetchPage(env: Env, site: CrawlSiteRow, url: string, depth
     if (excluded(a, excludes)) continue;
     stmts.push(
       env.DB.prepare(
-        `INSERT INTO crawl_sources (website_id, source_url, target_url, anchor) VALUES (?, ?, ?, NULL)
+        `INSERT INTO crawl_sources (website_id, source_url, source_title, target_url, anchor) VALUES (?, ?, ?, ?, NULL)
          ON CONFLICT(website_id, source_url, target_url) DO NOTHING`,
-      ).bind(site.id, url, a),
+      ).bind(site.id, url, title, a),
     );
     next.push({ kind: 'check-link', siteId: site.id, url: a, sourceUrl: url });
   }
@@ -182,8 +188,18 @@ export async function fetchTitles(env: Env, site: CrawlSiteRow, job: string): Pr
   for (const { url } of pending.results) {
     const title = await fetchTitle(url);
     // no title found: keep what's there (NULL, or a slug guess from before titles were fetched)
-    stmts.push(env.DB.prepare('UPDATE known_urls SET title = COALESCE(?, title), title_checked_at = ? WHERE website_id = ? AND url = ?')
-      .bind(title, Date.now(), site.id, url));
+    stmts.push(env.DB.prepare(
+      `UPDATE known_urls SET title = COALESCE(?, title), title_checked_at = ? WHERE website_id = ? AND url = ?`,
+    ).bind(title, Date.now(), site.id, url));
+    if (title) {
+      // the page works: its real title is better than anything a broken row has
+      stmts.push(env.DB.prepare(
+        'UPDATE broken_links SET title = ? WHERE website_id = ? AND url = ? AND (title IS NULL OR title != ?)',
+      ).bind(title, site.id, url, title));
+      stmts.push(env.DB.prepare(
+        'UPDATE crawl_sources SET source_title = ? WHERE website_id = ? AND source_url = ? AND source_title IS NULL',
+      ).bind(title, site.id, url));
+    }
   }
   if (stmts.length) await env.DB.batch(stmts);
   if (pending.results.length === TITLES_PER_MESSAGE) {

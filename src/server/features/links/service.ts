@@ -22,6 +22,7 @@ export type BrokenLinkRow = {
   first_seen: number;
   last_seen: number;
   resolved_at: number | null;
+  title: string | null;
   suggested_url: string | null;
   suggested_title: string | null;
 };
@@ -67,33 +68,43 @@ async function findByUrl(env: Env, siteId: string, url: string) {
     .bind(siteId, url).first<{ id: string; status: LinkStatus; source: LinkSource }>();
 }
 
-async function insertLink(env: Env, siteId: string, url: string, source: LinkSource, ts: number, httpStatus: number | null, hits: number) {
+/** The best title for a URL right now: the known page's title, else the live 404 title. */
+async function titleFor(env: Env, siteId: string, url: string, fallback: string | null): Promise<string | null> {
+  if (fallback) return fallback;
+  const row = await env.DB.prepare('SELECT title FROM known_urls WHERE website_id = ? AND url = ?')
+    .bind(siteId, url).first<{ title: string | null }>();
+  return row?.title ?? null;
+}
+
+async function insertLink(env: Env, siteId: string, url: string, source: LinkSource, ts: number, httpStatus: number | null, hits: number, title: string | null = null) {
   const id = crypto.randomUUID();
   const [best] = await suggestFor(env, siteId, url, 1);
+  const ownTitle = await titleFor(env, siteId, url, title);
   await env.DB.prepare(
-    `INSERT INTO broken_links (id, website_id, url, status, source, hits, http_status, first_seen, last_seen, suggested_url, suggested_title)
-     VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, siteId, url, source, hits, httpStatus, ts, ts, best?.url ?? null, best?.title ?? null).run();
+    `INSERT INTO broken_links (id, website_id, url, status, source, hits, http_status, first_seen, last_seen, title, suggested_url, suggested_title)
+     VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, siteId, url, source, hits, httpStatus, ts, ts, ownTitle, best?.url ?? null, best?.title ?? null).run();
   return id;
 }
 
 export type HitOutcome = { id: string; status: LinkStatus; isNew: boolean; reopened: boolean };
 
 /** A visitor hit the URL: count it, open/reopen the row. Ignored rows stay ignored. */
-export async function recordVisitorHit(env: Env, siteId: string, url: string, ts: number): Promise<HitOutcome> {
+export async function recordVisitorHit(env: Env, siteId: string, url: string, ts: number, title: string | null = null): Promise<HitOutcome> {
   const prev = await findByUrl(env, siteId, url);
   if (!prev) {
-    const id = await insertLink(env, siteId, url, 'visitor', ts, null, 1);
+    const id = await insertLink(env, siteId, url, 'visitor', ts, null, 1, title);
     return { id, status: 'open', isNew: true, reopened: false };
   }
   const reopened = prev.status === 'resolved';
   const status: LinkStatus = reopened ? 'open' : prev.status;
   await env.DB.prepare(
     `UPDATE broken_links SET hits = hits + 1, last_seen = ?, status = ?,
+       title = COALESCE(title, ?),
        source = CASE WHEN source = 'crawler' THEN 'both' ELSE source END,
        resolved_at = CASE WHEN ? = 'open' THEN NULL ELSE resolved_at END
      WHERE id = ?`,
-  ).bind(ts, status, status, prev.id).run();
+  ).bind(ts, status, title, status, prev.id).run();
   return { id: prev.id, status, isNew: false, reopened };
 }
 
@@ -183,7 +194,7 @@ export async function getLink(env: Env, siteId: string, linkId: string) {
        WHERE website_id = ? AND url = ? AND referrer IS NOT NULL AND referrer != ''
        GROUP BY referrer ORDER BY n DESC LIMIT 10`,
     ).bind(siteId, link.url),
-    env.DB.prepare('SELECT source_url, anchor FROM crawl_sources WHERE website_id = ? AND target_url = ? LIMIT 25').bind(siteId, link.url),
+    env.DB.prepare('SELECT source_url, source_title, anchor FROM crawl_sources WHERE website_id = ? AND target_url = ? LIMIT 25').bind(siteId, link.url),
     env.DB.prepare('SELECT status, redirect_chain, checked_at FROM link_checks WHERE website_id = ? AND url = ? ORDER BY checked_at DESC LIMIT 1').bind(siteId, link.url),
     env.DB.prepare(
       `SELECT CAST(ts / 86400000 AS INTEGER) AS day, COUNT(*) AS n FROM not_found_events
@@ -206,7 +217,7 @@ export async function getLink(env: Env, siteId: string, linkId: string) {
     link,
     suggestions,
     referrers: referrers.results as { referrer: string; n: number }[],
-    sources: sources.results as { source_url: string; anchor: string | null }[],
+    sources: sources.results as { source_url: string; source_title: string | null; anchor: string | null }[],
     lastCheck: check ? { status: check.status, checkedAt: check.checked_at, chain } : null,
     series: fillDays(series.results as { day: number; n: number }[], 30),
     recent: recent.results as { referrer: string | null; user_agent: string | null; ts: number }[],

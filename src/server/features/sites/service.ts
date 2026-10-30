@@ -70,7 +70,7 @@ export async function siteOverview(env: Env, site: SiteRow & { team_id: string; 
     env.DB.prepare('SELECT COUNT(*) AS n FROM not_found_events WHERE website_id = ? AND ts >= ?').bind(site.id, since7),
     env.DB.prepare('SELECT COUNT(*) AS n FROM not_found_events WHERE website_id = ? AND ts >= ? AND ts < ?').bind(site.id, since14, since7),
     env.DB.prepare(
-      `SELECT id, url, source, hits, http_status, last_seen, suggested_url, suggested_title,
+      `SELECT id, url, source, hits, http_status, last_seen, title, suggested_url, suggested_title,
          (SELECT COUNT(*) FROM crawl_sources cs WHERE cs.website_id = bl.website_id AND cs.target_url = bl.url) AS source_pages
        FROM broken_links bl WHERE website_id = ? AND status = 'open'
        ORDER BY hits DESC, last_seen DESC LIMIT 6`,
@@ -115,7 +115,8 @@ export async function crawlReport(env: Env, site: SiteRow & { last_crawl_at?: nu
   const since = site.last_crawl_at ?? 0;
   const rows = await env.DB.prepare(
     `SELECT lc.url, lc.status, lc.ok, lc.redirect_chain, lc.checked_at, bl.id AS link_id, bl.status AS link_status,
-       (SELECT cs.source_url FROM crawl_sources cs WHERE cs.website_id = lc.website_id AND cs.target_url = lc.url LIMIT 1) AS found_on
+       (SELECT cs.source_url FROM crawl_sources cs WHERE cs.website_id = lc.website_id AND cs.target_url = lc.url LIMIT 1) AS found_on,
+       (SELECT cs.source_title FROM crawl_sources cs WHERE cs.website_id = lc.website_id AND cs.target_url = lc.url LIMIT 1) AS found_on_title
      FROM link_checks lc
      JOIN (SELECT url, MAX(checked_at) AS m FROM link_checks WHERE website_id = ? AND checked_at >= ? GROUP BY url) latest
        ON latest.url = lc.url AND latest.m = lc.checked_at

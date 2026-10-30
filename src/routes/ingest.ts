@@ -26,6 +26,7 @@ ingest.post('/track', async (c) => {
   parsed.hash = '';
   const url = parsed.toString().slice(0, 2000);
   const referrer = typeof body.referrer === 'string' && body.referrer ? body.referrer.slice(0, 2000) : null;
+  const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim().slice(0, 300) : null;
 
   // Per-site rate limit (protects the free-tier D1 write budget)
   const rl = c.env.RATELIMIT.get(c.env.RATELIMIT.idFromName(site.id));
@@ -38,9 +39,9 @@ ingest.post('/track', async (c) => {
 
   const ts = Date.now();
   await c.env.DB.prepare(
-    'INSERT INTO not_found_events (id, website_id, url, referrer, user_agent, ts) VALUES (?, ?, ?, ?, ?, ?)',
-  ).bind(crypto.randomUUID(), site.id, url, referrer, c.req.header('User-Agent')?.slice(0, 500) ?? null, ts).run();
-  const outcome = await recordVisitorHit(c.env, site.id, url, ts);
+    'INSERT INTO not_found_events (id, website_id, url, referrer, user_agent, ts, title) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  ).bind(crypto.randomUUID(), site.id, url, referrer, c.req.header('User-Agent')?.slice(0, 500) ?? null, ts, title).run();
+  const outcome = await recordVisitorHit(c.env, site.id, url, ts, title);
 
   // Ignored links are still counted, but never alert. Everything else goes to the
   // per-site digest DO, which groups hits per URL and flushes once per window.

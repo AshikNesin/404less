@@ -117,7 +117,7 @@ function OverviewPage() {
               <ul className="-mx-4 divide-y divide-border">
                 {o.topOpen.map((l) => (
                   <li key={l.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-4 py-2.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto]">
-                    <UrlCell url={l.url} domain={site.domain} httpStatus={l.http_status ?? undefined} source={l.source}
+                    <UrlCell url={l.url} domain={site.domain} httpStatus={l.http_status ?? undefined} source={l.source} title={l.title}
                       to="/app/sites/$siteId/links/$linkId" params={{ siteId: site.id, linkId: l.id }}
                       className="col-start-1 row-start-1 sm:col-auto sm:row-auto" />
                     <div className="col-span-2 row-start-2 min-w-0 text-[0.8125rem] sm:col-span-1 sm:row-auto">

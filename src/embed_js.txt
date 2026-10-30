@@ -68,7 +68,7 @@
   }
 
   function track() {
-    var payload = JSON.stringify({ siteKey: siteKey, url: pageUrl, referrer: document.referrer || null });
+    var payload = JSON.stringify({ siteKey: siteKey, url: pageUrl, referrer: document.referrer || null, title: (document.title || '').slice(0, 300) || null });
     // text/plain keeps the request CORS-simple (no preflight); the API parses JSON regardless.
     try {
       if (navigator.sendBeacon && navigator.sendBeacon(apiBase + '/api/track', new Blob([payload], { type: 'text/plain;charset=UTF-8' }))) return;

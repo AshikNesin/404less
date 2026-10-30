@@ -54,7 +54,7 @@ function LinkDetailPage() {
         backLink={<BackLink to="/app/sites/$siteId/links" params={{ siteId: site.id }} search={{ status: link.status === 'open' ? 'open' : 'all', sort: 'hits', page: 1 }}>Broken links</BackLink>}
         eyebrow="Broken link"
         title={<>
-          <span className="break-all">{urlLabel(link.url, site.domain)}</span>
+          <span className="break-all">{link.title || urlLabel(link.url, site.domain)}</span>
           <LinkStatusBadge status={link.status} />
         </>}
         description={<span className="inline-flex flex-wrap items-center gap-2">
@@ -171,8 +171,8 @@ function LinkDetailPage() {
                 <ul className="-mx-4 divide-y divide-border">
                   {sources.map((s) => (
                     <li key={s.source_url} className="px-4 py-2">
-                      <ExternalUrl url={s.source_url} label={urlLabel(s.source_url, site.domain)} className="text-[0.8125rem] text-foreground" />
-                      {s.anchor && <div className="text-meta truncate">anchor: “{s.anchor}”</div>}
+                      <ExternalUrl url={s.source_url} label={s.source_title || urlLabel(s.source_url, site.domain)} className="text-[0.8125rem] text-foreground" />
+                      <div className="text-meta truncate" title={s.source_url}>{urlLabel(s.source_url, site.domain)}{s.anchor && <> · anchor: “{s.anchor}”</>}</div>
                     </li>
                   ))}
                 </ul>

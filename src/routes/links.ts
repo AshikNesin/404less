@@ -36,9 +36,9 @@ links.get('/sites/:id/links.csv', async (c) => {
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const iso = (t: number | null) => (t ? new Date(t).toISOString() : '');
-  const header = 'url,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url';
+  const header = 'url,title,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url';
   const body = rows.map((r) =>
-    [r.url, r.status, r.source, r.hits, r.http_status ?? '', iso(r.first_seen), iso(r.last_seen), r.found_on ?? '', r.suggested_url ?? ''].map(esc).join(','),
+    [r.url, r.title ?? '', r.status, r.source, r.hits, r.http_status ?? '', iso(r.first_seen), iso(r.last_seen), r.found_on ?? '', r.suggested_url ?? ''].map(esc).join(','),
   ).join('\n');
   return c.body(`${header}\n${body}\n`, 200, {
     'Content-Type': 'text/csv; charset=utf-8',

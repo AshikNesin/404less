@@ -30,7 +30,7 @@ export async function listBrokenLinks(env: Env, teamId: string, args: {
   const status: LinkStatus | 'all' = (LINK_STATUSES as readonly string[]).includes(args.status ?? '') ? (args.status as LinkStatus) : args.status === 'all' ? 'all' : 'open';
   const sinceMs = args.since ? Date.parse(args.since) : NaN;
 
-  let sql = `SELECT url, status, source, hits, http_status, first_seen, last_seen, suggested_url, suggested_title
+  let sql = `SELECT url, status, source, hits, http_status, title, first_seen, last_seen, suggested_url, suggested_title
              FROM broken_links WHERE website_id = ?`;
   const binds: unknown[] = [st.id];
   if (status !== 'all') { sql += ' AND status = ?'; binds.push(status); }
@@ -38,7 +38,7 @@ export async function listBrokenLinks(env: Env, teamId: string, args: {
   sql += ' ORDER BY hits DESC, last_seen DESC LIMIT ?';
   binds.push(limit);
   const rows = await env.DB.prepare(sql).bind(...binds).all<{
-    url: string; status: string; source: string; hits: number; http_status: number | null;
+    url: string; status: string; source: string; hits: number; http_status: number | null; title: string | null;
     first_seen: number; last_seen: number; suggested_url: string | null; suggested_title: string | null;
   }>();
   return {
@@ -46,6 +46,7 @@ export async function listBrokenLinks(env: Env, teamId: string, args: {
     status,
     broken_links: rows.results.map((r) => ({
       url: r.url,
+      title: r.title,
       status: r.status,
       detected_by: r.source,
       hits: r.hits,
@@ -77,14 +78,14 @@ export async function getLinkDetails(env: Env, teamId: string, args: { site: str
   const st = await resolveSite(env, teamId, args.site);
   if (!st) return { error: `unknown site "${args.site}"` };
   const link = await env.DB.prepare('SELECT * FROM broken_links WHERE website_id = ? AND url = ?').bind(st.id, args.url)
-    .first<{ status: string; source: string; hits: number; http_status: number | null; first_seen: number; last_seen: number; resolved_at: number | null }>();
+    .first<{ status: string; source: string; hits: number; http_status: number | null; title: string | null; first_seen: number; last_seen: number; resolved_at: number | null }>();
   const [referrers, sources, check] = await env.DB.batch([
     env.DB.prepare(
       `SELECT referrer, COUNT(*) AS n FROM not_found_events
        WHERE website_id = ? AND url = ? AND referrer IS NOT NULL
        GROUP BY referrer ORDER BY n DESC LIMIT 10`,
     ).bind(st.id, args.url),
-    env.DB.prepare('SELECT source_url, anchor FROM crawl_sources WHERE website_id = ? AND target_url = ? LIMIT 25').bind(st.id, args.url),
+    env.DB.prepare('SELECT source_url, source_title, anchor FROM crawl_sources WHERE website_id = ? AND target_url = ? LIMIT 25').bind(st.id, args.url),
     env.DB.prepare('SELECT status, redirect_chain, checked_at FROM link_checks WHERE website_id = ? AND url = ? ORDER BY checked_at DESC LIMIT 1').bind(st.id, args.url),
   ]);
   const lastCheck = check.results[0] as { status: number; redirect_chain: string | null; checked_at: number } | undefined;
@@ -95,6 +96,7 @@ export async function getLinkDetails(env: Env, teamId: string, args: { site: str
     detected_by: link?.source ?? null,
     hits: link?.hits ?? 0,
     http_status: link?.http_status ?? null,
+    title: link?.title ?? null,
     first_seen: iso(link?.first_seen),
     last_seen: iso(link?.last_seen),
     resolved_at: iso(link?.resolved_at),

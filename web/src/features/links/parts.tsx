@@ -7,16 +7,18 @@ import { hostOf, isOnSite, pathOf } from '../../lib/format';
 import type { LinkSource, LinkStatus } from '../../lib/types';
 import { cn } from '../../lib/utils';
 
-/** Path in site context (host shown only for off-site URLs), with status + source badges. */
-export function UrlCell({ url, domain, httpStatus, source, to, params, className }: {
-  url: string; domain: string; httpStatus?: number | null; source?: LinkSource;
+/** Path in site context (host shown only for off-site URLs), with title, status + source badges. */
+export function UrlCell({ url, domain, httpStatus, source, title, to, params, className }: {
+  url: string; domain: string; httpStatus?: number | null; source?: LinkSource; title?: string | null;
   to?: string; params?: Record<string, string>; className?: string;
 }) {
   const onSite = isOnSite(url, domain);
   const label = pathOf(url);
   const text = (
-    <span className="block truncate font-medium" title={url}>
-      {!onSite && <span className="font-normal text-muted-foreground">{hostOf(url)}</span>}
+    <span className="block truncate font-medium" title={title ? `${title} — ${url}` : url}>
+      {title
+        ? <span className="mr-1.5 font-semibold">{title}</span>
+        : !onSite && <span className="font-normal text-muted-foreground">{hostOf(url)}</span>}
       {label}
     </span>
   );

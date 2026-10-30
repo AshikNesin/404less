@@ -141,7 +141,7 @@ function CrawlPage() {
                         : <span className="block truncate" title={r.url}>{urlLabel(r.url, site.domain)}</span>}
                     </Td>
                     <Td><span className="inline-flex items-center gap-1.5"><HttpStatusBadge code={r.status} />{r.redirect_chain && <span className="text-meta">{JSON.parse(r.redirect_chain).length - 1} hop{JSON.parse(r.redirect_chain).length === 2 ? '' : 's'}</span>}</span></Td>
-                    <Td className="max-w-[16rem] text-muted-foreground">{r.found_on ? <ExternalUrl url={r.found_on} label={urlLabel(r.found_on, site.domain)} className="text-muted-foreground" /> : '—'}</Td>
+                    <Td className="max-w-[16rem] text-muted-foreground">{r.found_on ? <ExternalUrl url={r.found_on} label={r.found_on_title || urlLabel(r.found_on, site.domain)} className="text-muted-foreground" /> : '—'}</Td>
                     <Td className="num whitespace-nowrap text-muted-foreground" title={fullTime(r.checked_at)}>{relTime(r.checked_at)}</Td>
                     <Td>{r.link_status ? <LinkStatusBadge status={r.link_status} size="sm" /> : <span className="text-muted-foreground">—</span>}</Td>
                   </Tr>
