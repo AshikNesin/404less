@@ -9,7 +9,7 @@ import { bootWorker } from "./worker/boot";
 import { queue, scheduled } from "./worker/cron";
 
 /**
- * Cloudflare Workers entry — 404less's production runtime: D1, a crawl queue,
+ * Cloudflare Workers entry: 404less's production runtime: D1, a crawl queue,
  * two Durable Objects, the marketing site + SPA from Static Assets, and two
  * cron triggers (crawl every 30 min, nightly retention). Bindings live in
  * wrangler.jsonc. Pending migrations apply on the first event of an isolate.

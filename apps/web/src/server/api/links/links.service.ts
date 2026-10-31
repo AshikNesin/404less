@@ -1,5 +1,5 @@
-// Broken links: the one list the dashboard manages. Both detectors feed it —
-// visitor 404 hits (embed → /api/track) and crawler link checks — and the user
+// Broken links: the one list the dashboard manages. Both detectors feed it
+// (visitor 404 hits via embed → /api/track, and crawler link checks), and the user
 // triages rows between open / resolved / ignored. The crawler also resolves
 // and reopens rows on its own as URLs come back or break again.
 import type { Env } from "../../types";

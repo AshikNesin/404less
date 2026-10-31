@@ -106,7 +106,7 @@ export function CrawlPage() {
           <CardContent className="divide-y divide-border">
             <Field
               label="Scheduled crawling"
-              hint={site.crawl_enabled ? "Runs every 30 minutes" : "Off — manual crawls only"}
+              hint={site.crawl_enabled ? "Runs every 30 minutes" : "Off: manual crawls only"}
             >
               <Switch
                 checked={site.crawl_enabled === 1}
@@ -304,7 +304,7 @@ export function CrawlPage() {
                           className="text-muted-foreground"
                         />
                       ) : (
-                        "—"
+                        "-"
                       )}
                     </Td>
                     <Td
@@ -317,7 +317,7 @@ export function CrawlPage() {
                       {r.link_status ? (
                         <LinkStatusBadge status={r.link_status} size="sm" />
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </Td>
                   </Tr>
@@ -456,7 +456,7 @@ function KnownPages({ siteId, domain }: { siteId: string; domain: string }) {
             description={
               debounced
                 ? `No known pages match “${debounced}”.`
-                : "Import your sitemap above, or run a crawl — it starts from the homepage."
+                : "Import your sitemap above, or run a crawl. It starts from the homepage."
             }
           />
         )}

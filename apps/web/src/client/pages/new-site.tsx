@@ -30,7 +30,7 @@ export function NewSitePage() {
     onSuccess: async ({ site }) => {
       setLastSiteId(site.id);
       await qc.invalidateQueries({ queryKey: ["sites"] });
-      toast("success", `${site.domain} added — install the snippet to start tracking`);
+      toast("success", `${site.domain} added. Install the snippet to start tracking`);
       void navigate({ to: "/app/sites/$siteId", params: { siteId: site.id } });
     },
     onError: (e: Error) => toast("error", e.message),

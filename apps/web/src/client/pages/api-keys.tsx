@@ -77,7 +77,7 @@ export function ApiKeysPage() {
       {secret && (
         <Alert
           tone="info"
-          title="Copy this key now — it won’t be shown again."
+          title="Copy this key now. It won’t be shown again."
           action={
             <Button variant="ghost" size="sm" onClick={() => setSecret("")}>
               Done

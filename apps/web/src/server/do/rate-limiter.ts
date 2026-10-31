@@ -13,8 +13,8 @@ export class RateLimiterDO extends DurableObject<Env> {
     if (!siteId) return new Response("missing site", { status: 400 });
 
     if (url.pathname.endsWith("/check")) {
-      // POST /:siteId/check — increments; 204 if allowed, 429 if over limit
-      const limit = 500; // events/site/hour — 12k/day worst case, well under budget
+      // POST /:siteId/check: increments; 204 if allowed, 429 if over limit
+      const limit = 500; // events/site/hour, 12k/day worst case, well under budget
       const now = Date.now();
       const state = (await this.ctx.storage.get<RateState>(siteId)) ?? {
         count: 0,

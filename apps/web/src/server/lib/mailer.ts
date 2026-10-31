@@ -10,7 +10,7 @@ export type Mailer = {
 export function getMailer(env: Env): Mailer | null {
   if (!env.RESEND_API_KEY) return null;
   // MAIL_FROM wins; without a verified custom domain we can still *try* the
-  // product's own address — Resend rejects unverified sender domains at send
+  // product's own address: Resend rejects unverified sender domains at send
   // time, which the caller surfaces. Sandbox fallback only in dev mode.
   const from = env.MAIL_FROM ?? "404less <no-reply@dev.404less.com>";
   return {

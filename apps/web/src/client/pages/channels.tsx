@@ -45,7 +45,7 @@ export function ChannelsPage() {
     setTesting(id);
     try {
       await api(`/api/v1/teams/${teamId}/channels/${id}/test`, { method: "POST", body: "{}" });
-      toast("success", "Test sent — check the channel");
+      toast("success", "Test sent. Check the channel");
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "Test failed");
     } finally {

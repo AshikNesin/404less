@@ -30,7 +30,7 @@ const isProduction = process.env.NODE_ENV === "production";
 // Sentry is loaded below only when a DSN is configured: importing @sentry/node
 // costs tens of MB of RSS even with nothing to send, and most self-hosted
 // instances run without error reporting. Until it initialises, this slot is a
-// no-op — the same outcome as calling Sentry before init().
+// no-op: the same outcome as calling Sentry before init().
 let captureException: ErrorReporter | undefined;
 
 // scripts/build.mjs bakes the release it uploads source maps under into

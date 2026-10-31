@@ -86,8 +86,8 @@ export function useRecheckLink(siteId: string) {
         !r.ok
           ? `Still broken (${r.httpStatus || "no response"})`
           : r.status === "resolved"
-            ? `Responds with ${r.httpStatus} now — marked resolved`
-            : `Responds with ${r.httpStatus} now — status is still ${r.status ?? "unchanged"}`,
+            ? `Responds with ${r.httpStatus} now, marked resolved`
+            : `Responds with ${r.httpStatus} now; status is still ${r.status ?? "unchanged"}`,
       );
       invalidate();
     },

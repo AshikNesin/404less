@@ -1,5 +1,5 @@
 // Integration tests running INSIDE workerd against the real Worker + real D1
-// (Miniflare's local SQLite — no Cloudflare account, no deploy, no edge network).
+// (Miniflare's local SQLite: no Cloudflare account, no deploy, no edge network).
 import { SELF } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { beforeAll, expect, test } from "vitest";

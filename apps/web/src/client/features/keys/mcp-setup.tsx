@@ -12,7 +12,7 @@ export function mcpUrl(): string {
   return `${window.location.origin}/mcp`;
 }
 
-/** A prompt that hands the whole setup to the agent — key, URL, what to do. */
+/** A prompt that hands the whole setup to the agent: key, URL, what to do. */
 export function agentSetupPrompt(key: string, domain?: string): string {
   return [
     `Connect 404less (broken-link monitoring${domain ? ` for ${domain}` : ""}) as an MCP server and start using it.`,

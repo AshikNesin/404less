@@ -1,4 +1,4 @@
-// Broken links — the triage list. Tabs by status, search, source + sort,
+// Broken links: the triage list. Tabs by status, search, source + sort,
 // bulk actions, pagination; everything lives in the URL.
 import { Link } from "../lib/router";
 import { useQuery } from "@tanstack/react-query";
@@ -95,7 +95,7 @@ export function LinksPage() {
     <Page wide>
       <PageHeader
         title="Broken links"
-        description="Every URL that visitors or the crawler hit without success. Resolve what you’ve fixed, ignore what’s noise — the crawler reopens anything that breaks again."
+        description="Every URL that visitors or the crawler hit without success. Resolve what you’ve fixed, ignore what’s noise. The crawler reopens anything that breaks again."
         actions={
           <a href={csvHref}>
             <Button variant="outline" size="sm">
@@ -255,7 +255,7 @@ export function LinksPage() {
                       />
                     </Td>
                     <Td className="num text-right font-medium">
-                      {l.hits ? compact(l.hits) : <span className="text-muted-foreground">—</span>}
+                      {l.hits ? compact(l.hits) : <span className="text-muted-foreground">-</span>}
                     </Td>
                     <Td className="max-w-[12rem]">
                       {l.source_pages > 0 ? (
@@ -267,7 +267,7 @@ export function LinksPage() {
                           {plural(l.source_pages, "page")}
                         </Link>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </Td>
                     <Td className="max-w-[16rem]">

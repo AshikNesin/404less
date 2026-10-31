@@ -8,18 +8,18 @@ Cloudflare's free tier.
 </p>
 <p align="center"><sub><b><a href="docs/demo/404less-demo.mp4">▶ Watch the demo</a></b> · 65 seconds, with sound · rendered from the real app by <a href="docs/demo">docs/demo</a></sub></p>
 
-- **Realtime 404 tracking** — one script tag on your 404 page reports every hit
+- **Realtime 404 tracking:** one script tag on your 404 page reports every hit
   (URL, referrer) and shows the visitor a "Looking for something?" card with the
   closest matching pages.
-- **Scheduled crawler** — fetches your pages, checks every link and asset,
+- **Scheduled crawler:** fetches your pages, checks every link and asset,
   records redirect chains, respects robots.txt, and re-verifies open broken links
   so they resolve on their own once fixed.
-- **One list to manage** — every finding lands in a single broken-links list with
+- **One list to manage:** every finding lands in a single broken-links list with
   open / resolved / ignored states, bulk actions, search, CSV export, suggested
   replacements and a copy-paste redirect rule for your platform.
-- **Digests, not noise** — Slack, Pushover or email; one grouped digest per
+- **Digests, not noise:** Slack, Pushover or email; one grouped digest per
   window per site. Ignored links never alert.
-- **MCP for your agent** — read-only tools (`list_sites`, `list_broken_links`,
+- **MCP for your agent:** read-only tools (`list_sites`, `list_broken_links`,
   `get_link_details`, `get_suggestions`) over streamable HTTP so Claude Code or
   Cursor can open the fix PR. 404less never writes to your repo.
 
@@ -65,10 +65,10 @@ is needed for development.
 
 For UI work, `pnpm dev` runs the app on Node with Vite HMR (SQLite in
 `data/dev.db`; the crawl queue runs in-process, alerts are logged instead of
-sent) — open `/app`. It runs through `portless` (`npm i -g portless`), as in groot.
+sent); open `/app`. It runs through `portless` (`npm i -g portless`), as in groot.
 
 ```bash
-pnpm test:worker       # 404less's integration suite inside workerd + local D1 — no Cloudflare account needed
+pnpm test:worker       # 404less's integration suite inside workerd + local D1, no Cloudflare account needed
 pnpm test              # groot's Node suites + the Node runtime check (in-memory SQLite)
 pnpm test:client       # client component tests
 pnpm typecheck         # server + client
@@ -114,7 +114,7 @@ Add it to your 404 template. The script detects a 404 page from the title, a
 | `data-target`             | CSS selector for inline mode                                   | script's parent |
 | `data-theme`              | `auto` · `light` · `dark`                                      | `auto`          |
 | `data-accent`             | any CSS color                                                  | indigo          |
-| `data-title`, `data-text` | heading / intro copy                                           | —               |
+| `data-title`, `data-text` | heading / intro copy                                           | none            |
 | `data-position`           | `right` · `left` · `center` (desktop toast)                    | `right`         |
 | `data-max`                | 1–5 suggestions                                                | 3               |
 | `data-track`              | `false` to only show suggestions                               | `true`          |
@@ -133,7 +133,7 @@ claude mcp add --transport http 404less https://your-404less.example/mcp \
 ```
 
 The key authenticates MCP; the dashboard API under `/api/v1` uses the signed-in
-session cookie — see `apps/web/src/server/api/*/*.routes.ts`.
+session cookie (see `apps/web/src/server/api/*/*.routes.ts`).
 
 ## Layout
 
@@ -150,7 +150,7 @@ apps/web/
     entry.node.ts          Node dev entry (pnpm dev) with in-process binding stand-ins
   src/client/              React SPA (served for /app and /app/*): pages, features, components
   drizzle/                 SQL migrations (0001–0007 predate groot; never rename them)
-packages/                  groot boilerplate (core, ui, shell, jobs, ai) — synced with `pnpm groot:sync`
+packages/                  groot boilerplate (core, ui, shell, jobs, ai), synced with `pnpm groot:sync`
 site/
   pages/*.html             marketing pages (index, embed, self-host, agent, 404) + layout.html
   build.mjs                renders pages into dist/client, copies the demo video, writes sitemap.xml + robots.txt

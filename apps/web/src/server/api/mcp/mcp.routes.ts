@@ -1,6 +1,6 @@
 // Remote MCP server: Streamable HTTP at /mcp, bearer API-key auth, read-only tools.
 // Implements the 2025-03-26 streamable transport: POST for messages,
-// GET (SSE, optional) for server-initiated messages — we decline with 405.
+// GET (SSE, optional) for server-initiated messages; we decline with 405.
 import { Hono } from "hono";
 import { teamForToken } from "../keys/keys.service";
 import { getLinkDetails, getSuggestions, listBrokenLinks, listSites } from "../mcp/mcp.service";

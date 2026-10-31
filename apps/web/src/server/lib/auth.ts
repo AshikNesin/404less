@@ -1,5 +1,5 @@
 // Magic-link auth helpers: token creation/verification + session cookies (HMAC-signed).
-// The signing secret is generated once and persisted in app_meta — zero config for
+// The signing secret is generated once and persisted in app_meta: zero config for
 // self-hosters, stable across redeploys, revocable by deleting the row.
 import { eq } from "drizzle-orm";
 import type { Database } from "@groot/core/database";

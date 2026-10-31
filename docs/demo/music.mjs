@@ -12,7 +12,7 @@ const L = new Float32Array(LEN);
 const R = new Float32Array(LEN);
 
 const midi = (n) => 440 * 2 ** ((n - 69) / 12);
-// chord tones (midi): Dm9, Bbmaj7, F(add9), C(add9)  — one bar each, cycling
+// chord tones (midi): Dm9, Bbmaj7, F(add9), C(add9), one bar each, cycling
 const CHORDS = [
   [50, 57, 60, 64, 65], // D F A C E   (Dm9)
   [46, 53, 57, 60, 62], // Bb F A D    (Bbmaj7 add9)

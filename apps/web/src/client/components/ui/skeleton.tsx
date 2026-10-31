@@ -1,4 +1,4 @@
-// Skeletons — data is loading, not missing. Built from @groot/ui's.
+// Skeletons: data is loading, not missing. Built from @groot/ui's.
 import { Card } from "@groot/ui/card";
 import { Skeleton, SkeletonTable } from "@groot/ui/loading-skeleton";
 

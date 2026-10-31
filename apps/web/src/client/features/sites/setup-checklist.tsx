@@ -152,7 +152,7 @@ function InstallStep({ site }: { site: Site }) {
         </Link>
       </div>
       <p className="text-meta">
-        The overview updates itself the moment the first hit lands — no refresh needed.
+        The overview updates itself the moment the first hit lands. No refresh needed.
       </p>
     </div>
   );
@@ -182,7 +182,7 @@ function AlertsStep() {
   return (
     <div className="space-y-2.5 border-t border-border bg-foreground/[0.015] px-3 py-3.5">
       <p className="text-[0.8125rem] text-foreground/80">
-        One digest per window per site — a bad deploy is one message, not hundreds.
+        One digest per window per site, so a bad deploy is one message, not hundreds.
       </p>
       <Link to="/app/settings/channels">
         <Button variant="outline" size="sm">

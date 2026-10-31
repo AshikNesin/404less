@@ -1,4 +1,4 @@
-// Site overview — leads with what needs attention, then the trend, then activity.
+// Site overview: leads with what needs attention, then the trend, then activity.
 import { Link } from "../lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, ArrowUpRight, Bot, LoaderCircle, Play, Settings } from "lucide-react";
@@ -35,7 +35,7 @@ export function OverviewPage() {
   const crawlNow = useMutation({
     mutationFn: () => api(`/api/v1/sites/${site.id}/crawl`, json({})),
     onSuccess: () => {
-      toast("info", "Crawl started — results land on the Crawler page as links are checked");
+      toast("info", "Crawl started. Results land on the Crawler page as links are checked");
       void qc.invalidateQueries({ queryKey: ["overview", site.id] });
     },
     onError: (e: Error) => toast("error", e.message),

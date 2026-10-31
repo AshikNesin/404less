@@ -1,4 +1,4 @@
-// ConfirmButton — two-step destructive action without dialogs.
+// ConfirmButton: two-step destructive action without dialogs.
 // First click arms (turns destructive, shows the confirm label), second confirms;
 // disarms after 3s or on blur.
 import { useEffect, useState } from "react";

@@ -40,7 +40,7 @@ export function createWebApp(options: Omit<CreateAppOptions, "routes" | "openCor
     ...options,
     openCorsPaths: WIDGET_PATHS,
     routes(app) {
-      // Public — paths are external contracts; never move them.
+      // Public: paths are external contracts; never move them.
       app.route("/", embed); // GET /embed.js
       app.route("/api", ingest); // POST /api/track, GET /api/suggestions
       app.route("/", mcp); // /mcp (MCP streamable HTTP, bearer API key)
