@@ -9,39 +9,78 @@
 }
 -->
 <section class="hero">
-  <div class="container">
-    <span class="eyebrow"
-      ><span class="dot"></span> Open source · runs on Cloudflare’s free tier</span
-    >
-    <h1>Broken links, found and fixed before your visitors give up.</h1>
-    <p class="lead">
-      One script tag catches every 404 your visitors hit. A crawler finds the ones nobody clicked
-      yet. Everything lands in one list with a suggested fix, a redirect rule, and alerts that don’t
-      spam you.
-    </p>
-    <div class="ctas">
-      <a
-        class="btn btn-primary"
-        href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less"
-        rel="noopener"
-        >Deploy to Cloudflare
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M5 12h14M13 6l6 6-6 6" /></svg
-      ></a>
-      <a class="btn btn-secondary" href="https://github.com/AshikNesin/404less" rel="noopener"
-        >View on GitHub</a
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow"
+        ><span class="dot"></span> Open source · runs on Cloudflare’s free tier</span
       >
+      <h1>Broken links, found and <span class="hl">fixed</span> before visitors give up.</h1>
+      <p class="lead">
+        One script tag catches every 404 your visitors hit. A crawler finds the ones nobody clicked
+        yet. Each one comes with a suggested fix and the redirect rule to ship it.
+      </p>
+      <div class="ctas">
+        <a
+          class="btn btn-primary"
+          href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less"
+          rel="noopener"
+          >Deploy to Cloudflare
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6" /></svg
+        ></a>
+        <a class="btn btn-secondary" href="https://github.com/AshikNesin/404less" rel="noopener"
+          >View on GitHub</a
+        >
+      </div>
+      <p class="note">
+        Your own Worker, D1 and Queues. No account with us, no usage fees at hobby scale.
+      </p>
     </div>
-    <p class="note">
-      Your own Worker, D1 and Queues. No account with us, no usage fees at hobby scale.
-    </p>
+
+    <figure
+      class="trace"
+      aria-label="One broken link in 404less: caught, a fix suggested, then fixed"
+    >
+      <div class="trace-head">
+        <span class="trace-site">docs.acme.dev</span>
+        <span class="trace-path is-broken">/docs/getting-startd</span>
+      </div>
+      <ol class="trace-steps">
+        <li class="trace-step is-bad">
+          <span class="trace-mark" aria-hidden="true">404</span>
+          <div>
+            <div class="trace-title">Caught</div>
+            <div class="trace-meta">12 visitors · from news.ycombinator.com · 2m ago</div>
+          </div>
+        </li>
+        <li class="trace-step">
+          <span class="trace-mark" aria-hidden="true">73%</span>
+          <div>
+            <div class="trace-title">Suggested <code>/docs/getting-started</code></div>
+            <div class="trace-meta">Closest known page · shown to visitors meanwhile</div>
+          </div>
+        </li>
+        <li class="trace-step is-ok">
+          <span class="trace-mark" aria-hidden="true">301</span>
+          <div>
+            <div class="trace-title">Fixed</div>
+            <pre
+              class="trace-rule"
+            ><code>/docs/getting-startd  /docs/getting-started  301</code></pre>
+            <div class="trace-meta">
+              One line in <code>_redirects</code>, or your agent opens the PR
+            </div>
+          </div>
+        </li>
+      </ol>
+    </figure>
   </div>
 </section>
 <div class="shot-wrap">

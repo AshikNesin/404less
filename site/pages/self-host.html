@@ -11,18 +11,52 @@
 <main class="doc">
   <div class="container">
     <div class="head">
-      <span class="eyebrow">Self-host</span>
-      <h1 style="margin-top: 18px">Your own 404less, on Cloudflare’s free tier.</h1>
-      <p class="lead">
-        Everything runs in one Worker with D1 (SQLite), Queues, Durable Objects and two cron
-        triggers. All of it is on the Workers Free plan, so a personal instance costs nothing at
-        hobby scale.
-      </p>
-      <div class="toc">
-        <a href="#one-click">One-click deploy</a><a href="#manual">Manual deploy</a
-        ><a href="#email">Email</a><a href="#limits">Limits &amp; budget</a
-        ><a href="#update">Updating</a>
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Self-host</span>
+        <h1>Your own 404less, on Cloudflare’s <span class="hl">free tier</span>.</h1>
+        <p class="lead">
+          Everything runs in one Worker with D1 (SQLite), Queues, Durable Objects and two cron
+          triggers. All of it is on the Workers Free plan, so a personal instance costs nothing at
+          hobby scale.
+        </p>
+        <div class="toc">
+          <a href="#one-click">One-click deploy</a><a href="#manual">Manual deploy</a
+          ><a href="#email">Email</a><a href="#limits">Limits &amp; budget</a
+          ><a href="#update">Updating</a>
+        </div>
       </div>
+      <figure class="trace" aria-label="Self-hosting 404less: deploy, provision, live at no cost">
+        <div class="trace-head">
+          <span class="trace-site">deploy</span>
+          <span class="trace-path">Cloudflare Workers</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">1</span>
+            <div>
+              <div class="trace-title">Cloned</div>
+              <div class="trace-meta">Into your GitHub account, ready to fork and change</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">D1</span>
+            <div>
+              <div class="trace-title">Provisioned</div>
+              <div class="trace-meta">
+                Worker, D1, Queues, Durable Objects and two crons. Migrations run on deploy
+              </div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">$0</span>
+            <div>
+              <div class="trace-title">Live</div>
+              <pre class="trace-rule"><code>https://404less.you.workers.dev</code></pre>
+              <div class="trace-meta">Workers Free plan · your data stays in your account</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
     </div>
     <div class="body">
       <section id="one-click">

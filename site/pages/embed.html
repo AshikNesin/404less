@@ -11,18 +11,61 @@
 <main class="doc">
   <div class="container">
     <div class="head">
-      <span class="eyebrow">Embed</span>
-      <h1 style="margin-top: 18px">One script tag on your 404 page.</h1>
-      <p class="lead">
-        The snippet detects a 404, reports the hit to your 404less instance, and shows the visitor a
-        “Looking for something?” card with the closest known pages. Nothing happens on any other
-        page.
-      </p>
-      <div class="toc">
-        <a href="#install">Install</a><a href="#detect">How it detects a 404</a
-        ><a href="#options">Options</a><a href="#style">Styling</a><a href="#api">JavaScript API</a
-        ><a href="#privacy">Privacy</a>
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Embed</span>
+        <h1><span class="hl">One script tag</span> on your 404 page.</h1>
+        <p class="lead">
+          The snippet detects a 404, reports the hit to your 404less instance, and shows the visitor
+          a “Looking for something?” card with the closest known pages. Nothing happens on any other
+          page.
+        </p>
+        <div class="toc">
+          <a href="#install">Install</a><a href="#detect">How it detects a 404</a
+          ><a href="#options">Options</a><a href="#style">Styling</a
+          ><a href="#api">JavaScript API</a><a href="#privacy">Privacy</a>
+        </div>
       </div>
+      <figure
+        class="trace"
+        aria-label="The embed on a 404 page: detect it, report the hit, show the closest pages"
+      >
+        <div class="trace-head">
+          <span class="trace-site">acme.dev</span>
+          <span class="trace-path is-broken">/docs/getting-startd</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step is-bad">
+            <span class="trace-mark" aria-hidden="true">404</span>
+            <div>
+              <div class="trace-title">Detected</div>
+              <pre
+                class="trace-rule"
+              ><code>&lt;script src="…/embed.js" data-site="…" defer&gt;</code></pre>
+              <div class="trace-meta">
+                From the title, a meta tag or <code>data-404</code>. Nothing runs on other pages
+              </div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">POST</span>
+            <div>
+              <div class="trace-title">Reported</div>
+              <div class="trace-meta">
+                URL, referrer and title to <code>/api/track</code>. No cookies
+              </div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">1·2·3</span>
+            <div>
+              <div class="trace-title">Suggested</div>
+              <div class="trace-meta">
+                “Looking for something?” with the closest known pages, in a shadow root
+              </div>
+            </div>
+          </li>
+        </ol>
+      </figure>
     </div>
     <div class="body">
       <section id="install">

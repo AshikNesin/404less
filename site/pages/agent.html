@@ -11,17 +11,59 @@
 <main class="doc">
   <div class="container">
     <div class="head">
-      <span class="eyebrow">Agents &amp; MCP</span>
-      <h1 style="margin-top: 18px">Hand broken links to your agent.</h1>
-      <p class="lead">
-        Your 404less instance is also an MCP server. Connect Claude Code, Cursor or any MCP client,
-        and your agent can ask which links are broken, where visitors came from, and what the
-        closest replacement is, then open the fix in your repo.
-      </p>
-      <div class="toc">
-        <a href="#setup">Setup</a><a href="#tools">Tools</a><a href="#prompts">Prompts that work</a
-        ><a href="#trust">Trust model</a><a href="#rest">REST API</a>
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Agents &amp; MCP</span>
+        <h1>Hand broken links to your <span class="hl">agent</span>.</h1>
+        <p class="lead">
+          Your 404less instance is also an MCP server. Connect Claude Code, Cursor or any MCP
+          client, and your agent can ask which links are broken, where visitors came from, and what
+          the closest replacement is, then open the fix in your repo.
+        </p>
+        <div class="toc">
+          <a href="#setup">Setup</a><a href="#tools">Tools</a
+          ><a href="#prompts">Prompts that work</a><a href="#trust">Trust model</a
+          ><a href="#rest">REST API</a>
+        </div>
       </div>
+      <figure
+        class="trace"
+        aria-label="One agent session against 404less: list the broken links, read one, open the fix PR"
+      >
+        <div class="trace-head">
+          <span class="trace-site">claude code</span>
+          <span class="trace-path">mcp · 404less</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">MCP</span>
+            <div>
+              <div class="trace-title"><code>list_broken_links</code></div>
+              <div class="trace-meta">3 open on docs.acme.dev, ranked by visitor hits</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">GET</span>
+            <div>
+              <div class="trace-title">
+                <code>get_link_details</code> <code>/docs/getting-startd</code>
+              </div>
+              <div class="trace-meta">
+                Referrers, the pages linking to it, the closest live page
+              </div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">PR</span>
+            <div>
+              <div class="trace-title">Opened PR #142</div>
+              <pre class="trace-rule"><code>fix: redirect 3 broken docs URLs</code></pre>
+              <div class="trace-meta">
+                Read-only tools: the fix lands in your repo, never in 404less
+              </div>
+            </div>
+          </li>
+        </ol>
+      </figure>
     </div>
     <div class="body">
       <section id="setup">
@@ -36,8 +78,9 @@
         ><span class="m">$</span> claude mcp add --transport http 404less https://your-404less.example/mcp \
     --header <span class="s">"Authorization: Bearer 404l_…"</span></pre>
         <p class="muted">
-          The dashboard’s <em>API &amp; MCP</em> page has an <em>Ask your agent</em> tab: it
-          generates this exact prompt with your key filled in, ready to paste.
+          The dashboard’s <em>API &amp; MCP</em> page walks you through it per client (Claude Code,
+          Cursor, VS Code, Codex, OpenCode, Claude Desktop) with your key filled in, plus a
+          <em>Prompt</em> tab you can paste into any agent.
         </p>
         <h3>Cursor, Claude Desktop and others</h3>
         <pre class="code">{

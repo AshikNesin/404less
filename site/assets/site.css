@@ -121,6 +121,9 @@ p {
   border-radius: 50%;
   background: var(--ok);
 }
+.eyebrow .dot-bad {
+  background: var(--bad);
+}
 .inline-code {
   font-family: var(--mono);
   font-size: 0.86em;
@@ -291,17 +294,162 @@ body[data-nav="agent"] .nav-links a[href="/agent"] {
 
 /* hero */
 .hero {
-  padding: 96px 0 56px;
+  padding: 72px 0 64px;
   position: relative;
 }
-.hero .container {
+/* Split hero: the pitch on the left, one broken link's whole life on the right,
+   both inside the first viewport. */
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 56px;
+}
+.hero-copy {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 24px;
+  gap: 22px;
 }
-.hero h1 {
-  max-width: 900px;
+.hero h1,
+.doc .head h1,
+.nf h1 {
+  font-size: clamp(38px, 4.1vw, 56px);
+  max-width: 17ch;
+  text-wrap: balance;
+}
+/* One key phrase per headline, in the state color everything ends on. */
+h1 .hl {
+  color: var(--ok);
+}
+.hero .lead {
+  max-width: 520px;
+}
+
+/* The trace: caught → suggested → fixed, as the dashboard would show it. */
+.trace {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(18, 18, 20, 0.04),
+    0 24px 48px -24px rgba(18, 18, 20, 0.18);
+  overflow: hidden;
+}
+.trace-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.trace-site {
+  color: var(--faint);
+}
+.trace-path {
+  color: var(--ink);
+}
+/* a broken URL reads like a typo */
+.trace-path.is-broken {
+  text-decoration: underline wavy var(--bad);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.trace-steps {
+  list-style: none;
+  margin: 0;
+  padding: 8px 20px 18px;
+  position: relative;
+}
+.trace-step {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 0;
+  position: relative;
+}
+/* the thread connecting the steps */
+.trace-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 25px;
+  top: 44px;
+  bottom: -14px;
+  width: 1px;
+  background: var(--line);
+}
+.trace-mark {
+  display: grid;
+  place-items: center;
+  height: 28px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: #f4f4f6;
+  border: 1px solid var(--line);
+  position: relative;
+  z-index: 1;
+}
+.trace-step.is-bad .trace-mark {
+  color: var(--bad);
+  background: #fdf1f0;
+  border-color: #f4d2cf;
+}
+.trace-step.is-ok .trace-mark {
+  color: var(--ok);
+  background: #eef7f2;
+  border-color: #cde6d8;
+}
+.trace-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+  padding-top: 4px; /* centred on the 28px mark when it fits on one line */
+}
+.trace-title code {
+  font-weight: 500;
+  font-size: 13px;
+}
+.trace-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+.trace-meta code {
+  font-size: 12px;
+}
+.trace-rule {
+  margin: 6px 0 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--dark);
+  color: var(--on-dark);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  overflow-x: auto;
+}
+/* First view only: the steps arrive in order, fast, then stay put. */
+@media (prefers-reduced-motion: no-preference) {
+  .trace-step {
+    animation: trace-in 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .trace-step:nth-child(2) {
+    animation-delay: 220ms;
+  }
+  .trace-step:nth-child(3) {
+    animation-delay: 440ms;
+  }
+}
+@keyframes trace-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 .hero .ctas {
   display: flex;
@@ -864,13 +1012,19 @@ pre.code .c {
 .doc {
   padding: 80px 0 104px;
 }
+/* Doc pages open like the homepage: copy left, that page's trace right. */
 .doc .head {
-  max-width: 760px;
-  margin-bottom: 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 56px;
+  margin-bottom: 64px;
+}
+.doc .head-copy {
+  max-width: 620px;
 }
 .doc .head h1 {
-  font-size: clamp(36px, 4.6vw, 56px);
-  margin-bottom: 16px;
+  margin: 18px 0 16px;
 }
 .doc .body {
   display: grid;
@@ -902,11 +1056,11 @@ pre.code .c {
   padding-left: 20px;
   margin: 0 0 14px;
 }
-.doc li {
+.doc .body li {
   margin: 6px 0;
 }
-.doc li code,
-.doc p code {
+.doc .body li code,
+.doc .body p code {
   font-size: 0.88em;
   background: var(--bg3);
   border-radius: 5px;
@@ -943,28 +1097,19 @@ pre.code .c {
 
 /* 404 */
 .nf {
-  min-height: calc(100vh - 64px);
-  display: flex;
-  align-items: center;
+  padding: 72px 0 96px;
 }
-.nf .container {
-  max-width: 760px;
-}
-.nf .big {
-  font-size: clamp(96px, 16vw, 160px);
-  font-weight: 600;
-  letter-spacing: -0.06em;
-  line-height: 1;
-  color: #e2e2e6;
+.nf .head-copy {
+  max-width: 620px;
 }
 .nf h1 {
-  font-size: clamp(28px, 3.6vw, 40px);
-  margin: 8px 0 12px;
+  margin: 18px 0 16px;
 }
-.nf p {
-  color: var(--muted);
-  font-size: 18px;
-  margin-bottom: 24px;
+.nf .ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
 }
 
 .nav-links .only-mobile {
@@ -1030,6 +1175,11 @@ img {
   }
   .hero {
     padding: 64px 0 40px;
+  }
+  .hero-grid,
+  .doc .head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
   }
   .section,
   .band,

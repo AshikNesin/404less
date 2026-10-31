@@ -10,18 +10,56 @@
 }
 -->
 <main class="nf">
-  <div class="container">
-    <div class="big">404</div>
-    <h1>That page doesn’t exist. Yes, we see the irony.</h1>
-    <p>
-      The link that brought you here is broken, which is exactly the kind of thing 404less is for.
-      Here’s where you probably wanted to go.
-    </p>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap">
-      <a class="btn btn-primary" href="/">Home</a>
-      <a class="btn btn-secondary" href="/embed">Embed</a>
-      <a class="btn btn-secondary" href="/self-host">Self-host</a>
-      <a class="btn btn-secondary" href="/app/login">Sign in</a>
+  <div class="container hero-grid">
+    <div class="head-copy">
+      <span class="eyebrow"><span class="dot dot-bad"></span> 404 · page not found</span>
+      <h1>That page doesn’t exist. Yes, we see the <span class="hl">irony</span>.</h1>
+      <p class="lead">
+        The link that brought you here is broken, which is exactly the kind of thing 404less is for.
+        Here’s where you probably wanted to go.
+      </p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="/">Home</a>
+        <a class="btn btn-secondary" href="/embed">Embed</a>
+        <a class="btn btn-secondary" href="/self-host">Self-host</a>
+        <a class="btn btn-secondary" href="/app/login">Sign in</a>
+      </div>
     </div>
+
+    <figure class="trace" aria-label="This very page, as 404less would record it">
+      <div class="trace-head">
+        <span class="trace-site">404less.com</span>
+        <span class="trace-path is-broken" id="nf-path">/this-page</span>
+      </div>
+      <ol class="trace-steps">
+        <li class="trace-step is-bad">
+          <span class="trace-mark" aria-hidden="true">404</span>
+          <div>
+            <div class="trace-title">Caught</div>
+            <div class="trace-meta">1 visitor · that’s you · just now</div>
+          </div>
+        </li>
+        <li class="trace-step">
+          <span class="trace-mark" aria-hidden="true">→</span>
+          <div>
+            <div class="trace-title">Suggested <code>/</code></div>
+            <div class="trace-meta">The home page, until we know better</div>
+          </div>
+        </li>
+        <li class="trace-step is-ok">
+          <span class="trace-mark" aria-hidden="true">301</span>
+          <div>
+            <div class="trace-title">Fixed</div>
+            <div class="trace-meta">
+              One redirect rule away. That’s the whole job, for your site too.
+            </div>
+          </div>
+        </li>
+      </ol>
+    </figure>
   </div>
+  <script>
+    // show the path the visitor actually asked for (text only, never HTML)
+    document.getElementById("nf-path").textContent = location.pathname;
+  </script>
 </main>
