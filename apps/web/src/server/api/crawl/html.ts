@@ -1,8 +1,8 @@
 // Dependency-free link extraction (workerd has no DOMParser).
 // Pulls <a href>, <img src>, <script src>, <link href> from an HTML string.
 export type ExtractedLinks = {
-  links: { url: string; anchor: string | null }[]; // <a> — crawled further if same-host
-  assets: string[]; // img/script/link — checked, not crawled
+  links: { url: string; anchor: string | null }[]; // <a>: crawled further if same-host
+  assets: string[]; // img/script/link: checked, not crawled
 };
 
 export function extractLinks(base: string, html: string): ExtractedLinks {

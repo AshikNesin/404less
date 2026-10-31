@@ -1,4 +1,4 @@
-// Charts — inline SVG, one series, the accent as the data color.
+// Charts: inline SVG, one series, the accent as the data color.
 // Columns: <= 24px thick, 4px rounded data-end, square baseline, 2px surface
 // gap, hairline solid gridlines, per-bar hover tooltip. Sparkline: 2px line.
 import { useLayoutEffect, useRef, useState } from "react";

@@ -1,4 +1,4 @@
-// The install snippet per platform: plain HTML, Next.js, WordPress, Astro —
+// The install snippet per platform: plain HTML, Next.js, WordPress, Astro,
 // or a paste-ready prompt for an agent that knows the codebase.
 import { useState, type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
@@ -9,7 +9,7 @@ type Platform = "html" | "next" | "wordpress" | "astro" | "agent";
 
 const inline = "text-code rounded bg-foreground/[0.05] px-1";
 
-/** The snippet to paste for a platform. `agent` has no snippet of its own — see agentPrompt. */
+/** The snippet to paste for a platform. `agent` has no snippet of its own (see agentPrompt). */
 export function snippetFor(
   siteKey: string,
   platform: string,
@@ -34,7 +34,7 @@ export function snippetFor(
   return `<script src="${origin}/embed.js" data-site="${siteKey}" defer></script>`;
 }
 
-/** A prompt that hands the whole install to an agent — site, snippet, verification. */
+/** A prompt that hands the whole install to an agent: site, snippet, verification. */
 export function agentPrompt(
   siteKey: string,
   domain: string,
@@ -65,7 +65,7 @@ const guidance: Record<Exclude<Platform, "agent">, ReactNode> = {
   wordpress: (
     <>
       Add it to <code className={inline}>404.php</code> in your theme (Appearance → Theme File
-      Editor), before <code className={inline}>&lt;?php get_footer(); ?&gt;</code> — or use a plugin
+      Editor), before <code className={inline}>&lt;?php get_footer(); ?&gt;</code>, or use a plugin
       like WPCode.
     </>
   ),

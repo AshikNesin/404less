@@ -303,7 +303,7 @@ export function LinkDetailPage() {
             <CardContent>
               {referrers.length === 0 ? (
                 <p className="text-caption">
-                  No referrer recorded — direct visits, bookmarks, or privacy-stripped links.
+                  No referrer recorded: direct visits, bookmarks, or privacy-stripped links.
                 </p>
               ) : (
                 <ul className="-mx-4 divide-y divide-border">

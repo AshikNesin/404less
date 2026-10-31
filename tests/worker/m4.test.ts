@@ -1,4 +1,4 @@
-// M4: crawler — HTML link extraction, checker classification, queue+cron handlers,
+// M4: crawler. HTML link extraction, checker classification, queue+cron handlers,
 // diff-based new-failure alerts, crawl report endpoint.
 import {
   SELF,

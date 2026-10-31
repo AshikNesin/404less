@@ -197,7 +197,7 @@ export function SettingsPage() {
             hint={
               site.notify_enabled
                 ? `Digest ${digestLabel(site.digest_minutes || 15)}`
-                : "Paused — nothing is sent for this site"
+                : "Paused: nothing is sent for this site"
             }
           >
             <Switch

@@ -1,4 +1,4 @@
-# 404less — agent guide
+# 404less: agent guide
 
 404less is a child of the [groot](https://github.com/AshikNesin/groot)
 boilerplate: `packages/*`, root configs, `scripts/`, `docs/` and `.groot/` are
@@ -48,12 +48,12 @@ Use **pnpm** for everything. Don't call `vp` directly (use `pnpm check`,
 ## Runtime
 
 Production is Cloudflare Workers only (`apps/web/src/server/entry.worker.ts`):
-D1, the `CRAWLQ` queue (crawl fan-out — never move it onto groot's jobs
-table: it would eat the free-tier D1 write budget), Durable Objects
+D1, the `CRAWLQ` queue (crawl fan-out; never move it onto groot's jobs
+table, as it would eat the free-tier D1 write budget), Durable Objects
 (`DigestDO` alert digests, `RateLimiterDO` ingest limits), Static Assets, and
 two crons (crawl every 30 min, retention nightly). Routes and services receive
 the bindings as `c.env`/`env`; database access is Drizzle's query builder on
-groot's `db` (`import { db, batch, … } from "apps/web/src/server/db"`) — never
+groot's `db` (`import { db, batch, … } from "apps/web/src/server/db"`), never
 `env.DB`, except where no app boot exists (Durable Objects, `worker/boot.ts`),
 which wrap the binding with `drizzle()`. Use `batch()`/`batchAll()` instead of
 `db.batch()` (better-sqlite3 has none) and `changes()` for affected-row counts.
@@ -104,14 +104,14 @@ and DOs (`node-bindings.ts`); `pnpm dev:worker` runs the real Worker locally.
 
 ## Commands
 
-- `pnpm dev:worker` — build SPA + site, run the Worker in workerd (:8787)
-- `pnpm dev` — Node + Vite HMR (open `/app`)
-- `pnpm build:client` — `vp build` then `site/build.mjs` (SPA → `dist/client/app.html`,
+- `pnpm dev:worker`: build SPA + site, run the Worker in workerd (:8787)
+- `pnpm dev`: Node + Vite HMR (open `/app`)
+- `pnpm build:client`: `vp build` then `site/build.mjs` (SPA → `dist/client/app.html`,
   marketing pages, sitemap, robots)
-- `pnpm build:og` — re-render Open Graph images (Playwright; committed output)
-- `pnpm test:worker` — 404less integration suites in workerd (the main safety net)
-- `pnpm test` / `pnpm test:client` — groot's Node and client suites
+- `pnpm build:og`: re-render Open Graph images (Playwright; committed output)
+- `pnpm test:worker`: 404less integration suites in workerd (the main safety net)
+- `pnpm test` / `pnpm test:client`: groot's Node and client suites
 - `pnpm typecheck` · `pnpm check` · `pnpm check:tokens` · `pnpm check:worker`
-- `pnpm db:generate` — after a schema change
-- `pnpm deploy:worker` — build + `wrangler deploy` (migrations apply on first request)
-- `pnpm groot:check` / `pnpm groot:sync` — boilerplate updates
+- `pnpm db:generate`: after a schema change
+- `pnpm deploy:worker`: build + `wrangler deploy` (migrations apply on first request)
+- `pnpm groot:check` / `pnpm groot:sync`: boilerplate updates

@@ -30,7 +30,7 @@ export function UrlCell({
   const onSite = isOnSite(url, domain);
   const label = pathOf(url);
   const text = (
-    <span className="block truncate font-medium" title={title ? `${title} — ${url}` : url}>
+    <span className="block truncate font-medium" title={title ? `${title} · ${url}` : url}>
       {title ? (
         <span className="mr-1.5 font-semibold">{title}</span>
       ) : (
@@ -94,7 +94,7 @@ export function SuggestionCell({
   title: string | null;
   domain: string;
 }) {
-  if (!url) return <span className="text-muted-foreground">—</span>;
+  if (!url) return <span className="text-muted-foreground">-</span>;
   const path = isOnSite(url, domain) ? pathOf(url) : url;
   return (
     <a

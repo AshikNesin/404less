@@ -1,4 +1,4 @@
-// Switch — on/off settings (@groot/ui has none); Field lays out a setting row.
+// Switch: on/off settings (@groot/ui has none); Field lays out a setting row.
 import { cn } from "../../lib/utils";
 
 export function Switch({

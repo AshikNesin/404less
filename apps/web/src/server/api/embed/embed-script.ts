@@ -1,7 +1,7 @@
 // The 404less embed script, served verbatim at /embed.js (see embed.routes.ts).
 // Plain browser JS inside String.raw so it loads unchanged on Workers and Node.
 // Keep it free of backticks and "${" (they would end or interpolate the template).
-export default String.raw`/*! 404less embed — https://github.com/AshikNesin/404less
+export default String.raw`/*! 404less embed · https://github.com/AshikNesin/404less
  *
  * <script src="https://404less.com/embed.js" data-site="SITE_KEY" defer></script>
  *

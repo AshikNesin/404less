@@ -1,5 +1,5 @@
 {
-  // 404less — self-hostable broken-link monitoring on Cloudflare free tier.
+  // 404less: self-hostable broken-link monitoring on Cloudflare free tier.
   // database_id is intentionally omitted: the "Deploy to Cloudflare" button
   // provisions D1 in the target account. For manual setup run:
   //   pnpm exec wrangler d1 create 404less   (then paste the id here)

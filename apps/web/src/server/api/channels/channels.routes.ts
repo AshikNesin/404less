@@ -150,7 +150,7 @@ channels.post("/teams/:teamId/channels/:id/test", async (c) => {
   const digest = {
     title: "404less: test notification",
     text: "If you can read this, the channel is wired correctly.",
-    html: "<b>404less test</b> — channel is wired correctly.",
+    html: "<b>404less test</b>: the channel is wired correctly.",
   };
   try {
     await sendToChannel(ch.type as ChannelType, JSON.parse(ch.config), digest, getMailer(c.env));

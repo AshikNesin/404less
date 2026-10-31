@@ -73,7 +73,7 @@ test("rate limiter: DO counts per site, returns 429 over budget", async () => {
 });
 
 test("ingest: rate-limited site still returns ok but stops writing", async () => {
-  // exhaust the limiter for this site via direct DO hits, then track — no 404 row should appear
+  // exhaust the limiter for this site via direct DO hits, then track; no 404 row should appear
   const stub = (env as any).RATELIMIT.get((env as any).RATELIMIT.idFromName(siteId));
   for (let i = 0; i < 500; i++) await stub.fetch(`https://rl/${siteId}/check`, { method: "POST" });
   const limited = await SELF.fetch("http://localhost/api/track", {

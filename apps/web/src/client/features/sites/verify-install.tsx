@@ -1,4 +1,4 @@
-// "Did it work?" — sits on the overview until the first real 404 lands.
+// "Did it work?": sits on the overview until the first real 404 lands.
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
@@ -33,7 +33,7 @@ export function VerifyInstall({ site, overview }: { site: Site; overview: Overvi
   useEffect(() => {
     if (!hitArrived || notified.current) return;
     notified.current = true;
-    toast("success", "Snippet verified — first hit received");
+    toast("success", "Snippet verified. First hit received");
     void qc.invalidateQueries({ queryKey: ["sites"] }); // refreshes last_hit_at, which hides this card
   }, [hitArrived, qc, toast]);
 
@@ -61,7 +61,7 @@ export function VerifyInstall({ site, overview }: { site: Site; overview: Overvi
           </Button>
         </div>
         <p className="text-meta">
-          We re-check automatically every few seconds — this card disappears once a hit lands.
+          We re-check automatically every few seconds. This card disappears once a hit lands.
         </p>
       </CardContent>
     </Card>

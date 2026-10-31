@@ -1,8 +1,8 @@
 // Suggestions: rank known-good URLs against a broken URL.
 //
 // Two passes keep this inside the Workers CPU budget even with 5k known URLs:
-//   1. cheap prefilter — path-token Jaccard + character-trigram Dice on the path
-//   2. exact score on the shortlist — 0.5 * token Jaccard + 0.5 * normalized
+//   1. cheap prefilter: path-token Jaccard + character-trigram Dice on the path
+//   2. exact score on the shortlist: 0.5 * token Jaccard + 0.5 * normalized
 //      Levenshtein similarity on the paths
 // `prepareKnown` tokenizes candidates once so callers can rank many URLs
 // against the same index (the links service caches it per site).

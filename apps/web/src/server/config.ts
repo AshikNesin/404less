@@ -6,7 +6,7 @@ import { defineConfig } from "@groot/core/config";
  * (`NODE_ENV`, `PORT`, `CORS_ALLOWED_ORIGINS`, `LOG_LEVEL`, ...).
  *
  * 404less-specific settings (`MAX_SITES_PER_TEAM`, `EVENT_RETENTION_DAYS`,
- * `RESEND_API_KEY`, `MAIL_FROM`) are runtime bindings, read from `c.env` — see
+ * `RESEND_API_KEY`, `MAIL_FROM`) are runtime bindings, read from `c.env` (see
  * `types.ts`.
  */
 export const appConfig = defineConfig({

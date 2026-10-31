@@ -89,7 +89,7 @@ export async function checkUrl(
 }
 
 /**
- * 2xx/3xx ok; 401/429 tolerated (auth walls / rate limits — not "broken");
+ * 2xx/3xx ok; 401/429 tolerated (auth walls / rate limits, not "broken");
  * codes the site chose to ignore are ok; everything else is broken.
  */
 export function isWorking(status: number, site: Pick<SiteRow, "ignore_status_codes">): boolean {

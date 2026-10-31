@@ -46,7 +46,7 @@ export function Tr({
   );
 }
 
-/** Filter controls on the left, actions on the right — the row above a table. */
+/** Filter controls on the left, actions on the right: the row above a table. */
 export function TableToolbar({
   children,
   actions,

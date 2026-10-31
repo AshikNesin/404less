@@ -1,4 +1,4 @@
-# 404less — High-Level Tech Design Doc
+# 404less: High-Level Tech Design Doc
 
 **Version:** 0.2 · **Date:** Oct 2026 · **Status:** Implemented through M4 + the broken-links triage model (see §11)
 
@@ -24,7 +24,7 @@ click with zero infrastructure cost.
 
 ### Goals
 
-1. Ship Phase 1 (realtime tracking + embed + notifications) fast — target ~1 week of dev.
+1. Ship Phase 1 (realtime tracking + embed + notifications) fast: target ~1 week of dev.
 2. **100% Cloudflare free-plan** components; a self-hoster pays $0 at hobby scale.
 3. **One-click deploy** via the "Deploy to Cloudflare" button (wrangler.toml + resources declared as
    code). No manual D1/Queue creation.
@@ -33,23 +33,23 @@ click with zero infrastructure cost.
 
 ### Non-Goals (for v1)
 
-- **MCP server / automated fixing — explicitly invalidated by the feature research** (zero user
+- **MCP server / automated fixing: explicitly invalidated by the feature research** (zero user
   demand, trust issues, MCP too new). If ever revisited, "assisted fixing" with mandatory user
   approval only.
-- Uptime monitoring, SSL checks, keyword ranking (Oh Dear territory — bloat).
+- Uptime monitoring, SSL checks, keyword ranking (Oh Dear territory; bloat).
 - Billing/Stripe. v1 is free/self-hosted; SaaS monetization is a separate decision.
 - iOS/Android apps. Dashboard is a responsive web app.
 
 ## 3. Product Recap (from PRD)
 
-### Phase 1 — Realtime monitoring
+### Phase 1: Realtime monitoring
 
 1. 404 hit by a visitor → tracked in DB (URL, referrer, timestamp, UA).
 2. End user on the 404 page sees related/suggested links (the embed's smart 404 widget).
 3. Site admin notified via Slack, Pushover, and/or email, with digesting to avoid alert fatigue.
-4. Embeddable `<script>` snippet — no-code install, auto-infers the current site, supports teams/tenancy.
+4. Embeddable `<script>` snippet: no-code install, auto-infers the current site, supports teams/tenancy.
 
-### Phase 2 — Crawler
+### Phase 2: Crawler
 
 1. Crawl all links on a site on a schedule.
 2. Validate each link (status code, redirects).
@@ -85,7 +85,7 @@ click with zero infrastructure cost.
 ```
 
 All three Workers can live in the same repo/deployment (one Worker with distinct entry handlers is
-also fine — we'll keep 3 separate Workers for clean per-worker limits & deploys).
+also fine; we'll keep 3 separate Workers for clean per-worker limits & deploys).
 
 ## 5. Component Design
 
@@ -103,11 +103,11 @@ also fine — we'll keep 3 separate Workers for clean per-worker limits & deploy
   2. Fetches `GET /api/suggestions?url=…` and renders a themed "Related pages" widget.
 - **Tenancy:** the `siteKey` maps to a Website row (team-owned). Referer/Origin checked against
   registered domains; mismatches dropped (spam control).
-- **Event write path:** single D1 insert (batched per request via `prepare` — one statement, cheap).
+- **Event write path:** single D1 insert (batched per request via `prepare`: one statement, cheap).
   Keep writes under the 100k rows/day free limit via per-site rate limiting (KV or DO counter).
 - **Filtering/exclusions (retention-critical, RICE 203):** every site gets per-site config for
   ignored status codes (403/405/406…) and URL-pattern exclusions, applied at both ingest and
-  crawl stages. False positives are the #1 churn driver per the research — in scope for Phase 1.
+  crawl stages. False positives are the #1 churn driver per the research, so this is in scope for Phase 1.
 
 ### 5.2 Suggestions engine
 
@@ -123,14 +123,14 @@ also fine — we'll keep 3 separate Workers for clean per-worker limits & deploy
   `RESEND_API_KEY` + optional `MAIL_FROM`) behind a single adapter interface. Without the key,
   the app runs in dev mode: magic links return in the API response instead of emailing.
 - **Digestion:** a Durable Object per site (`DO:[siteId]:alerts`) groups events in a window (default
-  15 min) and sends one summary — prevents the classic alert-flood from a single bad deploy.
+  15 min) and sends one summary. This prevents the classic alert-flood from a single bad deploy.
 - Per-user notification preferences + per-channel enable flags (matches your notification-toggle rule).
 
 ### 5.4 Crawler (Phase 2)
 
 - Cron Trigger schedules per-site scans (daily default; site-configurable).
 - Crawler enqueues `{siteId, url}` messages to a Queue; consumer fetches each URL, records status,
-  follows one level of redirects to capture chains, parses HTML (linkedom — Workers-compatible) for
+  follows one level of redirects to capture chains, parses HTML (linkedom, Workers-compatible) for
   more URLs up to a per-site budget (e.g. 5k pages free-tier friendly).
 - Politeness: per-domain delay via consumer concurrency=1 per site; robots.txt respected.
 - Broken/redirect-chain results written to `link_checks`; diffed against previous run to only notify
@@ -147,16 +147,16 @@ also fine — we'll keep 3 separate Workers for clean per-worker limits & deploy
 
 Owner decision: include in current phase despite the research's low demand signal.
 
-- **Protocol:** MCP Streamable HTTP — the Worker exposes `https://<host>/mcp` as a stateless
+- **Protocol:** MCP Streamable HTTP. The Worker exposes `https://<host>/mcp` as a stateless
   streamable-HTTP endpoint (works with Claude Desktop/Code, Cursor, etc.; no long-lived transport).
-- **Auth:** bearer API key per team (same key as the REST API) — HTTP-API-first, no OAuth for v1.
+- **Auth:** bearer API key per team (same key as the REST API); HTTP-API-first, no OAuth for v1.
 - **Tools exposed (v1, all read-only):**
   - `list_broken_links({site, status?, since?})` → broken URLs + source pages + last-seen
   - `get_suggestions({site, url})` → suggested fixes (same engine as widget/dashboard)
   - `list_sites()` → sites the key can access
   - `get_link_details({site, url})` → redirect chain, first/last seen, occurrences
 - **Stance:** MCP surfaces data so the user's agent can open a PR; 404less never writes to the
-  repo itself — respects the research's trust/auto-fix concern while still shipping the
+  repo itself. This respects the research's trust/auto-fix concern while still shipping the
   integration.
 - Thin implementation: each tool is a JSON-schema wrapper over existing REST handlers; no new
   infrastructure.
@@ -167,7 +167,7 @@ Owner decision: include in current phase despite the research's low demand signa
 users(id, email, created_at)
 teams(id, name, owner_user_id, created_at)
 -- quota: max 5 sites per team by default (env MAX_SITES_PER_TEAM, override for SaaS mode),
--- enforced on site create — protects self-hoster D1/queue daily limits
+-- enforced on site create; protects self-hoster D1/queue daily limits
 team_members(team_id, user_id, role)             -- owner|admin|viewer
 websites(id, team_id, name, domain, site_key, sitemap_url, created_at)
 not_found_events(id, website_id, url, referrer, user_agent, ts)   -- partition-friendly: keep 90d
@@ -189,21 +189,21 @@ under D1's 500MB free cap.
 |---|---|---|
 | Worker requests | 100k/day | ingest + dashboard; ~thousands/day |
 | D1 | 5M reads, 100k writes/day, 500MB | bounded by rate limiter + retention |
-| Queues | 10k ops/day | 1 op per 404 event + crawl batches — fine |
-| Durable Objects (SQLite) | 100k req/day, 100k writes/day | digest/session DOs — negligible |
-| Cron Triggers | 3 per Worker (free plan) | crawler + retention + digest — fits in 3 |
+| Queues | 10k ops/day | 1 op per 404 event + crawl batches: fine |
+| Durable Objects (SQLite) | 100k req/day, 100k writes/day | digest/session DOs: negligible |
+| Cron Triggers | 3 per Worker (free plan) | crawler + retention + digest: fits in 3 |
 
 Verified: Queues free-plan availability (Feb 2026 changelog) · DO SQLite free tier (Apr 2025) · D1
 limits (docs). Links: see §10.
 
 ## 7. One-Click Deploy
 
-- Repo ships `wrangler.toml` (or `wrangler.jsonc`) declaring D1, Queues, DO bindings, and cron — the
+- Repo ships `wrangler.toml` (or `wrangler.jsonc`) declaring D1, Queues, DO bindings, and cron, so the
   **Deploy to Cloudflare** button provisions everything in the self-hoster's account.
 - All config (Resend key, public URL) via dashboard onboarding wizard writing to KV/secrets.
 - Stack: **TypeScript, Hono** (thin HTTP routes), feature services in `src/server/features/*`, D1 SQL.
   Dashboard: Vite + React + TanStack Router SPA (light theme, sidebar shell) served via Workers static
-  assets — structure modeled on open-seo (github.com/every-app/open-seo): client features folders,
+  assets. Structure modeled on open-seo (github.com/every-app/open-seo): client features folders,
   ui component primitives, service-layer backend.
 - Per your preference this stays pure HTTP-API-first (no CLI wrappers); the embed and MCP-facing
   endpoints are just REST.
@@ -229,7 +229,7 @@ CRUD /api/teams, /api/sites, /api/channels, /api/prefs
    button working on a clean account.
 2. **M2 (2 d):** embed.js + /track + suggestions (sitemap import) + widget rendering; per-site
    status-code filters & URL exclusions.
-3. **M3 (1–2 d):** notifications (Slack/Pushover/email via **Resend** — confirmed choice) with DO
+3. **M3 (1–2 d):** notifications (Slack/Pushover/email via **Resend**, the confirmed choice) with DO
    digests + CSV export (RICE 153, cheap on top of the same queries).
 4. **M3.5 (1 d):** Remote MCP server (read-only tools over the REST handlers, bearer API-key auth).
 5. **M4 (Phase 1.5/2):** scheduled crawling via cron + queues, image/asset 404 detection, redirect
@@ -259,7 +259,7 @@ Shipped: M1–M4 plus the read-only MCP server. Deviations from the sections abo
   (open · resolved · ignored), the detector (visitor · crawler · both), hit count, last HTTP status and a stored
   suggested fix. Visitor hits reopen resolved rows, crawler success resolves open rows, ignored rows never alert.
   The crawler also re-checks open visitor-reported links at the start of each run so fixes auto-resolve.
-- **Dashboard IA (open-seo style):** sidebar with a site switcher and site-scoped nav — Overview (setup checklist,
+- **Dashboard IA (open-seo style):** sidebar with a site switcher and site-scoped nav: Overview (setup checklist,
   stat tiles, 30-day hits chart, needs-attention list, recent activity, crawl status), Broken links (status tabs,
   search, source/sort filters, bulk resolve/ignore/reopen, CSV), Link detail (ranked fixes, redirect rule for
   `_redirects`/Vercel/Next.js/Nginx/Apache, referrers, linking pages, redirect chain, hits series, re-check),

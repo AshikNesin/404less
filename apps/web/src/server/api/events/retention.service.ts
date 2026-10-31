@@ -1,5 +1,5 @@
 // Retention: prune raw visitor events and crawler check history so a self-hoster
-// stays well under D1's free storage cap. broken_links rows are kept — they are
+// stays well under D1's free storage cap. broken_links rows are kept; they are
 // the managed list, not a log.
 import type { Env } from "../../types";
 import { lt } from "drizzle-orm";

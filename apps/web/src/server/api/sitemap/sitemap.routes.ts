@@ -1,4 +1,4 @@
-// Authenticated: POST /api/sites/:id/import-sitemap — fetch sitemap.xml (follows
+// Authenticated: POST /api/sites/:id/import-sitemap: fetch sitemap.xml (follows
 // one level of <sitemapindex>), store known URLs in D1 for the suggestions engine.
 // Sitemaps carry no titles: a fetch-titles queue job reads them from the pages.
 import { Hono } from "hono";

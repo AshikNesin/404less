@@ -36,7 +36,7 @@ import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 
 /**
- * The mark: a "4" whose crossbar runs on into an arrow — 404, moved past.
+ * The mark: a "4" whose crossbar runs on into an arrow: 404, moved past.
  * Graphite tile, white glyph. Same geometry as public/favicon.svg.
  */
 export function BrandMark({ className }: { className?: string }) {
@@ -52,7 +52,7 @@ export function BrandMark({ className }: { className?: string }) {
   );
 }
 
-/** The mark without its tile, in the current text color — for inline use. */
+/** The mark without its tile, in the current text color, for inline use. */
 export function BrandGlyph({ className }: { className?: string }) {
   return (
     <svg

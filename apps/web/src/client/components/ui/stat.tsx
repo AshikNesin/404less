@@ -1,4 +1,4 @@
-// StatCard — label · value · delta vs a named period · optional sparkline.
+// StatCard: label · value · delta vs a named period · optional sparkline.
 // Proportional figures for the big number (tabular only in table columns).
 import { Card } from "@groot/ui/card";
 import { cn } from "../../lib/utils";

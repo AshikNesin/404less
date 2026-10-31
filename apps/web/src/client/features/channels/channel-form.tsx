@@ -40,7 +40,7 @@ export function ChannelForm({ teamId, onAdded }: { teamId: string; onAdded?: () 
       setTo("");
       setUser("");
       setToken("");
-      toast("success", "Channel added — send a test to confirm it works");
+      toast("success", "Channel added. Send a test to confirm it works");
       void qc.invalidateQueries({ queryKey: ["channels", teamId] });
       void qc.invalidateQueries({ queryKey: ["overview"] });
       onAdded?.();
