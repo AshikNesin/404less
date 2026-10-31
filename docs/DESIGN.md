@@ -17,8 +17,8 @@
   ones, notifies, and shows them in a dashboard with suggested fixes.
 
 The entire backend runs on a single Cloudflare **Worker** + **D1** (SQLite) + **Queues** + **Cron
-  Triggers**, all of which are on the Workers **Free** plan as of 2026. Anyone can self-host in one
-  click with zero infrastructure cost.
+Triggers**, all of which are on the Workers **Free** plan as of 2026. Anyone can self-host in one
+click with zero infrastructure cost.
 
 ## 2. Goals & Non-Goals
 
@@ -43,12 +43,14 @@ The entire backend runs on a single Cloudflare **Worker** + **D1** (SQLite) + **
 ## 3. Product Recap (from PRD)
 
 ### Phase 1 — Realtime monitoring
+
 1. 404 hit by a visitor → tracked in DB (URL, referrer, timestamp, UA).
 2. End user on the 404 page sees related/suggested links (the embed's smart 404 widget).
 3. Site admin notified via Slack, Pushover, and/or email, with digesting to avoid alert fatigue.
 4. Embeddable `<script>` snippet — no-code install, auto-infers the current site, supports teams/tenancy.
 
 ### Phase 2 — Crawler
+
 1. Crawl all links on a site on a schedule.
 2. Validate each link (status code, redirects).
 3. Broken ones → tracked + admin notified.
@@ -209,14 +211,16 @@ limits (docs). Links: see §10.
 ## 8. API Surface (summary)
 
 ```
-POST /api/track          {siteKey, url, referrer}          -- embed beacon
-GET  /api/suggestions    ?site=…&url=…                     -- embed widget
-POST /api/auth/magic     {email}
-GET  /api/auth/verify    ?token=…
-GET  /api/sites          (auth) list sites w/ broken counts
-GET  /api/sites/:id/events, /link_checks, /suggestions
+
+POST /api/track {siteKey, url, referrer} -- embed beacon
+GET /api/suggestions ?site=…&url=… -- embed widget
+POST /api/auth/magic {email}
+GET /api/auth/verify ?token=…
+GET /api/sites (auth) list sites w/ broken counts
+GET /api/sites/:id/events, /link_checks, /suggestions
 POST /api/sites/:id/import-sitemap
 CRUD /api/teams, /api/sites, /api/channels, /api/prefs
+
 ```
 
 ## 9. Milestones
@@ -269,3 +273,4 @@ Shipped: M1–M4 plus the read-only MCP server. Deviations from the sections abo
   the sign-in page with an error instead of a bare 400.
 - **Retention:** nightly prune of events (90d default) and crawler check history (30d). Managed rows are kept.
 
+```

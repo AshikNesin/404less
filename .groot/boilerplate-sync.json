@@ -1,0 +1,23 @@
+{
+  "boilerplate": {
+    "name": "groot",
+    "repo": "https://github.com/AshikNesin/groot"
+  },
+  "last_sync": {
+    "version": "3.0.0",
+    "commit": "a4b4a7683fda7e71fc238cea99f2b05e3c15e637",
+    "date": "2026-10-31T00:00:00.000Z"
+  },
+  "additional_exclusions": [
+    "vitest.config.worker.ts",
+    ".github/workflows/worker-tests.yml",
+    "docs/DESIGN.md",
+    "docs/demo/**",
+    "tests/server/jobs/**",
+    "tests/server/api/auth.test.ts",
+    "tests/server/api/passkey.test.ts",
+    "tests/server/api/settings.test.ts",
+    "tests/server/api/storage.test.ts",
+    "tests/server/api/todos.test.ts"
+  ]
+}

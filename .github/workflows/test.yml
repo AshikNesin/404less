@@ -1,0 +1,112 @@
+name: Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: ["main", "next"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, linux, x64]
+    env:
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (server)
+        run: pnpm exec tsc --noEmit
+      - name: Typecheck (client)
+        run: pnpm typecheck:client
+      - name: Typecheck coverage
+        run: pnpm exec tsx scripts/check-typecheck-coverage.ts
+      - name: Typecheck kit consumers
+        run: pnpm typecheck:kit
+      - name: Kit export guard
+        run: pnpm exec tsx scripts/check-kit-exports.ts
+      - name: Changeset gate
+        run: pnpm check:changesets --base origin/${{ github.base_ref || 'main' }}
+      - name: Checks coverage
+        run: pnpm check:coverage
+      - name: Lint & format check
+        run: pnpm check
+      - name: Design tokens
+        run: pnpm check:tokens
+      - name: Migrations are up to date with the schema
+        run: |
+          pnpm db:generate --name ci-check
+          if git status --porcelain apps/web/drizzle | grep -q .; then
+            echo "::error::Schema changed without a migration. Run 'pnpm db:generate' and commit apps/web/drizzle."
+            git status --porcelain apps/web/drizzle
+            exit 1
+          fi
+
+      - name: Server tests
+        run: pnpm test
+      - name: Client tests
+        run: pnpm test:client
+
+      - name: Build (client + Node server)
+        run: pnpm build
+      - name: Runtime dependency closure
+        run: pnpm check:closure
+      - name: Workers bundle (wrangler dry run)
+        run: pnpm check:worker
+
+      - name: Pruned production boot
+        env:
+          NODE_ENV: production
+          JWT_SECRET_KEY: ci-boot-secret-key-0123456789abcdef0123456789
+          ADMIN_AUTH_KEY: ci-admin-key
+          RP_ID: localhost
+          ORIGIN: http://localhost:3999
+        run: |
+          set -euo pipefail
+          rm -rf ../pruned-boot && mkdir -p ../pruned-boot
+          tar cf - $(git ls-files) dist | tar xf - -C ../pruned-boot
+          cd ../pruned-boot
+          pnpm install --frozen-lockfile --prod --ignore-scripts
+          pnpm rebuild
+          DATABASE_URL=file:./tmp/boot.db PORT=3999 \
+            node dist/server/bundle.js > boot.log 2>&1 < /dev/null &
+          server_pid=$!
+          for i in $(seq 1 60); do
+            if curl -fsS -m 5 http://localhost:3999/health; then
+              echo "health endpoint answered"
+              curl -fsS -m 5 http://localhost:3999/ | grep -q '<div id="root">' && echo "client served"
+              kill -TERM "$server_pid"
+              for j in $(seq 1 15); do
+                kill -0 "$server_pid" 2>/dev/null || exit 0
+                sleep 1
+              done
+              echo "server still up after 15s of TERM"
+              exit 1
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "server exited before answering /health"
+              cat boot.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "server did not answer /health within 60s"
+          cat boot.log
+          exit 1

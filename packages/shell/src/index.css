@@ -1,0 +1,214 @@
+/* Scan from the repo root: @tailwindcss/vite otherwise scans only Vite's root
+   (apps/web) and misses classes used in packages/*. */
+@import "tailwindcss" source("../../..");
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Warm monochrome palette: off-white and near-black surfaces with a faint warm
+ * cast, hairline borders drawn from the foreground, and an achromatic primary.
+ * Raw colour values live only in this file (pnpm check:tokens).
+ */
+:root {
+  /* Native controls (scrollbars, form widgets) follow the theme. */
+  color-scheme: light;
+
+  /* Base colors */
+  --background: oklch(0.98 0.0017 67.8);
+  --foreground: oklch(0.115 0 0);
+
+  /* Card */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.115 0 0);
+
+  /* Popover */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.115 0 0);
+
+  /* Primary */
+  --primary: oklch(0.115 0 0);
+  --primary-foreground: oklch(0.991 0 0);
+
+  /* Secondary */
+  --secondary: oklch(0.952 0.0029 84.6);
+  --secondary-foreground: oklch(0.115 0 0);
+
+  /* Muted */
+  --muted: oklch(0.952 0.0029 84.6);
+  --muted-foreground: oklch(0.5 0 0);
+
+  /* Accent */
+  --accent: oklch(0.952 0.0029 84.6);
+  --accent-foreground: oklch(0.115 0 0);
+
+  /* Destructive */
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  /* Semantic colors (project-specific, kept for status-badge / loading-spinner) */
+  --success: hsl(142 76% 36%);
+  --success-foreground: hsl(0 0% 98%);
+
+  --warning: hsl(45 93% 47%);
+  --warning-foreground: hsl(0 0% 98%);
+
+  --info: hsl(217 91% 60%);
+  --info-foreground: hsl(0 0% 98%);
+
+  /* Border & Input */
+  --border: oklch(0.16 0.007 78.1 / 8%);
+  --input: oklch(0.922 0.0029 84.6);
+  --ring: oklch(0.115 0 0 / 30%);
+
+  /* Radius */
+  --radius: 0.75rem;
+
+  /* Charts */
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+
+  /* Sidebar */
+  --sidebar: oklch(0.965 0.0025 48.7);
+  --sidebar-foreground: oklch(0.115 0 0);
+  --sidebar-primary: oklch(0.115 0 0);
+  --sidebar-primary-foreground: oklch(0.991 0 0);
+  --sidebar-accent: oklch(0.115 0 0 / 4%);
+  --sidebar-accent-foreground: oklch(0.115 0 0);
+  --sidebar-border: oklch(0.16 0.007 78.1 / 8%);
+  --sidebar-ring: oklch(0.115 0 0 / 30%);
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Inter Variable", sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+.dark {
+  color-scheme: dark;
+  /* Muted and secondary sit one step above the card so hover and selected
+     fills stay visible on cards, not only on the page background. */
+  --background: oklch(0.183 0.0026 67.7);
+  --foreground: oklch(0.991 0 0);
+  --card: oklch(0.24 0.004 84.6);
+  --card-foreground: oklch(0.991 0 0);
+  --popover: oklch(0.24 0.004 84.6);
+  --popover-foreground: oklch(0.991 0 0);
+  --primary: oklch(0.991 0 0);
+  --primary-foreground: oklch(0.115 0 0);
+  --secondary: oklch(0.281 0.0039 84.6);
+  --secondary-foreground: oklch(0.991 0 0);
+  --muted: oklch(0.281 0.0039 84.6);
+  --muted-foreground: oklch(0.699 0 0);
+  --accent: oklch(0.281 0.0039 84.6);
+  --accent-foreground: oklch(0.991 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(0.991 0 0 / 8%);
+  --input: oklch(0.991 0 0 / 10%);
+  --ring: oklch(0.991 0 0 / 30%);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0.0025 67.7);
+  --sidebar-foreground: oklch(0.991 0 0);
+  --sidebar-primary: oklch(0.991 0 0);
+  --sidebar-primary-foreground: oklch(0.115 0 0);
+  --sidebar-accent: oklch(0.991 0 0 / 8%);
+  --sidebar-accent-foreground: oklch(0.991 0 0);
+  --sidebar-border: oklch(0.991 0 0 / 8%);
+  --sidebar-ring: oklch(0.991 0 0 / 30%);
+}
+
+/* CodeMirror chrome follows the theme tokens; syntax colours stay
+   CodeMirror's. The wrapper class (from @uiw/react-codemirror) adds the
+   specificity needed to beat its injected light / One Dark theme. */
+:is(.cm-theme-light, .cm-theme-dark) .cm-editor {
+  background-color: transparent;
+  color: var(--foreground);
+}
+:is(.cm-theme-light, .cm-theme-dark) .cm-editor .cm-gutters {
+  background-color: transparent;
+  color: var(--muted-foreground);
+  border-right: 1px solid var(--border);
+}
+:is(.cm-theme-light, .cm-theme-dark) .cm-editor .cm-activeLine,
+:is(.cm-theme-light, .cm-theme-dark) .cm-editor .cm-activeLineGutter {
+  background-color: color-mix(in oklch, var(--foreground) 4%, transparent);
+}
+
+.cm-json-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* dvh, not vh: on mobile the URL bar eats into 100vh. */
+    min-height: 100dvh;
+    /* A quiet thumb on no track; inherited by every scroll container. */
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 45%, transparent) transparent;
+  }
+  html {
+    @apply font-sans;
+  }
+}

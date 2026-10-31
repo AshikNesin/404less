@@ -1,0 +1,8 @@
+# Local vars for `pnpm dev:worker` (wrangler dev). Copy to `.dev.vars` (git-ignored).
+# Nothing is required: groot's production secrets (JWT_SECRET_KEY,
+# ADMIN_AUTH_KEY) are generated on first boot and kept in the local D1, and
+# ORIGIN/RP_ID come from the first request (see apps/web/src/server/worker/boot.ts).
+# Without RESEND_API_KEY the sign-in link is returned in the API response.
+# RESEND_API_KEY=
+# MAIL_FROM=404less <no-reply@example.com>
+# MAX_SITES_PER_TEAM=5
