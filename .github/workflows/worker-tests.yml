@@ -1,0 +1,34 @@
+# 404less's integration suite (tests/worker) inside workerd + local D1/Queues/DOs.
+# App-owned: groot's test.yml runs the Node suites; this covers the Worker.
+# Listed in .groot/boilerplate-sync.json additional_exclusions.
+name: Worker tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  worker-tests:
+    name: Worker tests
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Worker integration tests
+        run: pnpm test:worker

@@ -1,0 +1,29 @@
+{
+  "name": "@groot/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./database": "./src/database/index.ts",
+    "./errors": "./src/errors/index.ts",
+    "./kv": "./src/kv/index.ts",
+    "./logger": "./src/logger/index.ts",
+    "./storage": "./src/storage/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@simplewebauthn/server": "^13.3.2",
+    "better-sqlite3": "^12.11.1",
+    "dayjs": "^1.11.21",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.10.0",
+    "jose": "^6.1.0",
+    "ms": "2.1.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/ms": "^2.1.0",
+    "@types/node": "^24.0.0"
+  }
+}

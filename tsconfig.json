@@ -1,20 +1,25 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "bundler",
-    "lib": [
-      "ES2022"
-    ],
-    "types": [
-      "@cloudflare/workers-types"
-    ],
-    "strict": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "isolatedModules": true
+    "outDir": "./dist",
+    "rootDir": ".",
+    "paths": {
+      "@groot/ai": ["./packages/ai/src/index.ts"],
+      "@groot/ai/*": ["./packages/ai/src/*"],
+      "@groot/ui/*": ["./packages/ui/src/*"],
+      "@groot/shell/*": ["./packages/shell/src/*"],
+      "@groot/core/*": ["./packages/core/src/*"],
+      "@groot/jobs/server": ["./packages/jobs/src/server/index.ts"],
+      "@groot/jobs/server/*": ["./packages/jobs/src/server/*"],
+      "@groot/jobs/client": ["./packages/jobs/src/client/index.ts"],
+      "@groot/jobs/client/*": ["./packages/jobs/src/client/*"]
+    }
   },
   "include": [
-    "src/**/*.ts"
-  ]
+    "apps/web/src/server/**/*",
+    "packages/ai/src/**/*",
+    "packages/core/src/**/*",
+    "packages/jobs/src/server/**/*"
+  ],
+  "exclude": ["node_modules", "dist"]
 }

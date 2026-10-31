@@ -1,5 +1,54 @@
 node_modules/
-.wrangler/
-.dev.vars
-*.log
+
+# Compiled output
 dist/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+/.DS_Store
+pnpm-debug.log*
+
+playwright-report/
+test-results/
+.pnpm-store/
+
+# Verification screenshots (agent-run proof captures, not repo assets)
+/.screenshots/
+
+
+# Development uploads root (UPLOADS_DIR default outside production: ./local/uploads)
+/local/
+# Local data (dev/e2e SQLite files, production volume uploads and backups).
+# Keep the dir tracked but ignore everything inside it.
+/data/*
+!data/.gitkeep
+
+# Scratch output from scripts (e.g. pnpm check:worker bundles in tmp/worker-build)
+/tmp/
+
+# Sensitive files
+*.pem
+*.key
+*.crt
+secrets/
+credentials.json
+service-account.json
+
+# Groot sync generated report
+.groot/sync-report.json
+
+settings.local.json
+.auto/
+
+# Cloudflare Workers local state (wrangler dev)
+.wrangler/
+
+# wrangler dev secrets (copy from .dev.vars.example)
+.dev.vars
+
+# 404less
+*.log
+/.review/

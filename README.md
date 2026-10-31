@@ -38,34 +38,42 @@ Cloudflare's free tier.
 </p>
 <p align="center"><sub>Overview · Broken links · Link detail with redirect rule · Crawler results · The widget visitors see on your 404 page</sub></p>
 
-Stack: Cloudflare Workers + D1 + Queues + Durable Objects, Hono, TypeScript;
-Vite + React 19 + TanStack Router/Query SPA served as Worker static assets.
-Structure follows [open-seo](https://github.com/every-app/open-seo). Design doc:
+Stack: Cloudflare Workers + D1 + Queues + Durable Objects, Hono, Drizzle, TypeScript;
+React 19 + React Router + TanStack Query SPA served as Worker static assets.
+Built on the [groot](https://github.com/AshikNesin/groot) boilerplate (pnpm
+workspace: synced `packages/*`, app code in `apps/web`). Design doc:
 [docs/DESIGN.md](docs/DESIGN.md).
 
 One Worker serves everything: the marketing site at `/` (`/embed`, `/self-host`,
-`/agent`), the dashboard under `/app` (sign-in at `/app/login`), the API under
-`/api`, the snippet at `/embed.js` and MCP at `/mcp`.
+`/agent`), the dashboard under `/app` (sign-in at `/app/login`), the dashboard API
+under `/api/v1`, the snippet at `/embed.js` (with its endpoints `/api/track` and
+`/api/suggestions`) and MCP at `/mcp`.
 
 ## Quick start (local)
 
+Requires Node 24 and pnpm (`corepack enable`).
+
 ```bash
-npm install && npm --prefix web install
-npm run build:web      # SPA + marketing site → dist/web (served by the Worker)
-npm run dev            # applies D1 migrations locally, starts the Worker on :8787
+pnpm install
+pnpm dev:worker        # builds the SPA + marketing site, runs the Worker (workerd, local D1 + Queues) on :8787
 ```
 
 Open http://127.0.0.1:8787 (site) or http://127.0.0.1:8787/app (dashboard).
-Without `RESEND_API_KEY` the magic-link sign-in
-returns the link directly (dev mode), so no email setup is needed. For UI work,
-`npm run dev:web` starts Vite on :5173 with `/api`, `/auth` and `/embed.js`
-proxied to the Worker.
+Migrations apply on the first request. Without `RESEND_API_KEY` a local
+server (`localhost`) returns the magic sign-in link directly, so no email setup
+is needed for development.
+
+For UI work, `pnpm dev` runs the app on Node with Vite HMR (SQLite in
+`data/dev.db`; the crawl queue runs in-process, alerts are logged instead of
+sent) — open `/app`. It runs through `portless` (`npm i -g portless`), as in groot.
 
 ```bash
-npm test               # vitest inside workerd + local D1 — no Cloudflare account needed
-npm run typecheck      # Worker types
-npm --prefix web run typecheck
-npm run build:og       # re-render the Open Graph images (needs Playwright; output is committed)
+pnpm test:worker       # 404less's integration suite inside workerd + local D1 — no Cloudflare account needed
+pnpm test              # groot's Node suites + the Node runtime check (in-memory SQLite)
+pnpm test:client       # client component tests
+pnpm typecheck         # server + client
+pnpm check             # lint + format
+pnpm build:og          # re-render the Open Graph images (needs Playwright; output is committed)
 ```
 
 ## Deploy to Cloudflare
@@ -75,11 +83,16 @@ npm run build:og       # re-render the Open Graph images (needs Playwright; outp
 Manual:
 
 ```bash
-npx wrangler d1 create 404less          # paste database_id into wrangler.jsonc
-npm run deploy                           # build SPA + apply migrations + deploy
-npx wrangler secret put RESEND_API_KEY   # email (sign-in links + email digests)
-npx wrangler secret put MAIL_FROM        # optional, e.g. "404less <no-reply@yourdomain>"
+pnpm exec wrangler d1 create 404less          # paste database_id into wrangler.jsonc
+pnpm deploy:worker                             # build SPA + site, deploy (migrations apply on the first request)
+pnpm exec wrangler secret put RESEND_API_KEY   # required: email sign-in links (+ email digests)
+pnpm exec wrangler secret put MAIL_FROM        # optional, e.g. "404less <no-reply@yourdomain>"
 ```
+
+`RESEND_API_KEY` is the one secret a public deployment needs: without it,
+sign-in on a non-local host answers 503 rather than handing sign-in links to
+whoever asks. The session secret (and the keys groot's production checks ask
+for) are generated on first boot and kept in D1.
 
 Optional vars (`wrangler.jsonc` → `vars`): `MAX_SITES_PER_TEAM` (default 5),
 `EVENT_RETENTION_DAYS` (default 90). Crons: crawler every 30 min, retention
@@ -95,17 +108,17 @@ Add it to your 404 template. The script detects a 404 page from the title, a
 `data-404` attribute on `<html>`/`<body>`, a `prerender-status-code` meta tag, or
 `data-404="true"` on the script tag itself. Options via `data-` attributes:
 
-| attribute | values | default |
-|---|---|---|
-| `data-mode` | `toast` (floating card) · `inline` (render into `data-target`) | `toast` |
-| `data-target` | CSS selector for inline mode | script's parent |
-| `data-theme` | `auto` · `light` · `dark` | `auto` |
-| `data-accent` | any CSS color | indigo |
-| `data-title`, `data-text` | heading / intro copy | — |
-| `data-position` | `right` · `left` · `center` (desktop toast) | `right` |
-| `data-max` | 1–5 suggestions | 3 |
-| `data-track` | `false` to only show suggestions | `true` |
-| `data-branding` | `false` to hide "Powered by 404less" | `true` |
+| attribute                 | values                                                         | default         |
+| ------------------------- | -------------------------------------------------------------- | --------------- |
+| `data-mode`               | `toast` (floating card) · `inline` (render into `data-target`) | `toast`         |
+| `data-target`             | CSS selector for inline mode                                   | script's parent |
+| `data-theme`              | `auto` · `light` · `dark`                                      | `auto`          |
+| `data-accent`             | any CSS color                                                  | indigo          |
+| `data-title`, `data-text` | heading / intro copy                                           | —               |
+| `data-position`           | `right` · `left` · `center` (desktop toast)                    | `right`         |
+| `data-max`                | 1–5 suggestions                                                | 3               |
+| `data-track`              | `false` to only show suggestions                               | `true`          |
+| `data-branding`           | `false` to hide "Powered by 404less"                           | `true`          |
 
 Styling hooks: `.f404less { --f404-accent; --f404-bg; --f404-fg; --f404-muted; --f404-border; --f404-radius }`.
 Site settings → "Preview the widget" opens `/embed-preview.html` with your key.
@@ -119,28 +132,29 @@ claude mcp add --transport http 404less https://your-404less.example/mcp \
   --header "Authorization: Bearer 404l_…"
 ```
 
-The same bearer token works for the REST endpoints under `/api` (sites, links,
-overview, CSV exports) — see `src/routes/*.ts`.
+The key authenticates MCP; the dashboard API under `/api/v1` uses the signed-in
+session cookie — see `apps/web/src/server/api/*/*.routes.ts`.
 
 ## Layout
 
 ```
-src/
-  index.ts                 Worker entry (Hono app, DO exports, cron + queue handlers)
-  routes/                  thin HTTP routes: auth, api (me/teams/sites), links, channels, keys, sitemap, ingest, mcp, embed
-  server/features/         business logic: links (triage model), sites, crawl, mcp, keys, quota, events
-  lib/                     auth, mailer, notify, suggest (ranking), sitemap parsing
-  do/digest.ts             per-site alert digest Durable Object
-  embed_js.txt             the embed script (served at /embed.js)
-migrations/                D1 SQL migrations
-web/
-  app.html                 SPA shell (served for /app and /app/*)
-  src/routes/              TanStack file routes (app shell, login, overview, links, crawl, settings)
-  src/features/<feature>/  queries + components per feature
-  src/components/ui/       primitives (button, card, table, tabs, charts, …)
+apps/web/
+  src/server/              Hono app (app.ts) on @groot/core
+    entry.worker.ts        Worker entry: fetch, cron + queue handlers, DO exports
+    worker/                boot (migrations, groot bootstrap), cron/queue wrappers, static-assets routing
+    api/<feature>/         routes + services: auth (magic link), sites, links (triage model), crawl,
+                           channels, keys, sitemap, ingest (widget), mcp, embed, events
+    lib/                   session auth, mailer, notify, suggest (ranking), sitemap parsing
+    do/                    Durable Objects: per-site alert digest, ingest rate limiter
+    db/                    Drizzle schema, cross-driver batch helpers, Node SQLite
+    entry.node.ts          Node dev entry (pnpm dev) with in-process binding stand-ins
+  src/client/              React SPA (served for /app and /app/*): pages, features, components
+  drizzle/                 SQL migrations (0001–0007 predate groot; never rename them)
+packages/                  groot boilerplate (core, ui, shell, jobs, ai) — synced with `pnpm groot:sync`
 site/
   pages/*.html             marketing pages (index, embed, self-host, agent, 404) + layout.html
-  build.mjs                renders pages into dist/web, copies the demo video, writes sitemap.xml + robots.txt
+  build.mjs                renders pages into dist/client, copies the demo video, writes sitemap.xml + robots.txt
   og/                      Open Graph image template + renderer → site/assets/og/*.png
-test/                      vitest suites running inside workerd via SELF.fetch()
+tests/worker/              404less's integration suites, inside workerd via SELF.fetch()
+tests/server/              groot's Node suites (synced) + tests/server/app (404less on Node)
 ```

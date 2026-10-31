@@ -8,24 +8,39 @@
   "og": "/og/og-agent.png"
 }
 -->
-  <main class="doc">
-    <div class="container">
-      <div class="head">
-        <span class="eyebrow">Agents &amp; MCP</span>
-        <h1 style="margin-top:18px">Hand broken links to your agent.</h1>
-        <p class="lead">Your 404less instance is also an MCP server. Connect Claude Code, Cursor or any MCP client, and your agent can ask which links are broken, where visitors came from, and what the closest replacement is — then open the fix in your repo.</p>
-        <div class="toc"><a href="#setup">Setup</a><a href="#tools">Tools</a><a href="#prompts">Prompts that work</a><a href="#trust">Trust model</a><a href="#rest">REST API</a></div>
+<main class="doc">
+  <div class="container">
+    <div class="head">
+      <span class="eyebrow">Agents &amp; MCP</span>
+      <h1 style="margin-top: 18px">Hand broken links to your agent.</h1>
+      <p class="lead">
+        Your 404less instance is also an MCP server. Connect Claude Code, Cursor or any MCP client,
+        and your agent can ask which links are broken, where visitors came from, and what the
+        closest replacement is — then open the fix in your repo.
+      </p>
+      <div class="toc">
+        <a href="#setup">Setup</a><a href="#tools">Tools</a><a href="#prompts">Prompts that work</a
+        ><a href="#trust">Trust model</a><a href="#rest">REST API</a>
       </div>
-      <div class="body">
-        <section id="setup">
-          <h2>Setup</h2>
-          <p>Create a key under <em>API &amp; MCP</em> in the dashboard. Keys belong to the team and can read every site on it.</p>
-          <h3>Claude Code</h3>
-<pre class="code"><span class="m">$</span> claude mcp add --transport http 404less https://your-404less.example/mcp \
+    </div>
+    <div class="body">
+      <section id="setup">
+        <h2>Setup</h2>
+        <p>
+          Create a key under <em>API &amp; MCP</em> in the dashboard. Keys belong to the team and
+          can read every site on it.
+        </p>
+        <h3>Claude Code</h3>
+        <pre
+          class="code"
+        ><span class="m">$</span> claude mcp add --transport http 404less https://your-404less.example/mcp \
     --header <span class="s">"Authorization: Bearer 404l_…"</span></pre>
-          <p class="muted">The dashboard’s <em>API &amp; MCP</em> page has an <em>Ask your agent</em> tab: it generates this exact prompt with your key filled in, ready to paste.</p>
-          <h3>Cursor, Claude Desktop and others</h3>
-<pre class="code">{
+        <p class="muted">
+          The dashboard’s <em>API &amp; MCP</em> page has an <em>Ask your agent</em> tab: it
+          generates this exact prompt with your key filled in, ready to paste.
+        </p>
+        <h3>Cursor, Claude Desktop and others</h3>
+        <pre class="code">{
   <span class="p">"mcpServers"</span>: {
     <span class="p">"404less"</span>: {
       <span class="p">"type"</span>: <span class="s">"http"</span>,
@@ -34,45 +49,97 @@
     }
   }
 }</pre>
-          <p class="muted">The server implements MCP streamable HTTP (protocol 2025-03-26): JSON-RPC over POST, no long-lived connection required.</p>
-        </section>
+        <p class="muted">
+          The server implements MCP streamable HTTP (protocol 2025-03-26): JSON-RPC over POST, no
+          long-lived connection required.
+        </p>
+      </section>
 
-        <section id="tools">
-          <h2>Tools</h2>
-          <div class="table-wrap"><table class="table">
-            <thead><tr><th>Tool</th><th>What it returns</th></tr></thead>
+      <section id="tools">
+        <h2>Tools</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>What it returns</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr><td><code>list_sites</code></td><td>The team’s sites with their open broken-link counts.</td></tr>
-              <tr><td><code>list_broken_links</code></td><td>Links for a site (by id, domain or name), filtered by status and time, ranked by hits, each with its page title and stored suggested fix.</td></tr>
-              <tr><td><code>get_link_details</code></td><td>One URL: hits, first/last seen, status, last crawler check with redirect chain, top referrers, pages linking to it, ranked fixes.</td></tr>
-              <tr><td><code>get_suggestions</code></td><td>Ranked replacement candidates for any URL on a site.</td></tr>
+              <tr>
+                <td><code>list_sites</code></td>
+                <td>The team’s sites with their open broken-link counts.</td>
+              </tr>
+              <tr>
+                <td><code>list_broken_links</code></td>
+                <td>
+                  Links for a site (by id, domain or name), filtered by status and time, ranked by
+                  hits, each with its page title and stored suggested fix.
+                </td>
+              </tr>
+              <tr>
+                <td><code>get_link_details</code></td>
+                <td>
+                  One URL: hits, first/last seen, status, last crawler check with redirect chain,
+                  top referrers, pages linking to it, ranked fixes.
+                </td>
+              </tr>
+              <tr>
+                <td><code>get_suggestions</code></td>
+                <td>Ranked replacement candidates for any URL on a site.</td>
+              </tr>
             </tbody>
-          </table></div>
-        </section>
+          </table>
+        </div>
+      </section>
 
-        <section id="prompts">
-          <h2>Prompts that work</h2>
-          <ul>
-            <li>“Which broken links on docs.acme.dev matter most this week? Draft redirects for the top five in <code>vercel.json</code> and open a PR.”</li>
-            <li>“Find every page on our site that links to <code>/legacy/download</code> and replace the link with the suggested target.”</li>
-            <li>“Summarize the referrers for <code>/blog/launch-post</code> so I know who to ask to update their link.”</li>
-          </ul>
-          <p>Because the tools return structured data — not screenshots — the agent’s edits are grounded in the same list you see in the dashboard. Resolve the links there once the PR merges, or let the crawler notice they work again.</p>
-        </section>
+      <section id="prompts">
+        <h2>Prompts that work</h2>
+        <ul>
+          <li>
+            “Which broken links on docs.acme.dev matter most this week? Draft redirects for the top
+            five in <code>vercel.json</code> and open a PR.”
+          </li>
+          <li>
+            “Find every page on our site that links to <code>/legacy/download</code> and replace the
+            link with the suggested target.”
+          </li>
+          <li>
+            “Summarize the referrers for <code>/blog/launch-post</code> so I know who to ask to
+            update their link.”
+          </li>
+        </ul>
+        <p>
+          Because the tools return structured data — not screenshots — the agent’s edits are
+          grounded in the same list you see in the dashboard. Resolve the links there once the PR
+          merges, or let the crawler notice they work again.
+        </p>
+      </section>
 
-        <section id="trust">
-          <h2>Trust model</h2>
-          <p>404less is deliberately read-only toward your code. It never holds a repository token and never writes to your repo. The agent does the writing, inside the permissions you gave it, so every change is a reviewable pull request.</p>
-          <div class="callout">A key is shown once at creation and stored hashed. Revoke it from <em>API &amp; MCP</em> at any time; the MCP endpoint rejects it immediately.</div>
-        </section>
+      <section id="trust">
+        <h2>Trust model</h2>
+        <p>
+          404less is deliberately read-only toward your code. It never holds a repository token and
+          never writes to your repo. The agent does the writing, inside the permissions you gave it,
+          so every change is a reviewable pull request.
+        </p>
+        <div class="callout">
+          A key is shown once at creation and stored hashed. Revoke it from
+          <em>API &amp; MCP</em> at any time; the MCP endpoint rejects it immediately.
+        </div>
+      </section>
 
-        <section id="rest">
-          <h2>REST API</h2>
-          <p>The same bearer key works against the JSON endpoints under <code>/api</code> — sites, the links list with filters, link details, the overview, and CSV exports. The MCP tools are thin wrappers over these handlers, so anything the dashboard shows, a script can fetch.</p>
-<pre class="code"><span class="m">$</span> curl -s https://your-404less.example/mcp \
+      <section id="rest">
+        <h2>REST API</h2>
+        <p>
+          The same bearer key works against the JSON endpoints under <code>/api</code> — sites, the
+          links list with filters, link details, the overview, and CSV exports. The MCP tools are
+          thin wrappers over these handlers, so anything the dashboard shows, a script can fetch.
+        </p>
+        <pre class="code"><span class="m">$</span> curl -s https://your-404less.example/mcp \
     -H <span class="s">"Authorization: Bearer 404l_…"</span> -H <span class="s">"Content-Type: application/json"</span> \
     -d <span class="s">'{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_broken_links","arguments":{"site":"docs.acme.dev"}}}'</span></pre>
-        </section>
-      </div>
+      </section>
     </div>
-  </main>
+  </div>
+</main>

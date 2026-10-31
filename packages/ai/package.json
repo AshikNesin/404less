@@ -1,0 +1,24 @@
+{
+  "name": "@groot/ai",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./capabilities": "./src/capabilities.ts",
+    "./client": "./src/client.ts",
+    "./messages": "./src/messages.ts",
+    "./model": "./src/model.ts",
+    "./prompt": "./src/prompt.ts",
+    "./schema": "./src/schema.ts",
+    "./types": "./src/types.ts"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "1.3.0",
+    "openai": "^6.45.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}

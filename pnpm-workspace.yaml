@@ -1,0 +1,65 @@
+# Supply-chain hardening (react-doctor/require-pnpm-hardening).
+# minimumReleaseAge: 1440 = 1 day. Refuses versions published <24h ago, blocking
+#   same-day "publish-malware-then-unpublish" attacks (the highest-risk window).
+#   Intentionally shorter than the rule's 7-day default: groot tracks latest
+#   deps (e.g. tailwindcss platform binaries are often <7d old) and a 7-day gate
+#   blocks routine installs. Applies to *new* resolutions only; frozen-lockfile
+#   CI installs are unaffected.
+# trustPolicy: no-downgrade: refuses packages whose provenance/signature trust
+#   weakens between resolutions.
+minimumReleaseAge: 1440
+trustPolicy: no-downgrade
+
+# Non-interactive CI builders (Heroku): when a restored node_modules is
+# incompatible with the current store/lockfile, pnpm wants to purge and
+# recreate it — but the purge confirmation requires a TTY and aborts with
+# ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY (exit 1, killing the build).
+# Auto-confirm module-dir purges instead.
+confirmModulesPurge: false
+
+packages:
+  - "."
+  - "apps/*"
+  - "packages/*"
+
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.2
+  vite-plus: 0.2.2
+  vitest: 4.1.9
+
+onlyBuiltDependencies:
+  - "@biomejs/biome"
+  - better-sqlite3
+  - esbuild
+  - protobufjs
+  - workerd
+
+overrides:
+  # Extensions are recognised with `instanceof` against @codemirror/state's
+  # classes, so a second copy (e.g. pulled in by @codemirror/view or
+  # @uiw/react-codemirror) throws "Unrecognized extension value in extension
+  # set" when the editor mounts. Keep exactly one copy of each core package;
+  # bump these together with the root package.json pins.
+  "@codemirror/autocomplete": "6.20.3"
+  "@codemirror/commands": "6.10.4"
+  "@codemirror/language": "6.12.4"
+  "@codemirror/lint": "6.9.7"
+  "@codemirror/search": "6.7.1"
+  "@codemirror/state": "6.7.1"
+  "@codemirror/view": "6.43.4"
+  vite: "catalog:"
+  vitest: "catalog:"
+
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
+  allowedVersions:
+    vite: "*"
+    vitest: "*"
+
+# Re-resolving after the Prisma → Drizzle/Hono switch surfaced packages whose
+# newest publish predates npm provenance. Each is a long-released version that
+# was already in the dependency graph; pinned exclusions only, never a wildcard.
+trustPolicyExclude:
+  - semver@6.3.1

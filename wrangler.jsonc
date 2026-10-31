@@ -2,49 +2,78 @@
   // 404less — self-hostable broken-link monitoring on Cloudflare free tier.
   // database_id is intentionally omitted: the "Deploy to Cloudflare" button
   // provisions D1 in the target account. For manual setup run:
-  //   npx wrangler d1 create 404less   (then paste the id here)
+  //   pnpm exec wrangler d1 create 404less   (then paste the id here)
+  // Migrations apply on the first request after a deploy (apps/web/drizzle,
+  // see apps/web/src/server/worker/boot.ts); no separate migrate step.
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "404less",
-  "main": "src/index.ts",
+  "main": "apps/web/src/server/entry.worker.ts",
   "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Drizzle's .sql migrations are bundled as text and applied on first request.
+  "rules": [{ "type": "Text", "globs": ["**/*.sql"] }],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "404less",
       "database_id": "2a4ef659-f6f7-4fc9-ab15-82435f5d76ef",
-      "migrations_dir": "migrations"
-    }
+      "migrations_dir": "apps/web/drizzle",
+    },
   ],
   "assets": {
-    "directory": "./dist/web",
+    // pnpm build:client → the SPA (app.html) + the marketing site (site/build.mjs)
+    "directory": "./dist/client",
     "binding": "ASSETS",
     "html_handling": "none",
     "not_found_handling": "none",
-    "run_worker_first": ["/api/*", "/auth/*", "/embed.js", "/mcp", "/app", "/app/*"]
+    // /__scheduled lets `wrangler dev --test-scheduled` fire the cron handler.
+    "run_worker_first": [
+      "/api/*",
+      "/auth/*",
+      "/embed.js",
+      "/mcp",
+      "/app",
+      "/app/*",
+      "/health",
+      "/ready",
+      "/__scheduled",
+    ],
   },
   "queues": {
-    "producers": [
-      { "binding": "CRAWLQ", "queue": "404less-crawl" }
-    ],
+    "producers": [{ "binding": "CRAWLQ", "queue": "404less-crawl" }],
     "consumers": [
-      { "queue": "404less-crawl", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
-    ]
+      { "queue": "404less-crawl", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
+    ],
   },
   "workers_dev": true,
   "routes": [
     { "pattern": "404less.com", "custom_domain": true },
-    { "pattern": "www.404less.com", "custom_domain": true }
+    { "pattern": "www.404less.com", "custom_domain": true },
   ],
   "triggers": {
-    "crons": [ "*/30 * * * *", "17 3 * * *" ]
+    "crons": ["*/30 * * * *", "17 3 * * *"],
   },
   "durable_objects": {
     "bindings": [
       { "name": "DIGEST", "class_name": "DigestDO" },
-      { "name": "RATELIMIT", "class_name": "RateLimiterDO" }
-    ]
+      { "name": "RATELIMIT", "class_name": "RateLimiterDO" },
+    ],
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["DigestDO"] },
-    { "tag": "v2", "new_sqlite_classes": ["RateLimiterDO"] }
-  ]
+    { "tag": "v2", "new_sqlite_classes": ["RateLimiterDO"] },
+  ],
+  // Non-secret configuration. groot's production checks want JWT_SECRET_KEY,
+  // ADMIN_AUTH_KEY, ORIGIN and RP_ID; 404less fills them in when unset (see
+  // worker/boot.ts), so a fresh deploy needs no secrets. Optional vars:
+  // MAX_SITES_PER_TEAM, EVENT_RETENTION_DAYS, MAIL_FROM; secret RESEND_API_KEY.
+  "vars": {
+    "NODE_ENV": "production",
+  },
+
+  // Preview deploys (Workers Builds on non-production branches) get no bindings:
+  // they prove the branch builds and uploads, without touching the production
+  // D1 or queue. Opening a preview URL fails at boot (no DB) by design. For
+  // working previews, point this block at test resources, never production ones.
+  "previews": {},
 }
