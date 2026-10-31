@@ -4,11 +4,11 @@ Work that 404less builds on or takes inspiration from, kept here for future refe
 
 ## UI references
 
-### "Connect an agent" dialog
+### "Connect your agent" panel
 
-`apps/web/src/client/features/keys/connect-agent-dialog.tsx`
+`apps/web/src/client/features/keys/connect-agent.tsx`
 
-The dialog's design (an agent picker, then numbered per-client steps with copyable
+The design (an agent picker, then numbered per-client steps with copyable
 config, a one-click install button, and Prompt / MCP URL tabs) follows the MCP connect
 modal in [Executor](https://executor.sh) ([source](https://github.com/UsefulSoftwareCo/executor),
 MIT, © Rhys Sullivan). The modal was referenced from the live product; its code is not

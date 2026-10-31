@@ -1,4 +1,4 @@
-// "Connect an agent": pick a client, get its exact setup with the key filled
+// "Connect your agent": pick a client, get its exact setup with the key filled
 // in. One-click install where the client has a link (Cursor, VS Code),
 // copyable commands and config everywhere else. Also the paste-ready prompt
 // and the raw URL + header for anything not listed.
@@ -6,14 +6,6 @@
 import { useState, type ReactNode } from "react";
 import { ArrowUpRight, KeyRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@groot/ui/tabs";
-import {
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@groot/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { CodeBlock } from "../../components/copy-button";
 import { cn } from "../../lib/utils";
@@ -190,17 +182,17 @@ function setupFor(agent: AgentKey, key: string) {
   }
 }
 
-export function ConnectAgentDialog({
-  open,
-  onOpenChange,
+/**
+ * The whole connect flow, inline: How (assistant / prompt / URL), the key, the
+ * agent picker and that agent's steps. Lives on the API & MCP page.
+ */
+export function ConnectAgent({
   agent,
   onAgentChange,
   apiKey,
   onCreateKey,
   creatingKey,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   agent: AgentKey;
   onAgentChange: (agent: AgentKey) => void;
   /** The full key, when one was just created; otherwise a placeholder is shown. */
@@ -210,61 +202,47 @@ export function ConnectAgentDialog({
 }) {
   const key = apiKey || PLACEHOLDER_KEY;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-section-title">Connect an agent</DialogTitle>
-          <DialogDescription>
-            Read-only access to every site on your team. Your agent lists broken links, reads the
-            suggested fixes and opens the PR.
-          </DialogDescription>
-        </DialogHeader>
+    <Tabs defaultValue="assistant" className="gap-4">
+      <TabsList variant="line" className="w-full justify-start gap-3 border-b border-border">
+        <TabsTrigger value="assistant" className="flex-none">
+          Assistant
+        </TabsTrigger>
+        <TabsTrigger value="prompt" className="flex-none">
+          Prompt
+        </TabsTrigger>
+        <TabsTrigger value="url" className="flex-none">
+          MCP URL
+        </TabsTrigger>
+      </TabsList>
 
-        <Tabs defaultValue="assistant" className="min-h-0 flex-1 gap-4">
-          <TabsList variant="line" className="w-full justify-start gap-3 border-b border-border">
-            <TabsTrigger value="assistant" className="flex-none">
-              Assistant
-            </TabsTrigger>
-            <TabsTrigger value="prompt" className="flex-none">
-              Prompt
-            </TabsTrigger>
-            <TabsTrigger value="url" className="flex-none">
-              MCP URL
-            </TabsTrigger>
-          </TabsList>
+      <KeyBar apiKey={apiKey} onCreateKey={onCreateKey} creatingKey={creatingKey} />
 
-          <DialogBody className="space-y-4">
-            <KeyBar apiKey={apiKey} onCreateKey={onCreateKey} creatingKey={creatingKey} />
+      <TabsContent value="assistant" className="space-y-4">
+        <AgentGrid value={agent} onChange={onAgentChange} />
+        <AgentSetup agent={agent} apiKey={key} />
+      </TabsContent>
 
-            <TabsContent value="assistant" className="space-y-4">
-              <AgentGrid value={agent} onChange={onAgentChange} />
-              <AgentSetup agent={agent} apiKey={key} />
-            </TabsContent>
+      <TabsContent value="prompt" className="space-y-2">
+        <p className="text-caption">
+          Paste this into any coding agent. It carries the key, the URL and the first step; the
+          agent sets itself up.
+        </p>
+        <CodeBlock code={agentSetupPrompt(key)} label="Copy prompt" />
+      </TabsContent>
 
-            <TabsContent value="prompt" className="space-y-2">
-              <p className="text-caption">
-                Paste this into any coding agent. It carries the key, the URL and the first step;
-                the agent sets itself up.
-              </p>
-              <CodeBlock code={agentSetupPrompt(key)} label="Copy prompt" />
-            </TabsContent>
-
-            <TabsContent value="url" className="space-y-3">
-              <Field label="Server URL" hint="Streamable HTTP. POST JSON-RPC.">
-                <CodeBlock code={mcpUrl()} label="Copy URL" />
-              </Field>
-              <Field label="Header" hint="The API key as a bearer token, on every request.">
-                <CodeBlock code={`Authorization: Bearer ${key}`} label="Copy header" />
-              </Field>
-            </TabsContent>
-          </DialogBody>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+      <TabsContent value="url" className="space-y-3">
+        <Field label="Server URL" hint="Streamable HTTP. POST JSON-RPC.">
+          <CodeBlock code={mcpUrl()} label="Copy URL" />
+        </Field>
+        <Field label="Header" hint="The API key as a bearer token, on every request.">
+          <CodeBlock code={`Authorization: Bearer ${key}`} label="Copy header" />
+        </Field>
+      </TabsContent>
+    </Tabs>
   );
 }
 
-/** The last agent picked, so the dialog reopens where you left it. */
+/** The last agent picked, so the page reopens where you left it. */
 export function useLastAgent(): [AgentKey, (agent: AgentKey) => void] {
   const [agent, setAgent] = useState<AgentKey>(() => {
     const saved = localStorage.getItem(LAST_AGENT);
@@ -309,13 +287,7 @@ function KeyBar({
   );
 }
 
-export function AgentGrid({
-  value,
-  onChange,
-}: {
-  value: AgentKey;
-  onChange: (k: AgentKey) => void;
-}) {
+function AgentGrid({ value, onChange }: { value: AgentKey; onChange: (k: AgentKey) => void }) {
   return (
     <div role="radiogroup" aria-label="Agent" className="grid grid-cols-4 gap-2 sm:grid-cols-7">
       {AGENTS.map((a) => (
@@ -340,7 +312,7 @@ export function AgentGrid({
   );
 }
 
-export function AgentIcon({ src, size = "md" }: { src: string; size?: "md" | "lg" }) {
+function AgentIcon({ src, size = "md" }: { src: string; size?: "md" | "lg" }) {
   return (
     <span
       className={cn(

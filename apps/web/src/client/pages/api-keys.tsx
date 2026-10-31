@@ -1,7 +1,7 @@
 // API keys + MCP setup. Secrets are shown once.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
-import { KeyRound, Plug, Plus, Sparkles } from "lucide-react";
+import { KeyRound, Plus, Sparkles } from "lucide-react";
 import { api } from "../lib/api";
 import type { ApiKey } from "../lib/types";
 import { relTime } from "../lib/format";
@@ -23,7 +23,7 @@ import { useToast } from "../components/ui/toast";
 import { Page, PageHeader } from "../components/page-header";
 import { meQuery } from "../features/sites/queries";
 import { mcpUrl } from "../features/keys/mcp-setup";
-import { AgentGrid, ConnectAgentDialog, useLastAgent } from "../features/keys/connect-agent-dialog";
+import { ConnectAgent, useLastAgent } from "../features/keys/connect-agent";
 
 export function ApiKeysPage() {
   const qc = useQueryClient();
@@ -31,7 +31,6 @@ export function ApiKeysPage() {
   const me = useQuery(meQuery);
   const teamId = me.data?.teams[0]?.id;
   const [secret, setSecret] = useState("");
-  const [connectOpen, setConnectOpen] = useState(false);
   const [agent, setAgent] = useLastAgent();
   const keys = useQuery({
     queryKey: ["keys", teamId],
@@ -66,20 +65,15 @@ export function ApiKeysPage() {
         title="API & MCP"
         description="Bearer tokens for the REST API and the MCP server. Keys belong to the team and can read every site on it."
         actions={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              pending={create.isPending}
-              disabled={!teamId}
-              onClick={() => create.mutate()}
-            >
-              <Plus /> Create key
-            </Button>
-            <Button size="sm" onClick={() => setConnectOpen(true)}>
-              <Plug /> Connect an agent
-            </Button>
-          </>
+          <Button
+            variant="outline"
+            size="sm"
+            pending={create.isPending}
+            disabled={!teamId}
+            onClick={() => create.mutate()}
+          >
+            <Plus /> Create key
+          </Button>
         }
       />
 
@@ -111,12 +105,13 @@ export function ApiKeysPage() {
           </CardAction>
         </CardHeader>
         <CardContent>
-          <AgentGrid
-            value={agent}
-            onChange={(next) => {
-              setAgent(next);
-              setConnectOpen(true);
-            }}
+          {/* a truncated real key would copy into a config that fails auth: the full secret or a placeholder */}
+          <ConnectAgent
+            agent={agent}
+            onAgentChange={setAgent}
+            apiKey={secret}
+            onCreateKey={() => create.mutate()}
+            creatingKey={create.isPending}
           />
         </CardContent>
       </Card>
@@ -166,17 +161,6 @@ export function ApiKeysPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* a truncated real key would copy into a config that fails auth: the full secret or a placeholder */}
-      <ConnectAgentDialog
-        open={connectOpen}
-        onOpenChange={setConnectOpen}
-        agent={agent}
-        onAgentChange={setAgent}
-        apiKey={secret}
-        onCreateKey={() => create.mutate()}
-        creatingKey={create.isPending}
-      />
     </Page>
   );
 }

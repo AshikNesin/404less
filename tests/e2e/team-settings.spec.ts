@@ -65,20 +65,20 @@ test.describe("API & MCP", () => {
         .innerText()
     ).trim();
     expect(secret).toMatch(/^404l_[0-9a-f]{20,}$/);
-    // the connect dialog fills the real key into each client's setup
-    await page.getByRole("button", { name: "Connect an agent" }).click();
-    const dialog = page.getByRole("dialog", { name: "Connect an agent" });
-    await expect(dialog.getByText("Using the key you just created")).toBeVisible();
-    await dialog.getByRole("radio", { name: "Cursor" }).click();
-    await expect(dialog.getByText(`"Bearer ${secret}"`)).toBeVisible();
+    // the connect panel fills the real key into each client's setup
+    const panel = page.getByRole("tabpanel", { name: "Assistant" });
+    await expect(page.getByText("Using the key you just created")).toBeVisible();
+    await panel.getByRole("radio", { name: "Cursor" }).click();
+    await expect(panel.getByText(`"Bearer ${secret}"`)).toBeVisible();
     // one-click install carries the same config
-    const install = await dialog.getByRole("link", { name: "Add to Cursor" }).getAttribute("href");
+    const install = await panel.getByRole("link", { name: "Add to Cursor" }).getAttribute("href");
     const config = JSON.parse(
       Buffer.from(new URL(install!).searchParams.get("config")!, "base64").toString("utf8"),
     );
     expect(config).toEqual({ url: `${APP}/mcp`, headers: { Authorization: `Bearer ${secret}` } });
-    await page.keyboard.press("Escape");
-    await expect(dialog).toHaveCount(0);
+    // one picker on the page, no dialog on top of it
+    await expect(page.getByRole("radiogroup", { name: "Agent" })).toHaveCount(1);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
 
     const callMcp = (token: string) =>
       page.request.post(`${APP}/mcp`, {
@@ -108,22 +108,23 @@ test.describe("API & MCP", () => {
   });
 });
 
-test("connect dialog: no key on hand, create one in place and the setup works", async ({
-  page,
-}) => {
+test("connect panel: no key on hand, create one in place and the setup works", async ({ page }) => {
   await signIn(page);
   await page.goto("/app/settings/api-keys");
   await page.getByRole("button", { name: "Done" }).click(); // the first key's secret is gone
 
-  // picking a client on the page opens the dialog on it
-  await page.getByRole("radio", { name: "Claude Code" }).click();
-  const dialog = page.getByRole("dialog", { name: "Connect an agent" });
-  await expect(dialog.getByRole("region", { name: "Add 404less to Claude Code" })).toBeVisible();
-  await expect(dialog.getByText("Bearer 404l_your_key")).toBeVisible();
+  const panel = page.getByRole("tabpanel", { name: "Assistant" });
+  await panel.getByRole("radio", { name: "Claude Code" }).click();
+  await expect(panel.getByRole("region", { name: "Add 404less to Claude Code" })).toBeVisible();
+  await expect(panel.getByText("Bearer 404l_your_key")).toBeVisible();
 
-  await dialog.getByRole("button", { name: "Create key" }).click();
-  await expect(dialog.getByText("Using the key you just created")).toBeVisible();
-  const command = await dialog.locator("pre").first().innerText();
+  await page
+    .getByText("Keys are shown once")
+    .locator("..")
+    .getByRole("button", { name: "Create key" })
+    .click();
+  await expect(page.getByText("Using the key you just created")).toBeVisible();
+  const command = await panel.locator("pre").first().innerText();
   const secret = command.match(/Bearer (404l_[0-9a-f]+)/)![1];
   expect(command).toContain(`claude mcp add --transport http 404less ${APP}/mcp`);
 
