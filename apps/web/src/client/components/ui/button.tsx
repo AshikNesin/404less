@@ -6,6 +6,8 @@ import { Button as GrootButton, type ButtonProps as GrootButtonProps } from "@gr
 export type ButtonProps = GrootButtonProps & { pending?: boolean };
 
 export function Button({ pending, disabled, children, type = "button", ...props }: ButtonProps) {
+  // asChild: the child element (e.g. an <a>) is the one control, styled as a button
+  if (props.asChild) return <GrootButton {...props}>{children}</GrootButton>;
   return (
     <GrootButton
       type={type}

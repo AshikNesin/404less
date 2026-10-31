@@ -5,11 +5,35 @@ import { getCookie } from "hono/cookie";
 import { newId, now, SESSION_COOKIE, signSession, verifySession } from "../../lib/auth";
 import type { Env } from "../../types";
 import { eq, lt } from "drizzle-orm";
+import { authRateLimiter } from "@groot/core/middlewares/rate-limit.middleware";
+import { HttpError } from "@groot/core/errors";
+import type { MiddlewareHandler } from "hono";
 import { batch, db, magicTokens, teamMembers, teams, users } from "../../db";
 
 export const auth = new Hono<{ Bindings: Env }>();
 
-auth.post("/magic", async (c) => {
+/** Hosts where the sign-in link may be shown instead of emailed: local development only. */
+function isLoopback(hostname: string): boolean {
+  const h = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  return h === "localhost" || h.endsWith(".localhost") || h === "::1" || h.startsWith("127.");
+}
+
+/**
+ * Core's per-IP auth limiter (20 requests / 15 min by default), answering in
+ * this router's bare `{ error }` shape instead of groot's envelope.
+ */
+const magicRateLimit: MiddlewareHandler = async (c, next) => {
+  try {
+    await authRateLimiter(c as never, next);
+  } catch (error) {
+    if (error instanceof HttpError && error.statusCode === 429) {
+      return c.json({ error: "too many sign-in requests, try again later" }, 429);
+    }
+    throw error;
+  }
+};
+
+auth.post("/magic", magicRateLimit, async (c) => {
   const { email } = await c.req.json().catch(() => ({ email: null }));
   if (
     !email ||
@@ -20,6 +44,14 @@ auth.post("/magic", async (c) => {
     return c.json({ error: "invalid email" }, 400);
   }
   const normalized = email.toLowerCase();
+
+  const mailer = getMailer(c.env);
+  // Without email, the link can only be handed back in the response: allowed on
+  // a local dev server, never on a public host (anyone could sign in as anyone).
+  const showLink = !mailer && isLoopback(new URL(c.req.url).hostname);
+  if (!mailer && !showLink) {
+    return c.json({ error: "email is not configured: set RESEND_API_KEY" }, 503);
+  }
 
   // Upsert user
   await db
@@ -40,7 +72,6 @@ auth.post("/magic", async (c) => {
 
   const link = `${new URL(c.req.url).origin}/api/v1/auth/verify?token=${token}`;
 
-  const mailer = getMailer(c.env);
   if (mailer) {
     await mailer.send({
       to: normalized,
@@ -54,7 +85,7 @@ auth.post("/magic", async (c) => {
     });
     return c.json({ ok: true, emailed: true });
   }
-  // Dev mode (no RESEND_API_KEY): return the link so you can test locally.
+  // Local dev (no RESEND_API_KEY, loopback host): return the link so you can sign in.
   console.log("[404less] magic link for", normalized, ":", link);
   return c.json({ ok: true, emailed: false, devLink: link });
 });
@@ -62,17 +93,13 @@ auth.post("/magic", async (c) => {
 auth.get("/verify", async (c) => {
   const token = c.req.query("token");
   if (!token) return c.json({ error: "missing token" }, 400);
-  const row = await db
-    .select({ user_id: magicTokens.user_id, expires_at: magicTokens.expires_at })
-    .from(magicTokens)
+  // Consume the token atomically: of two concurrent requests only one gets the row back.
+  const [row] = await db
+    .delete(magicTokens)
     .where(eq(magicTokens.token, token))
-    .get();
+    .returning({ user_id: magicTokens.user_id, expires_at: magicTokens.expires_at });
+  await db.delete(magicTokens).where(lt(magicTokens.expires_at, now()));
   if (!row || row.expires_at < now()) return c.redirect("/app/login?error=expired");
-
-  await batch([
-    db.delete(magicTokens).where(eq(magicTokens.token, token)),
-    db.delete(magicTokens).where(lt(magicTokens.expires_at, now())),
-  ]);
   await ensureTeam(c.env, row.user_id);
 
   const cookie = await signSession(row.user_id);

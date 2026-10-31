@@ -10,6 +10,10 @@ export type DigestGroup = {
   topReferrer: string | null;
 };
 
+/** URLs listed in one digest; the title's total still counts every hit. */
+export const DIGEST_MAX_ITEMS = 20;
+
+/** `groups` most-hit first: the title totals all of them, the body lists the top DIGEST_MAX_ITEMS. */
 export function buildDigest(
   siteName: string,
   groups: DigestGroup[],
@@ -17,13 +21,14 @@ export function buildDigest(
 ): { title: string; text: string; html: string } {
   const totalHits = groups.reduce((n, g) => n + g.count, 0);
   const title = `404less: ${totalHits} broken-link hit${totalHits === 1 ? "" : "s"} on ${siteName} (last ${windowMinutes} min)`;
-  const lines = groups.map((g) => {
+  const listed = groups.slice(0, DIGEST_MAX_ITEMS);
+  const lines = listed.map((g) => {
     const ref = g.topReferrer ? ` ← ${g.topReferrer}` : "";
     return `${g.count}× ${g.url}${ref}`;
   });
   // the title travels separately (Slack's first line, Pushover's title, the email subject)
   const text = lines.join("\n");
-  const items = groups
+  const items = listed
     .map((g) => {
       const esc = (s: string) =>
         s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

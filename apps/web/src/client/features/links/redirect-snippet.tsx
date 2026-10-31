@@ -45,7 +45,7 @@ function rule(
     case "apache":
       return `# .htaccess\nRedirect 301 ${from} ${to}`;
     case "nextjs":
-      return `// next.config.js\nasync redirects() {\n  return [{ source: '${from}', destination: '${to}', permanent: true }];\n}\n`;
+      return `// next.config.js\nmodule.exports = {\n  async redirects() {\n    return [{ source: ${JSON.stringify(from)}, destination: ${JSON.stringify(to)}, permanent: true }];\n  },\n};\n`;
   }
 }
 

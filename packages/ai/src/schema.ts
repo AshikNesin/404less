@@ -18,7 +18,8 @@ export function zodToTypeBox(schema: z.ZodTypeAny): TSchema {
     return Type.Any();
   }
 
-  const typeName: string = def.type ?? def.typeName; // v4: type, v3: typeName
+  // v4: type (a string); v3: typeName. v3 ZodArray also has `type`, but it is the element schema.
+  const typeName: string = typeof def.type === "string" ? def.type : def.typeName;
 
   // v3 stores .describe() in _def.description; v4 registers it as meta,
   // exposed via the schema's `description` getter.
@@ -42,31 +43,34 @@ export function zodToTypeBox(schema: z.ZodTypeAny): TSchema {
     case "ZodObject":
     case "object": {
       const shape = typeof def.shape === "function" ? def.shape() : def.shape;
-      if (!shape) return Type.Object({});
+      if (!shape) return Type.Object({}, opts);
       const properties: Record<string, TSchema> = {};
       for (const [key, value] of Object.entries(shape)) {
         properties[key] = zodToTypeBox(value as z.ZodTypeAny);
       }
-      return Type.Object(properties);
+      return Type.Object(properties, opts);
     }
 
     case "ZodArray":
     case "array":
-      return Type.Array(zodToTypeBox(def.element ?? def.type));
+      return Type.Array(zodToTypeBox(def.element ?? def.type), opts);
 
     case "ZodOptional":
     case "optional":
-      return Type.Optional(zodToTypeBox(def.innerType));
+      return Type.Optional(withDescription(zodToTypeBox(def.innerType), description));
 
     case "ZodNullable":
     case "nullable":
-      return Type.Union([zodToTypeBox(def.innerType), Type.Null()]);
+      return Type.Union([zodToTypeBox(def.innerType), Type.Null()], opts);
 
     case "ZodEnum":
     case "enum": {
       // v4: entries (object); v3: values (array)
       const values: string[] = def.entries ? Object.keys(def.entries) : (def.values as string[]);
-      return Type.Union(values.map((v: string) => Type.Literal(v)));
+      return Type.Union(
+        values.map((v: string) => Type.Literal(v)),
+        opts,
+      );
     }
 
     case "ZodLiteral":
@@ -74,12 +78,13 @@ export function zodToTypeBox(schema: z.ZodTypeAny): TSchema {
       // v3: value; v4: values (array or object)
       const v =
         def.value ?? (Array.isArray(def.values) ? def.values[0] : Object.keys(def.values)[0]);
-      return Type.Literal(v);
+      return Type.Literal(v, opts);
     }
 
     case "ZodDefault":
     case "default":
-      return zodToTypeBox(def.innerType);
+      // The model may omit a defaulted field; Zod fills in the default.
+      return Type.Optional(withDescription(zodToTypeBox(def.innerType), description));
 
     case "ZodEffects":
     case "pipe": // v4 models transforms as a "pipe" with .in/.out
@@ -88,4 +93,11 @@ export function zodToTypeBox(schema: z.ZodTypeAny): TSchema {
     default:
       return Type.Any();
   }
+}
+
+/** Carry a wrapper's `.describe()` onto the schema it wraps (inner descriptions win). */
+function withDescription(schema: TSchema, description: string | undefined): TSchema {
+  return description && !(schema as { description?: string }).description
+    ? ({ ...schema, description } as TSchema)
+    : schema;
 }

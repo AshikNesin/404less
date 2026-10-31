@@ -36,7 +36,13 @@ export async function parseBody<S extends ZodType>(c: AppContext, schema: S): Pr
 
 /** Validate a multipart or urlencoded form; repeated fields arrive as arrays. */
 export async function parseForm<S extends ZodType>(c: AppContext, schema: S): Promise<z.output<S>> {
-  return parseInput(await c.req.parseBody({ all: true }), schema);
+  let body: Awaited<ReturnType<typeof c.req.parseBody>>;
+  try {
+    body = await c.req.parseBody({ all: true });
+  } catch {
+    throw Boom.badRequest("Invalid form body", undefined, ErrorCode.VALIDATION_ERROR.code);
+  }
+  return parseInput(body, schema);
 }
 
 /** Validate the query string (first value wins for repeated keys). */

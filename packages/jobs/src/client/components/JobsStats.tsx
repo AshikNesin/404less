@@ -77,6 +77,7 @@ export function JobsStats({ activeState, onSelectState }: Props) {
           label={item.label}
           value={item.value.toLocaleString()}
           icon={item.icon}
+          valueClassName={item.colorClass}
           active={activeState === item.key}
           onClick={() => onSelectState(item.key)}
           className={idx !== 0 ? "border-l border-border/60" : undefined}

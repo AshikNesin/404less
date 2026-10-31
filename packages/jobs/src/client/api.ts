@@ -97,6 +97,6 @@ export const jobsApi = {
 
   /** Schedules are keyed by job name — one per name — so this removes that name's schedule. */
   async cancelScheduledJob(jobName: string): Promise<void> {
-    await apiClient.delete(`/jobs/schedule/${jobName}`);
+    await apiClient.delete(`/jobs/schedule/${encodeURIComponent(jobName)}`);
   },
 };

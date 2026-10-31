@@ -16,8 +16,10 @@ export function TablePagination({
   isLoading?: boolean;
 }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
-  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const end = Math.min(total, page * pageSize);
+  // an emptied last page or an out-of-range ?page= must not read "101–100 of 100"
+  const current = Math.min(Math.max(1, page), pages);
+  const start = total === 0 ? 0 : (current - 1) * pageSize + 1;
+  const end = Math.min(total, current * pageSize);
   return (
     <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5">
       <span className="text-meta num">

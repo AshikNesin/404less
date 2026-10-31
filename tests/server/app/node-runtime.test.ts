@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { createWebApp } from "../../../apps/web/src/server/app";
 import { sql } from "drizzle-orm";
-import { db } from "../../../apps/web/src/server/db";
+import { appMeta, batch, db } from "../../../apps/web/src/server/db";
 import { createNodeBindings } from "../../../apps/web/src/server/node-bindings";
 
 const app = createWebApp();
@@ -71,5 +71,31 @@ describe("404less on Node", () => {
     const r = await call("/embed.js");
     expect(r.status).toBe(200);
     expect(await r.text()).toContain("404less");
+  });
+
+  it("batch() is one transaction on better-sqlite3: a failing statement rolls back the rest", async () => {
+    await expect(
+      batch([
+        db.insert(appMeta).values({ key: "batch-a", value: "1" }),
+        db.insert(appMeta).values({ key: "batch-a", value: "duplicate primary key" }),
+      ]),
+    ).rejects.toThrow();
+    const rows = await db.all<{ key: string }>(sql`SELECT key FROM app_meta WHERE key = 'batch-a'`);
+    expect(rows).toEqual([]);
+    const [inserted, selected] = await batch([
+      db.insert(appMeta).values({ key: "batch-b", value: "2" }),
+      db
+        .select()
+        .from(appMeta)
+        .where(sql`key = 'batch-b'`),
+    ]);
+    expect(inserted).toMatchObject({ changes: 1 });
+    expect(selected).toEqual([{ key: "batch-b", value: "2" }]);
+  });
+
+  it("treats empty env vars as unset (the default site quota applies)", async () => {
+    const empty = createNodeBindings({ MAX_SITES_PER_TEAM: "", MAIL_FROM: "" });
+    expect(empty.MAX_SITES_PER_TEAM).toBeUndefined();
+    expect(empty.MAIL_FROM).toBeUndefined();
   });
 });

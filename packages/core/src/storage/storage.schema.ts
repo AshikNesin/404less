@@ -29,6 +29,9 @@ const isSegment = (segment: string) =>
 
 const isKey = (path: string) => path.split("/").every(isSegment);
 
+/** An uploaded file's name: exactly one key segment (no `/`, `.`, `..` or `\\`). */
+const isFileName = (name: string) => !name.includes("/") && isSegment(name);
+
 /** An object key such as `docs/report.pdf`: no leading, trailing or doubled `/`, no `.` or `..`. */
 export const filePathSchema = z
   .string()
@@ -56,7 +59,7 @@ export const uploadFilesSchema = z.object({
   file: z.preprocess(
     (value) => (value === undefined ? [] : Array.isArray(value) ? value : [value]),
     z
-      .array(z.instanceof(File).refine((file) => isSegment(file.name), "Invalid file name"))
+      .array(z.instanceof(File).refine((file) => isFileName(file.name), "Invalid file name"))
       .min(1, "No file uploaded")
       .max(MAX_UPLOAD_FILES, `At most ${MAX_UPLOAD_FILES} files per upload`),
   ),

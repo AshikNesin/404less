@@ -1,6 +1,6 @@
 // Outbound email: Resend only, behind one interface so it stays swappable.
-// Without RESEND_API_KEY the app runs in dev mode: magic links are returned
-// in the API response (devLink) instead of being emailed.
+// Without RESEND_API_KEY there is no mailer: on a loopback host the sign-in
+// link is returned in the API response (devLink); elsewhere sign-in answers 503.
 import type { Env } from "../types";
 
 export type Mailer = {

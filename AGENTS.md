@@ -38,8 +38,10 @@ Use **pnpm** for everything. Don't call `vp` directly (use `pnpm check`,
   `GET /api/v1/auth/me` answers in groot's envelope for `@groot/shell`'s
   session store.
 - **No database transactions.** D1 has none; group writes with `batch([...])` (`db/index.ts`).
-- **Zero-config self-hosting.** The Deploy button must work with no secrets:
+- **Zero-config self-hosting.** The Deploy button must boot with no secrets:
   `worker/boot.ts` fills groot's production secrets from `app_meta` when unset.
+  Sign-in needs `RESEND_API_KEY` on any public host; only a loopback host
+  (`localhost`) may return the magic link in the response (`auth.routes.ts`).
 - **A change to a managed surface needs a changeset** (`pnpm changeset`, or a
   reason under `.changeset/no-release/`); `pnpm check:changesets` enforces it.
 

@@ -82,9 +82,12 @@ export function useRecheckLink(siteId: string) {
     onSuccess: (r) => {
       toast(
         r.ok ? "success" : "info",
-        r.ok
-          ? `Responds with ${r.httpStatus} now — marked resolved`
-          : `Still broken (${r.httpStatus || "no response"})`,
+        // a working URL only moves open links to resolved; ignored stays ignored
+        !r.ok
+          ? `Still broken (${r.httpStatus || "no response"})`
+          : r.status === "resolved"
+            ? `Responds with ${r.httpStatus} now — marked resolved`
+            : `Responds with ${r.httpStatus} now — status is still ${r.status ?? "unchanged"}`,
       );
       invalidate();
     },

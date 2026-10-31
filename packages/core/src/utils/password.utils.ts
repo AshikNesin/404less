@@ -40,9 +40,14 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [algorithm, iterations, salt, hash] = stored.split("$");
   if (algorithm !== ALGORITHM || !iterations || !salt || !hash) return false;
-  const expected = fromBase64Url(hash);
-  const actual = await derive(password, fromBase64Url(salt), Number(iterations));
-  return timingSafeEqual(actual, expected);
+  // a malformed stored hash (bad base64, zero/NaN iterations) is a failed match, not a 500
+  try {
+    const expected = fromBase64Url(hash);
+    const actual = await derive(password, fromBase64Url(salt), Number(iterations));
+    return timingSafeEqual(actual, expected);
+  } catch {
+    return false;
+  }
 }
 
 /** True when `stored` was produced with an older iteration count and should be re-hashed. */

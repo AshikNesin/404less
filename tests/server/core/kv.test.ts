@@ -17,6 +17,20 @@ describe("kv", () => {
     expect(await kv.get("k2")).toBe("b");
   });
 
+  it("matches prefixes case-sensitively and treats LIKE wildcards literally", async () => {
+    const store = createNamespaceKv("case:");
+    await store.set("user:1", 1);
+    await store.set("User:2", 2);
+    await store.set("user_3", 3);
+    await store.set("u%er:4", 4);
+    expect((await store.list("user:")).map((e) => e.key)).toEqual(["user:1"]);
+    expect((await store.list("u%")).map((e) => e.key)).toEqual(["u%er:4"]);
+    expect(await store.clear("user:")).toBe(1);
+    expect(await store.get("User:2")).toBe(2);
+    expect(await store.get("user_3")).toBe(3);
+    await store.clear();
+  });
+
   it("isolates namespaces and lists by prefix", async () => {
     const a = createNamespaceKv("ns-a");
     const b = createNamespaceKv("ns-b");

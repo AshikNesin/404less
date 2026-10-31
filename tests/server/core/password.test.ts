@@ -17,6 +17,10 @@ describe("password hashing", () => {
     expect(await verifyPassword("x", "")).toBe(false);
     expect(await verifyPassword("x", "$2a$10$notbcryptanymore")).toBe(false);
     expect(await verifyPassword("x", "pbkdf2-sha256$100000$abc")).toBe(false);
+    // pass the shape check but fail to decode or derive
+    expect(await verifyPassword("x", "pbkdf2-sha256$0$c2FsdA$aGFzaA")).toBe(false);
+    expect(await verifyPassword("x", "pbkdf2-sha256$NaN$c2FsdA$aGFzaA")).toBe(false);
+    expect(await verifyPassword("x", "pbkdf2-sha256$100000$%%%$***")).toBe(false);
   });
 
   it("flags hashes with a different iteration count", async () => {

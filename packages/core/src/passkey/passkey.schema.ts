@@ -27,7 +27,7 @@ export interface PasskeySummary {
  */
 export const verifyRegistrationSchema = z.object({
   response: z.any(), // RegistrationResponseJSON from @simplewebauthn/types
-  credentialName: z.string().min(1).max(100).optional(),
+  credentialName: z.string().trim().min(1).max(100).optional(),
 });
 
 /**
@@ -50,6 +50,7 @@ export const generateAuthenticationOptionsSchema = z.object({
 export const updatePasskeyNameSchema = z.object({
   credentialName: z
     .string()
+    .trim()
     .min(1, "Passkey name must not be empty")
     .max(100, "Passkey name must be at most 100 characters"),
 });

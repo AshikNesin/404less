@@ -27,6 +27,12 @@ export type PromptMessage =
   | { role: "system"; content: string }
   | { role: "user"; content: PromptContent };
 
+/** The media type a `data:` URL declares, if `data` is one. */
+function dataUrlMimeType(data: string | URL | Uint8Array | ArrayBuffer): string | undefined {
+  const text = typeof data === "string" ? data : data instanceof URL ? data.toString() : "";
+  return text.match(/^data:([^;,]+)[;,]/)?.[1] || undefined;
+}
+
 function toBase64(data: string | URL | Uint8Array | ArrayBuffer): string {
   if (typeof data === "string") {
     // Strip a data: URL prefix if present; otherwise assume raw base64.
@@ -76,7 +82,10 @@ export function toPiContext(messages: PromptMessage[], systemPrompt?: string): C
       return {
         type: "image",
         data: toBase64(part.data),
-        mimeType: part.type === "file" ? part.mimeType : (part.mimeType ?? "image/png"),
+        mimeType:
+          part.type === "file"
+            ? part.mimeType
+            : (part.mimeType ?? dataUrlMimeType(part.data) ?? "image/png"),
       };
     });
     out.push({ role: "user", content, timestamp: Date.now() });

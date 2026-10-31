@@ -26,9 +26,12 @@ export function createNodeBindings(vars: Record<string, string | undefined> = pr
   return env;
 }
 
+/** String vars only, with "" treated as unset (as core's parseEnv does and Workers never sends). */
 function stringVars(vars: Record<string, string | undefined>) {
   const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(vars)) if (typeof value === "string") out[key] = value;
+  for (const [key, value] of Object.entries(vars)) {
+    if (typeof value === "string" && value !== "") out[key] = value;
+  }
   return out;
 }
 

@@ -92,13 +92,25 @@ const ConflictManifestSchema = z.object({
 
 export type ConflictManifest = z.infer<typeof ConflictManifestSchema>;
 
-/** The pending conflict manifest, or null when there is none (or it is unreadable). */
+/**
+ * The pending conflict manifest, or null when there is none. A manifest that
+ * exists but cannot be read or parsed is an error, not "nothing pending".
+ */
 export async function readManifest(projectRoot: string): Promise<ConflictManifest | null> {
+  const path = join(projectRoot, MANIFEST_RELATIVE_PATH);
+  let raw: string;
   try {
-    const raw = await readFile(join(projectRoot, MANIFEST_RELATIVE_PATH), "utf-8");
+    raw = await readFile(path, "utf-8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw new Error(`Cannot read the conflict manifest at ${path}`, { cause: error });
+  }
+  try {
     return ConflictManifestSchema.parse(JSON.parse(raw));
-  } catch {
-    return null;
+  } catch (error) {
+    throw new Error(`Invalid conflict manifest at ${path}: ${(error as Error).message}`, {
+      cause: error,
+    });
   }
 }
 

@@ -79,5 +79,6 @@ deliberate future cost, recorded here.
 
 A one-day spike preceded full adoption: install Kumo, migrate one
 representative page, measure bundle delta / visual diff / per-component
-friction (`@source`, portal z-index, token import order). Adoption
-proceeded only after the spike confirmed the friction was tractable.
+friction (`@source`, portal z-index, token import order). The spike's
+outcome is recorded in [0003](0003-revert-kumo-adoption.md): it did not
+produce a positive result, and Kumo was never adopted.

@@ -24,7 +24,8 @@ export function snippetFor(
       "  return (",
       "    <>",
       "      <h1>404</h1>",
-      `      <Script src="${origin}/embed.js" data-site="${siteKey}" strategy="afterInteractive" />`,
+      // data-404: App Router not-found pages keep the root layout's title, so don't rely on it
+      `      <Script src="${origin}/embed.js" data-site="${siteKey}" data-404="true" strategy="afterInteractive" />`,
       "    </>",
       "  )",
       "}",

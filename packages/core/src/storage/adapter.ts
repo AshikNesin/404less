@@ -96,7 +96,9 @@ export function listKeys(
 ): { keys: string[]; prefixes: string[]; cursor?: string } {
   const prefix = options.prefix ?? "";
   const { delimiter, cursor } = options;
-  const limit = Math.min(options.limit ?? MAX_LIST_LIMIT, MAX_LIST_LIMIT);
+  const requested = options.limit ?? MAX_LIST_LIMIT;
+  if (!(requested >= 1)) throw new RangeError(`list limit must be at least 1, got ${requested}`);
+  const limit = Math.min(Math.floor(requested), MAX_LIST_LIMIT);
   const isPrefix = new Map<string, boolean>();
   for (const key of keys) {
     if (!key.startsWith(prefix)) continue;

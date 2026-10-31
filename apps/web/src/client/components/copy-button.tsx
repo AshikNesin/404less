@@ -21,7 +21,7 @@ export function CopyButton({
         try {
           await navigator.clipboard.writeText(value);
         } catch {
-          /* clipboard blocked: nothing to do */
+          return; // clipboard blocked: don't claim it was copied
         }
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);

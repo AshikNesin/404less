@@ -143,6 +143,14 @@ export async function renameFile(params: {
   oldPath: string;
   newPath: string;
 }): Promise<{ newPath: string }> {
+  // Renaming onto itself: copying succeeds, then deleting the "old" path would
+  // remove the only copy. Keep the 404 contract for a missing source.
+  if (params.oldPath === params.newPath) {
+    if (!(await storage.head(params.oldPath))) {
+      throw Boom.notFound(`Source file not found: ${params.oldPath}`);
+    }
+    return { newPath: params.newPath };
+  }
   await copyFile(params);
   await storage.delete([params.oldPath]);
   return { newPath: params.newPath };

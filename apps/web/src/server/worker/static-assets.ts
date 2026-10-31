@@ -1,15 +1,20 @@
 // Static assets with explicit routing (html_handling is off in wrangler.jsonc):
 //   /app, /app/*  → the SPA shell (app.html), client-side routed
 //   /foo          → foo.html from the marketing site, else the site's 404 page
-// Workers only: reads the ASSETS binding per request. Mounted last (app.ts).
+// Workers only: reads the ASSETS binding per request; without one (Node) it
+// falls through. Mounted last (app.ts).
 import { Hono } from "hono";
 import type { AppBindings } from "../types";
 
 export const staticAssets = new Hono<AppBindings>();
 
-staticAssets.get("*", async (c) => {
+staticAssets.get("*", async (c, next) => {
   const assets = c.env?.ASSETS;
-  if (!assets) return c.json({ error: "not found" }, 404);
+  // no ASSETS binding (Node): fall through to the runtime's own static serving / 404
+  if (!assets) {
+    await next();
+    return;
+  }
   const url = new URL(c.req.url);
   const fetchAsset = (p: string) =>
     assets.fetch(

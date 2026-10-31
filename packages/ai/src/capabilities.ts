@@ -27,9 +27,14 @@ const NONE: ModelCapabilities = { nativeDocuments: false, nativeImages: false };
 /** First match wins; rules are tested case-insensitively against the model id. */
 const DEFAULT_RULES: CapabilityRule[] = [
   // Document + image capable providers
-  { test: /gemini|vertex/i, capabilities: ALL_TRUE },
+  // Gemini only: Vertex also hosts the text-only open models matched below.
+  { test: /gemini/i, capabilities: ALL_TRUE },
   { test: /claude|anthropic/i, capabilities: ALL_TRUE },
+  // gpt-oss is text-only even under the openai/ prefix
+  { test: /gpt-oss/i, capabilities: NONE },
   { test: /gpt-4o|gpt-4\.1|gpt-5|openai\//i, capabilities: ALL_TRUE },
+  // Vision variants of the text-only families below (qwen*-vl, glm-*v): images, no documents
+  { test: /qwen[\w.-]*-vl|glm-[\w.]*v\b/i, capabilities: IMAGES_ONLY },
   // Text-only open models (must precede the cline-pass catch-all below,
   // since cline-pass also serves these: cline-pass/deepseek-v4-pro, etc.)
   { test: /glm|deepseek|qwen|minimax|mimo/i, capabilities: NONE },

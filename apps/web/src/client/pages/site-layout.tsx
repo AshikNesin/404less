@@ -5,11 +5,26 @@ import { useSite } from "../features/sites/queries";
 import { EmptyState } from "../components/ui/empty-state";
 import { PageSkeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
+import { QueryError } from "../components/ui/query-state";
 
 export function SiteLayout() {
   const { siteId } = useParams() as { siteId: string };
   const site = useSite(siteId);
   if (site.isPending) return <PageSkeleton />;
+  // a failed request is not a missing site: say so and offer a retry
+  if (site.isError && !site.data) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <QueryError
+          variant="plain"
+          error={site.error}
+          fallback="Could not load this site"
+          onRetry={() => void site.refetch()}
+          isRetrying={site.isFetching}
+        />
+      </div>
+    );
+  }
   if (!site.data) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">

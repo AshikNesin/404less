@@ -39,10 +39,18 @@ export function configPath(projectRoot: string): string {
 export async function loadConfig(projectRoot: string): Promise<SyncConfig> {
   const path = configPath(projectRoot);
   let raw: unknown;
+  let text: string;
   try {
-    raw = JSON.parse(await readFile(path, "utf-8"));
-  } catch {
-    throw new Error(`Config not found or unreadable at ${path}. Is this a groot-synced project?`);
+    text = await readFile(path, "utf-8");
+  } catch (error) {
+    throw new Error(`Config not found or unreadable at ${path}. Is this a groot-synced project?`, {
+      cause: error,
+    });
+  }
+  try {
+    raw = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`Invalid JSON in ${path}: ${(error as Error).message}`, { cause: error });
   }
   return SyncConfigSchema.parse(raw);
 }

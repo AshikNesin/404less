@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
-  "changelog": ["../scripts/changelog.cjs", { "repo": "AshikNesin/groot" }],
+  "changelog": ["../scripts/changelog.cjs", { "repo": "AshikNesin/404less" }],
   "commit": false,
   "fixed": [],
   "linked": [],

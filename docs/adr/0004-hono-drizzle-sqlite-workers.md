@@ -52,9 +52,10 @@ libraries could run on it.
 - Core uses Web APIs only; `node:` imports are confined to the Node driver and
   storage adapter (plus `node:async_hooks` and `node:buffer`, which Workers
   provide under `nodejs_compat`).
-- **No database transactions**, because D1 has none. Multi-step writes are
-  designed as single statements, compare-and-set updates or idempotent retries;
-  the job tick is the model.
+- **No explicit `db.transaction()`**, because D1 does not expose one. D1's
+  `batch([...])` does run its statements atomically; otherwise multi-step
+  writes are designed as single statements, compare-and-set updates or
+  idempotent retries; the job tick is the model.
 - **The Workers free plan's 10 ms CPU budget** per request and per cron run
   shapes the defaults: PBKDF2 at 100,000 iterations instead of bcrypt, one
   cron fire per minute, small job batches, no CPU-heavy work in handlers.

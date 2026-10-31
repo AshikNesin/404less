@@ -2,6 +2,7 @@
 import { Hono } from "hono";
 import { siteFilters } from "../sites/sites.service";
 import { recordVisitorHit, suggestFor } from "../links/links.service";
+import { siteOrigin } from "../crawl/crawl.service";
 import { urlMatchesPattern } from "../../lib/suggest";
 import type { Env } from "../../types";
 import { eq } from "drizzle-orm";
@@ -92,5 +93,6 @@ ingest.get("/suggestions", async (c) => {
   const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 3) || 3, 1), 5);
   const suggestions = await suggestFor(c.env, site.id, url, limit);
   c.header("Cache-Control", "public, max-age=300");
-  return c.json({ suggestions, home: `https://${site.domain}/` });
+  // same scheme choice as the crawler: loopback/private hosts are plain http
+  return c.json({ suggestions, home: `${siteOrigin(site.domain)}/` });
 });

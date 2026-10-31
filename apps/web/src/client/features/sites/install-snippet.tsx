@@ -59,16 +59,16 @@ export function InstallSnippet({
         </ul>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <a href={preview()} target="_blank" rel="noreferrer">
-          <Button variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm">
+          <a href={preview()} target="_blank" rel="noreferrer">
             Preview the widget <ArrowUpRight />
-          </Button>
-        </a>
-        <a href={preview("&mode=inline")} target="_blank" rel="noreferrer">
-          <Button variant="ghost" size="sm">
+          </a>
+        </Button>
+        <Button asChild variant="ghost" size="sm">
+          <a href={preview("&mode=inline")} target="_blank" rel="noreferrer">
             Inline mode <ArrowUpRight />
-          </Button>
-        </a>
+          </a>
+        </Button>
       </div>
     </div>
   );

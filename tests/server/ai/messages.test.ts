@@ -50,6 +50,21 @@ describe("toPiContext", () => {
     expect(blocks[2].data).toBe(Buffer.from("raw").toString("base64"));
   });
 
+  it("takes an image's media type from its data: URL when none is given", () => {
+    const ctx = toPiContext([
+      {
+        role: "user",
+        content: [
+          { type: "image", data: "data:image/jpeg;base64,anBn" },
+          { type: "image", data: new URL("data:image/webp;base64,d2Vi") },
+          { type: "image", data: "cmF3" },
+        ],
+      },
+    ]);
+    const blocks = ctx.messages[0].content as Array<{ mimeType: string }>;
+    expect(blocks.map((b) => b.mimeType)).toEqual(["image/jpeg", "image/webp", "image/png"]);
+  });
+
   it("rejects non-data URLs with a clear error", () => {
     expect(() =>
       toPiContext([

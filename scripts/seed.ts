@@ -16,7 +16,7 @@ import { todos } from "../apps/web/src/server/db/schema";
 
 export const SEED_USER = {
   email: "demo@example.com",
-  password: "demo@example.com",
+  password: "demo@example.com", // gitleaks:allow (documented dev-only demo account)
   name: "Demo User",
 };
 

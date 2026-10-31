@@ -48,9 +48,12 @@ router.post(
 router.get("/files/download", async (c) => {
   const query = parseQuery(c, downloadFileSchema);
   const file = await storageService.downloadFile({ filePath: query.filePath });
+  // Uploaded HTML/SVG/XML/JS would run script on the app's origin if rendered inline.
+  const active = /html|svg|xml|javascript/i.test(file.contentType);
   return c.body(file.bytes, 200, {
     "Content-Type": file.contentType,
-    "Content-Disposition": `inline; ${sanitizeFileName(file.fileName)}`,
+    "Content-Disposition": `${active ? "attachment" : "inline"}; ${sanitizeFileName(file.fileName)}`,
+    "X-Content-Type-Options": "nosniff",
   });
 });
 

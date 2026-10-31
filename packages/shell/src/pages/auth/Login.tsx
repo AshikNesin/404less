@@ -11,7 +11,7 @@ import { LayoutDashboard, ShieldCheck, Zap, ArrowRight, KeyRound } from "lucide-
 
 const isDev = import.meta.env.DEV;
 
-const DEMO_CREDENTIALS = { email: "demo@example.com", password: "demo@example.com" };
+const DEMO_CREDENTIALS = { email: "demo@example.com", password: "demo@example.com" }; // gitleaks:allow (dev-only demo account)
 
 // Mirrors the server's loginSchema (packages/core/src/auth/auth.schema.ts),
 // duplicated so the client bundle never imports the server package.

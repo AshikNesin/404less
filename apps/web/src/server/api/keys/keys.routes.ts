@@ -1,43 +1,44 @@
 // Authenticated API-key management (per team).
 import { Hono } from "hono";
-import { createKey, deleteKey, listKeys } from "../keys/keys.service";
+import { createKey, deleteKey, listKeys, MAX_KEYS_PER_TEAM } from "../keys/keys.service";
 import type { Env } from "../../types";
-import { and, count, eq } from "drizzle-orm";
-import { apiKeys, db, teamMembers } from "../../db";
+import { and, eq } from "drizzle-orm";
+import { db, teamMembers } from "../../db";
 
 export const keys = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 
-async function memberTeam(env: Env, teamId: string | undefined, userId: string): Promise<boolean> {
-  if (!teamId) return false;
+/** The user's role in the team, or null when they aren't a member. */
+async function teamRole(teamId: string | undefined, userId: string): Promise<string | null> {
+  if (!teamId) return null;
   const row = await db
-    .select({ ok: teamMembers.team_id })
+    .select({ role: teamMembers.role })
     .from(teamMembers)
     .where(and(eq(teamMembers.team_id, teamId), eq(teamMembers.user_id, userId)))
     .get();
-  return !!row;
+  return row?.role ?? null;
 }
 
 keys.get("/teams/:teamId/keys", async (c) => {
-  if (!(await memberTeam(c.env, c.req.param("teamId"), c.get("userId"))))
+  if (!(await teamRole(c.req.param("teamId"), c.get("userId"))))
     return c.json({ error: "not found" }, 404);
   return c.json({ keys: await listKeys(c.env, c.req.param("teamId")) });
 });
 
 keys.post("/teams/:teamId/keys", async (c) => {
   const teamId = c.req.param("teamId");
-  if (!(await memberTeam(c.env, teamId, c.get("userId"))))
-    return c.json({ error: "not found" }, 404);
-  // hard cap per team to protect self-hosters' D1
-  const [{ n }] = await db.select({ n: count() }).from(apiKeys).where(eq(apiKeys.team_id, teamId));
-  if (n >= 20) return c.json({ error: "key limit reached (max 20)" }, 402);
+  const role = await teamRole(teamId, c.get("userId"));
+  if (!role) return c.json({ error: "not found" }, 404);
+  if (role === "viewer") return c.json({ error: "viewers cannot manage API keys" }, 403);
   const created = await createKey(c.env, teamId);
+  if (!created) return c.json({ error: `key limit reached (max ${MAX_KEYS_PER_TEAM})` }, 402);
   return c.json({ key: { id: created.id, prefix: created.prefix }, secret: created.key }, 201); // shown once
 });
 
 keys.delete("/teams/:teamId/keys/:id", async (c) => {
   const teamId = c.req.param("teamId");
-  if (!(await memberTeam(c.env, teamId, c.get("userId"))))
-    return c.json({ error: "not found" }, 404);
+  const role = await teamRole(teamId, c.get("userId"));
+  if (!role) return c.json({ error: "not found" }, 404);
+  if (role === "viewer") return c.json({ error: "viewers cannot manage API keys" }, 403);
   await deleteKey(c.env, teamId, c.req.param("id"));
   return c.json({ ok: true });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { getModelCapabilities, maxReasoningEffort } from "@groot/ai";
 
 describe("getModelCapabilities", () => {
-  it("treats gemini/vertex, claude and gpt models as document+image capable", () => {
+  it("treats gemini (incl. on vertex), claude and gpt models as document+image capable", () => {
     for (const id of [
       "google-vertex-ai/google/gemini-3-flash-preview",
       "anthropic/claude-sonnet-4-6",
@@ -17,6 +17,20 @@ describe("getModelCapabilities", () => {
       nativeDocuments: false,
       nativeImages: false,
     });
+  });
+
+  it("does not treat Vertex-hosted open models or gpt-oss as document capable", () => {
+    const none = { nativeDocuments: false, nativeImages: false };
+    expect(getModelCapabilities("google-vertex-ai/deepseek/deepseek-v3.2")).toEqual(none);
+    expect(getModelCapabilities("google-vertex-ai/qwen/qwen3-coder")).toEqual(none);
+    expect(getModelCapabilities("openai/gpt-oss-120b")).toEqual(none);
+  });
+
+  it("treats vision variants of text-only families as image-only", () => {
+    const imagesOnly = { nativeDocuments: false, nativeImages: true };
+    expect(getModelCapabilities("qwen/qwen3-vl-plus")).toEqual(imagesOnly);
+    expect(getModelCapabilities("zai/glm-4.5v")).toEqual(imagesOnly);
+    expect(getModelCapabilities("zai/glm-5.2").nativeImages).toBe(false);
   });
 
   it("treats cline-pass/kimi models as image-only", () => {

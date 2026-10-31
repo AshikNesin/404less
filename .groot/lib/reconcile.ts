@@ -95,6 +95,18 @@ export async function reconcileFile(sides: FileSides, mergeFn: MergeFn): Promise
     }
   }
 
+  // package.json without a baseline: merge against an empty base rather than
+  // writing conflict markers into JSON (which breaks every tool that reads it).
+  if (path === PACKAGE_JSON_FILENAME && baseText === null) {
+    const merged = mergePackageJson(oursText, "{}", theirsText);
+    if (merged.ok) {
+      return merged.text === oursText
+        ? { kind: "identical" }
+        : { kind: "auto-merged", content: merged.text };
+    }
+    return { kind: "conflict", content: oursText, conflicts: 1 };
+  }
+
   // Untouched locally since last sync → take theirs.
   if (base !== null && ours.equals(base)) return { kind: "auto-apply", content: theirs };
 

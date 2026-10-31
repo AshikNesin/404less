@@ -2,12 +2,14 @@ import {
   mkdir,
   readdir,
   readFile,
+  rename,
   rm,
   rmdir,
   stat,
   writeFile,
   copyFile as fsCopy,
 } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import {
   bodyToBytes,
@@ -103,7 +105,16 @@ export function localStorage(root: string = LOCAL_UPLOADS_ROOT): StorageAdapter 
     async put(key: string, body: StorageBody) {
       const file = resolve(key);
       await mkdir(path.dirname(file), { recursive: true });
-      await writeFile(file, await bodyToBytes(body));
+      // write beside the target, then rename over it: an interrupted overwrite
+      // (full disk, crash) leaves the previous object intact
+      const temp = `${file}.${randomUUID()}.tmp`;
+      try {
+        await writeFile(temp, await bodyToBytes(body));
+        await rename(temp, file);
+      } catch (error) {
+        await rm(temp, { force: true });
+        throw error;
+      }
       return (await headKey(key))!;
     },
 

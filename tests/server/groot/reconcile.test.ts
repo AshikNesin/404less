@@ -33,6 +33,21 @@ const conflictMerge =
   (content: string, conflicts = 1) =>
   async (): Promise<MergeFileResult> => ({ clean: false, content, conflicts });
 
+describe("reconcileFile — package.json without a baseline", () => {
+  it("merges instead of writing conflict markers into JSON", async () => {
+    const ours = JSON.stringify({ name: "child", scripts: { a: "1" } }, null, 2) + "\n";
+    const theirs = JSON.stringify({ name: "groot", scripts: { b: "2" } }, null, 2) + "\n";
+    const result = await reconcileFile(sides("package.json", ours, null, theirs), neverMerge);
+    expect(
+      result.kind === "conflict" || result.kind === "auto-merged" || result.kind === "identical",
+    ).toBe(true);
+    if (result.kind === "auto-merged" || result.kind === "conflict") {
+      expect(result.content).not.toContain("<<<<<<<");
+      expect(() => JSON.parse(result.content)).not.toThrow();
+    }
+  });
+});
+
 describe("reconcileFile — upstream deletions", () => {
   it("ignores files that never were synced (no base, no theirs)", async () => {
     const outcome = await reconcileFile(sides("a.ts", "local", null, null), neverMerge);

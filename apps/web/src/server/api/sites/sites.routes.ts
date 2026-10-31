@@ -1,5 +1,6 @@
 // Authenticated dashboard API: me, teams, sites. Mounted under the session-guarded /api/v1 (see app.ts).
 import { Hono } from "hono";
+import { csvCell } from "../../lib/csv";
 import { newId, newSiteKey, now } from "../../lib/auth";
 import {
   crawlReport,
@@ -281,10 +282,6 @@ sites.get("/sites/:id/events.csv", async (c) => {
         .orderBy(desc(notFoundEvents.ts))
         .limit(limit);
 
-  const esc = (v: unknown) => {
-    const s = v == null ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const header = group ? "url,hits,first_seen,last_seen" : "url,referrer,user_agent,ts";
   const body = rows
     .map((r) =>
@@ -295,10 +292,10 @@ sites.get("/sites/:id/events.csv", async (c) => {
             new Date(r.first_seen ?? 0).toISOString(),
             new Date(r.last_seen ?? 0).toISOString(),
           ]
-            .map(esc)
+            .map(csvCell)
             .join(",")
         : [r.url, r.referrer ?? "", r.user_agent ?? "", new Date(r.ts ?? 0).toISOString()]
-            .map(esc)
+            .map(csvCell)
             .join(","),
     )
     .join("\n");

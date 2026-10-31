@@ -15,20 +15,25 @@ export class ApiError extends Error {
 }
 
 export async function api<T = unknown>(path: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    headers: { "Content-Type": "application/json", ...opts?.headers },
-    ...opts,
-  });
+  const headers = new Headers(opts?.headers);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const res = await fetch(path, { ...opts, headers });
   if (res.status === 401 && !path.startsWith("/api/v1/auth")) {
+    // the session is gone: <ProtectedRoute> switches to the sign-in page; the
+    // request still settles so React Query never holds a pending fetch
     useAuthStore.getState().clearAuth();
-    await new Promise(() => {}); // the app is switching to the sign-in page
+    throw new ApiError("Your session has ended. Sign in again.", 401, {});
   }
   const text = await res.text();
   let body: unknown = {};
   try {
     body = text ? JSON.parse(text) : {};
   } catch {
-    body = { error: text };
+    // not JSON (a proxy or platform error page): never hand that page to the UI
+    const message = res.ok
+      ? `Unexpected response from ${path}`
+      : res.statusText || `Request failed (${res.status})`;
+    throw new ApiError(message, res.status, {});
   }
   if (!res.ok)
     throw new ApiError((body as { error?: string }).error ?? res.statusText, res.status, body);

@@ -1,5 +1,6 @@
 // Authenticated: broken-link triage for one site. Thin: parse → service → status code.
 import { Hono } from "hono";
+import { csvCell } from "../../lib/csv";
 import { siteForUser } from "../sites/sites.service";
 import {
   getLink,
@@ -40,10 +41,6 @@ links.get("/sites/:id/links.csv", async (c) => {
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
   const q = parseList(c.req.query());
   const { links: rows } = await listLinks(c.env, site.site.id, { ...q, page: 1, limit: 5000 });
-  const esc = (v: unknown) => {
-    const s = v == null ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const iso = (t: number | null) => (t ? new Date(t).toISOString() : "");
   const header =
     "url,title,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url";
@@ -61,7 +58,7 @@ links.get("/sites/:id/links.csv", async (c) => {
         r.found_on ?? "",
         r.suggested_url ?? "",
       ]
-        .map(esc)
+        .map(csvCell)
         .join(","),
     )
     .join("\n");
@@ -83,6 +80,7 @@ links.get("/sites/:id/links/:linkId", async (c) => {
 links.patch("/sites/:id/links", async (c) => {
   const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
+  if (site.role === "viewer") return c.json({ error: "viewers cannot triage links" }, 403);
   const body = await c.req.json().catch(() => ({}));
   const ids: unknown = body?.ids;
   const status = body?.status;
@@ -104,6 +102,7 @@ links.patch("/sites/:id/links", async (c) => {
 links.post("/sites/:id/links/:linkId/check", async (c) => {
   const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
+  if (site.role === "viewer") return c.json({ error: "forbidden" }, 403);
   const result = await recheckLink(c.env, site.site, c.req.param("linkId"));
   if (!result) return c.json({ error: "not found" }, 404);
   return c.json(result);

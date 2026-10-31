@@ -49,10 +49,10 @@ export async function runScheduled(
     .select({ id: websites.id })
     .from(websites)
     .where(eq(websites.crawl_enabled, 1));
-  const messages = sites.map((s) => ({
-    body: { kind: "crawl-site", siteId: s.id } as CrawlMessage,
-  }));
-  if (messages.length) await env.CRAWLQ.sendBatch(messages);
+  await sendAll(
+    env,
+    sites.map((s): CrawlMessage => ({ kind: "crawl-site", siteId: s.id })),
+  );
 }
 
 async function sendAll(env: Env, messages: CrawlMessage[]): Promise<void> {

@@ -16,7 +16,8 @@ export function getContentType(fileName: string): string {
   if (!extension) {
     return "application/octet-stream";
   }
-  return map[extension] ?? "application/octet-stream";
+  // own keys only: "constructor" or "__proto__" must not resolve to Object.prototype members
+  return Object.hasOwn(map, extension) ? map[extension] : "application/octet-stream";
 }
 
 /**

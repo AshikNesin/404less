@@ -56,8 +56,9 @@ export function createApp(options: CreateAppOptions = {}): Hono<AppEnv> {
 
   app.use(requestLoggerMiddleware);
   app.use((c, next) => (matchesPath(openPaths, c.req.path) ? openCors(c, next) : appCors(c, next)));
+  // Only the multipart upload sets its own (larger) limit; other storage routes are JSON.
   app.use("/api/*", (c, next) =>
-    c.req.path.startsWith("/api/v1/storage/") ? next() : limit(c, next),
+    c.req.path === "/api/v1/storage/files/upload" ? next() : limit(c, next),
   );
 
   const probe = () => {

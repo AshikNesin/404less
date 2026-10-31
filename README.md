@@ -59,8 +59,9 @@ pnpm dev:worker        # builds the SPA + marketing site, runs the Worker (worke
 ```
 
 Open http://127.0.0.1:8787 (site) or http://127.0.0.1:8787/app (dashboard).
-Migrations apply on the first request. Without `RESEND_API_KEY` the magic-link
-sign-in returns the link directly (dev mode), so no email setup is needed.
+Migrations apply on the first request. Without `RESEND_API_KEY` a local
+server (`localhost`) returns the magic sign-in link directly, so no email setup
+is needed for development.
 
 For UI work, `pnpm dev` runs the app on Node with Vite HMR (SQLite in
 `data/dev.db`; the crawl queue runs in-process, alerts are logged instead of
@@ -84,12 +85,14 @@ Manual:
 ```bash
 pnpm exec wrangler d1 create 404less          # paste database_id into wrangler.jsonc
 pnpm deploy:worker                             # build SPA + site, deploy (migrations apply on the first request)
-pnpm exec wrangler secret put RESEND_API_KEY   # email (sign-in links + email digests)
+pnpm exec wrangler secret put RESEND_API_KEY   # required: email sign-in links (+ email digests)
 pnpm exec wrangler secret put MAIL_FROM        # optional, e.g. "404less <no-reply@yourdomain>"
 ```
 
-No other secrets are needed: the session secret (and the keys groot's
-production checks ask for) are generated on first boot and kept in D1.
+`RESEND_API_KEY` is the one secret a public deployment needs: without it,
+sign-in on a non-local host answers 503 rather than handing sign-in links to
+whoever asks. The session secret (and the keys groot's production checks ask
+for) are generated on first boot and kept in D1.
 
 Optional vars (`wrangler.jsonc` → `vars`): `MAX_SITES_PER_TEAM` (default 5),
 `EVENT_RETENTION_DAYS` (default 90). Crons: crawler every 30 min, retention

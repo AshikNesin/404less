@@ -18,7 +18,8 @@ export function JobLogs({ logs }: { logs: JobLog[] }) {
             <Console
               logs={logs.map((log) => ({
                 id: log.id.toString(),
-                method: (log.level === "warning" ? "warn" : log.level) as
+                // persisted levels are info | warn | error | fatal; console-feed has no "fatal"
+                method: (log.level === "fatal" ? "error" : log.level) as
                   | "log"
                   | "warn"
                   | "error"

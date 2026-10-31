@@ -14,7 +14,7 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0 # Fetch all history for all branches
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -39,6 +39,10 @@ jobs:
           # Protected branches that should never be deleted
           PROTECTED_BRANCHES=("main" "master" "develop" "development" "staging" "production")
 
+          DEFAULT_SHA=$(git rev-parse "origin/$DEFAULT_BRANCH")
+          deleted=0
+          failed=0
+
           # Get all remote branches except the default branch
           for branch in $(git branch -r --merged origin/$DEFAULT_BRANCH | grep -v 'HEAD' | sed 's/origin\///'); do
             # Skip if it's the default branch
@@ -61,17 +65,33 @@ jobs:
               continue
             fi
 
+            # A branch whose tip IS the default branch's tip has no commits of its
+            # own yet (just created, PR about to be opened): not merged work.
+            if [ "$(git rev-parse "origin/$branch")" = "$DEFAULT_SHA" ]; then
+              echo "⏭️  Skipping branch with no commits yet: $branch"
+              continue
+            fi
+
             # Delete the merged branch
             echo "🗑️  Deleting merged branch: $branch"
-            git push origin --delete "$branch" || echo "⚠️  Failed to delete $branch (may be protected)"
+            if git push origin --delete "$branch"; then
+              deleted=$((deleted + 1))
+            else
+              echo "⚠️  Failed to delete $branch"
+              failed=$((failed + 1))
+            fi
           done
 
-          echo "✅ Cleanup completed!"
+          echo "deleted=$deleted" >> "$GITHUB_ENV"
+          echo "failed=$failed" >> "$GITHUB_ENV"
+          echo "Deleted $deleted branch(es), $failed failure(s)."
+          if [ "$failed" -gt 0 ]; then exit 1; fi
 
       - name: Summary
+        if: always()
         run: |
           echo "## Merged Branches Cleanup Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Cleanup job completed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "Deleted: ${deleted:-0} · Failed: ${failed:-0}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Run Date:** $(date -u)" >> $GITHUB_STEP_SUMMARY

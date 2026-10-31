@@ -69,27 +69,40 @@ update_app_name() {
     fi
     local slug_name
     slug_name=$(to_slug "$app_name")
+    if [[ ! "$slug_name" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+        print_error "'$app_name' gives no usable package/Worker name (needs ASCII letters or digits). Nothing changed."
+        return 1
+    fi
     echo
 
-    # Human-readable name: shown in logs and passkey prompts.
-    sed_inplace "s|name: \"[^\"]*\"|name: \"$app_name\"|" apps/web/src/server/config.ts
-    print_success "apps/web/src/server/config.ts: app.name → '$app_name'"
-    sed_inplace "s|^RP_NAME=.*|RP_NAME=$app_name|" .env.example
-    print_success ".env.example: RP_NAME → '$app_name'"
+    # Every edit in one structured pass: the name travels as data (env vars),
+    # never inside a sed program, so |, &, \ or quotes cannot corrupt a file.
+    APP_NAME="$app_name" SLUG_NAME="$slug_name" node -e '
+const fs = require("fs");
+const name = process.env.APP_NAME;
+const slug = process.env.SLUG_NAME;
+const edit = (file, fn) => fs.writeFileSync(file, fn(fs.readFileSync(file, "utf8")));
 
-    # Slug: package name and the Cloudflare Worker name.
-    node -e "
-const fs = require('fs');
-const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-pkg.name = '$slug_name';
-if (pkg.repository?.url) {
-    pkg.repository.url = pkg.repository.url.replace(/\\/[a-z0-9_-]+\\.git$/, '/$slug_name.git');
-}
-fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-"
+// Human-readable name: shown in logs and passkey prompts.
+edit("apps/web/src/server/config.ts", (s) => s.replace(/name: "[^"]*"/, () => `name: ${JSON.stringify(name)}`));
+edit(".env.example", (s) => s.replace(/^RP_NAME=.*$/m, () => `RP_NAME=${name}`));
+
+// Slug: package name and the Cloudflare Worker name.
+const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+pkg.name = slug;
+if (pkg.repository?.url) pkg.repository.url = pkg.repository.url.replace(/\/[a-z0-9_-]+\.git$/, `/${slug}.git`);
+fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+
+// wrangler.jsonc: the top-level Worker name (whatever it currently is) and RP_NAME.
+edit("wrangler.jsonc", (s) =>
+  s
+    .replace(/^  "name": "[^"]*"/m, () => `  "name": ${JSON.stringify(slug)}`)
+    .replace(/"RP_NAME": "[^"]*"/, () => `"RP_NAME": ${JSON.stringify(name)}`),
+);
+'
+    print_success "apps/web/src/server/config.ts: app.name → '$app_name'"
+    print_success ".env.example: RP_NAME → '$app_name'"
     print_success "package.json: name → '$slug_name'"
-    sed_inplace "s|\"name\": \"groot\"|\"name\": \"$slug_name\"|" wrangler.jsonc
-    sed_inplace "s|\"RP_NAME\": \"Groot\"|\"RP_NAME\": \"$app_name\"|" wrangler.jsonc
     print_success "wrangler.jsonc: name → '$slug_name'"
 }
 

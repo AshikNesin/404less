@@ -16,10 +16,12 @@ export interface KvStore {
   clear(prefix?: string): Promise<number>;
 }
 
-/** `key LIKE prefix%` with `_`/`%` in the prefix escaped (SQLite needs an explicit ESCAPE clause). */
+/**
+ * Keys starting with `prefix`, case-sensitively. Not `LIKE`: SQLite's LIKE
+ * ignores ASCII case, so `clear("user:")` would also delete `User:1`.
+ */
 function keyStartsWith(prefix: string) {
-  const pattern = `${prefix.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
-  return sql`${kvTable.key} LIKE ${pattern} ESCAPE '\\'`;
+  return sql`substr(${kvTable.key}, 1, length(${prefix})) = ${prefix}`;
 }
 
 export function createKvStore(namespace = ""): KvStore {

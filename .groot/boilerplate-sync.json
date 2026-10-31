@@ -11,6 +11,7 @@
   "additional_exclusions": [
     "vitest.config.worker.ts",
     ".github/workflows/worker-tests.yml",
+    ".github/workflows/release.yml",
     "docs/DESIGN.md",
     "docs/demo/**",
     "tests/server/jobs/**",

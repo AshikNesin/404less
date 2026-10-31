@@ -47,13 +47,16 @@ function AddJobForm({ onDone }: { onDone: () => void }) {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [data, setData] = useState("{}");
+  const [pending, setPending] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (!name) {
       toast.error("Error", { description: "Please select a job name" });
       return;
     }
-    return withJobToast(
+    if (pending) return; // a double click must not enqueue the job twice
+    setPending(true);
+    await withJobToast(
       () => jobsApi.addJob(name, JSON.parse(data)),
       (jobId) => (
         <span>
@@ -70,6 +73,7 @@ function AddJobForm({ onDone }: { onDone: () => void }) {
         void queryClient.invalidateQueries({ queryKey: jobsKeys.stats });
       },
     );
+    setPending(false);
   };
 
   return (
@@ -88,7 +92,9 @@ function AddJobForm({ onDone }: { onDone: () => void }) {
         <Button variant="outline" onClick={onDone}>
           Cancel
         </Button>
-        <Button onClick={() => void submit()}>Add Job</Button>
+        <Button onClick={() => void submit()} disabled={pending}>
+          Add Job
+        </Button>
       </div>
     </DialogBody>
   );

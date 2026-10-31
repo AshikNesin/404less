@@ -358,3 +358,34 @@ describe("r2 storage adapter", () => {
     expect(calls.delete).toBe(2);
   });
 });
+
+describe("listKeys and getContentType edge cases", () => {
+  it("rejects list limits below 1 instead of silently truncating", async () => {
+    const { listKeys } = await import("@groot/core/storage/adapter");
+    for (const limit of [0, -1, Number.NaN]) {
+      expect(() => listKeys(["a", "b"], { limit })).toThrow(RangeError);
+    }
+    expect(listKeys(["a", "b"], { limit: 1.7 }).keys).toEqual(["a"]);
+  });
+
+  it("does not resolve Object.prototype members as content types", async () => {
+    const { getContentType } = await import("@groot/core/storage/storage.utils");
+    for (const name of ["report.constructor", "x.toString", "x.__proto__"]) {
+      expect(getContentType(name)).toBe("application/octet-stream");
+    }
+  });
+
+  it("local overwrites go through a temp file that never lingers", async () => {
+    const { readdir } = await import("node:fs/promises");
+    const root = await mkdtemp(path.join(tmpdir(), "groot-atomic-"));
+    try {
+      const storage = localStorage(root);
+      await storage.put("d/f.txt", "old");
+      await storage.put("d/f.txt", "new");
+      expect(new TextDecoder().decode((await storage.get("d/f.txt"))!.bytes)).toBe("new");
+      expect(await readdir(path.join(root, "d"))).toEqual(["f.txt"]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});

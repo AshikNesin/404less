@@ -43,7 +43,8 @@ export function JobDetail() {
     );
   }
 
-  if (error || !job) {
+  // a failed background poll keeps showing the job it already loaded
+  if (!job) {
     return (
       <PageContainer maxWidth="5xl">
         <Button variant="ghost" onClick={() => navigate("/jobs")} className="mb-4 -ml-2">
