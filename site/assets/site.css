@@ -241,7 +241,8 @@ p {
   width: 28px;
   height: 28px;
 }
-.brand span {
+/* one word: the gap above is for the mark, never between "404" and "less" */
+.brand-word span {
   color: var(--muted);
   font-weight: 500;
 }

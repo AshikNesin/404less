@@ -1,9 +1,10 @@
-// Renders the Open Graph images (1200×630) into site/assets/og/. Needs Playwright
-// on NODE_PATH and the Inter / JetBrains Mono fonts installed.
+// Renders the Open Graph images (1200×630) into site/assets/og/ with Playwright
+// (`pnpm build:og`). Needs the Inter / JetBrains Mono fonts installed.
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
-const { chromium } = createRequire(import.meta.url)("playwright");
+// @playwright/test is the installed package (it bundles playwright and re-exports chromium)
+const { chromium } = createRequire(import.meta.url)("@playwright/test");
 
 const DIR = path.resolve(new URL(".", import.meta.url).pathname);
 const OUT = path.resolve(DIR, "..", "assets", "og");
