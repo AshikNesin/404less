@@ -11,6 +11,10 @@ import { waitUntil } from "../../lib/background";
 
 export const ingest = new Hono<{ Bindings: Env }>();
 
+/** A "not found" page title; the same test the embed uses to detect a 404 page. */
+export const NOT_FOUND_TITLE =
+  /(^|\D)404(\D|$)|not\s+found|page\s+(doesn.?t|does\s+not|could\s+not\s+be|cannot\s+be)\s+(exist|be\s+found|found)/i;
+
 ingest.post("/track", async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body?.siteKey || !body?.url || typeof body.url !== "string")
@@ -40,8 +44,12 @@ ingest.post("/track", async (c) => {
   const url = parsed.toString().slice(0, 2000);
   const referrer =
     typeof body.referrer === "string" && body.referrer ? body.referrer.slice(0, 2000) : null;
+  // What the visitor saw. The event keeps it as-is; the link only takes it as its label when
+  // it is not a generic "404: Page not found" (most 404 pages), which would label every
+  // broken link the same way and block the real title the crawler records later.
   const title =
     typeof body.title === "string" && body.title.trim() ? body.title.trim().slice(0, 300) : null;
+  const linkTitle = title && !NOT_FOUND_TITLE.test(title) ? title : null;
 
   // Per-site rate limit (protects the free-tier D1 write budget)
   const rl = c.env.RATELIMIT.get(c.env.RATELIMIT.idFromName(site.id));
@@ -62,7 +70,7 @@ ingest.post("/track", async (c) => {
     ts,
     title,
   });
-  const outcome = await recordVisitorHit(c.env, site.id, url, ts, title);
+  const outcome = await recordVisitorHit(c.env, site.id, url, ts, linkTitle);
 
   // Ignored links are still counted, but never alert. Everything else goes to the
   // per-site digest DO, which groups hits per URL and flushes once per window.

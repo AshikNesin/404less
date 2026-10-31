@@ -277,15 +277,26 @@ test("overview: counts, series, top open, crawl summary; links csv", async () =>
   expect(csv).toContain("https://links.test/old-pricing,,ignored,visitor,2");
 });
 
-test("titles: the 404 page title a visitor saw is stored on the event and the link", async () => {
-  await track("https://links.test/legacy/download", "https://links.test/", "Page not found · Acme");
+test("titles: the title a visitor saw is stored on the event and labels the link", async () => {
+  await track("https://links.test/legacy/download", "https://links.test/", "Download Acme 2.0");
   const event = await env.DB.prepare(
     "SELECT title FROM not_found_events WHERE url = 'https://links.test/legacy/download' ORDER BY ts DESC LIMIT 1",
   ).first<{ title: string | null }>();
-  expect(event!.title).toBe("Page not found · Acme");
+  expect(event!.title).toBe("Download Acme 2.0");
   const { links } = await list("?status=all");
   const row = links.find((l: any) => l.url === "https://links.test/legacy/download");
-  expect(row.title).toBe("Page not found · Acme");
+  expect(row.title).toBe("Download Acme 2.0");
+});
+
+test("titles: a generic 404 page title is kept on the event but does not label the link", async () => {
+  await track("https://links.test/legacy/manual", "https://links.test/", "Page not found · Acme");
+  const event = await env.DB.prepare(
+    "SELECT title FROM not_found_events WHERE url = 'https://links.test/legacy/manual' ORDER BY ts DESC LIMIT 1",
+  ).first<{ title: string | null }>();
+  expect(event!.title).toBe("Page not found · Acme");
+  const { links } = await list("?status=all");
+  const row = links.find((l: any) => l.url === "https://links.test/legacy/manual");
+  expect(row.title).toBeNull();
 });
 
 test("delete site removes everything, viewers and strangers cannot", async () => {

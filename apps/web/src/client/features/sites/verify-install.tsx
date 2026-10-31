@@ -1,4 +1,5 @@
-// "Did it work?": sits on the overview until the first real 404 lands.
+// "Did it work?": polls the overview until a real 404 lands and confirms it with a toast.
+// The card itself shows only for a site that has gone quiet (no hits in 7 days).
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
@@ -37,13 +38,17 @@ export function VerifyInstall({ site, overview }: { site: Site; overview: Overvi
     void qc.invalidateQueries({ queryKey: ["sites"] }); // refreshes last_hit_at, which hides this card
   }, [hitArrived, qc, toast]);
 
-  if (!waiting) return null;
+  // Never had a hit: the setup checklist's install step already offers the test 404, so
+  // keep polling (and the toast above) without a second card saying the same thing.
+  if (!waiting || site.last_hit_at === null) return null;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Waiting for the first hit…</CardTitle>
-        <CardDescription>Trigger a real 404 to confirm the snippet is live.</CardDescription>
+        <CardTitle>No hits in the last 7 days</CardTitle>
+        <CardDescription>
+          Trigger a real 404 to check the snippet is still on your 404 page.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">

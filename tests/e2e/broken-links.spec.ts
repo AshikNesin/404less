@@ -34,6 +34,8 @@ test.describe("Widget to triage", () => {
     // The overview flips to live and lists the link as needing attention.
     await page.goto(`/app/sites/${site.id}`);
     await expect(page.getByText("Tracking live")).toBeVisible();
+    await expect(page.getByText("Your numbers show up here")).toHaveCount(0);
+    await expect(page.getByText("404 hits per day")).toBeVisible();
     await expect(page.getByText("/blog/hello-wrld").first()).toBeVisible();
 
     // Broken links: the URL, its hit, and the suggested fix.
@@ -44,6 +46,8 @@ test.describe("Widget to triage", () => {
     const row = page.getByRole("row", { name: /\/blog\/hello-wrld/ });
     await expect(row).toBeVisible();
     await expect(row).toContainText("/blog/hello-world");
+    // the 404 page's own title is not a useful label for the link
+    await expect(row).not.toContainText("Page not found");
     await expect(page.getByRole("tab", { name: /^Open/ })).toContainText("1");
 
     // Detail page: where it came from and the redirect to add.
@@ -56,6 +60,15 @@ test.describe("Widget to triage", () => {
       page.getByText("referrer.example").or(page.getByText("Direct")).first(),
     ).toBeVisible();
     await expect(page.getByText("/blog/hello-world").first()).toBeVisible();
+
+    // On a phone the page fits the screen (the redirect tabs scroll instead of widening it).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByText("Redirect rule")).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(0);
+    await page.setViewportSize({ width: 1280, height: 720 });
 
     // Resolve from the detail page: back to the open list, now empty.
     await page.getByRole("button", { name: "Resolve", exact: true }).click();

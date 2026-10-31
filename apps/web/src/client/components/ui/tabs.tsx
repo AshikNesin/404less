@@ -15,7 +15,12 @@ export function SegmentedTabs<T extends string>({
   className?: string;
 }) {
   return (
-    <Tabs value={value} onValueChange={(v) => onChange(v as T)} className={className}>
+    // scrolls sideways instead of widening the page when the tabs don't fit (phones)
+    <Tabs
+      value={value}
+      onValueChange={(v) => onChange(v as T)}
+      className={cn("max-w-full overflow-x-auto [scrollbar-width:none]", className)}
+    >
       <TabsList>
         {items.map((it) => (
           <TabsTrigger key={it.value} value={it.value} className="px-2.5 text-xs">

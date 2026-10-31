@@ -64,11 +64,11 @@ export function ChannelsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Channels</CardTitle>
-          <CardDescription>
-            {list.length === 0
-              ? "None yet."
-              : `${list.filter((c) => c.enabled).length} of ${list.length} enabled`}
-          </CardDescription>
+          {list.length > 0 && (
+            <CardDescription>
+              {list.filter((c) => c.enabled).length} of {list.length} enabled
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           {channels.isPending || !teamId ? (

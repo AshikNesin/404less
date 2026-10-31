@@ -243,7 +243,12 @@ function SiteSwitcher({
             <span className="truncate text-[0.8125rem] font-medium">
               {active?.name ?? "Select a site"}
             </span>
-            <span className="truncate text-meta">{active?.domain ?? `${sites.length} sites`}</span>
+            {/* the name defaults to the domain: don't print it twice */}
+            {(!active || active.domain !== active.name) && (
+              <span className="truncate text-meta">
+                {active?.domain ?? `${sites.length} sites`}
+              </span>
+            )}
           </span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
         </button>

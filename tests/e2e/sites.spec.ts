@@ -17,6 +17,9 @@ test.describe("Sites", () => {
     await expect(page.getByText("Install the snippet on your 404 page")).toBeVisible();
     await expect(page.getByText("Import your sitemap or run a crawl")).toBeVisible();
     await expect(page.getByText("Add a notification channel")).toBeVisible();
+    // no data yet: a preview of the dashboard instead of zero stats and an empty chart
+    await expect(page.getByRole("region", { name: "Your numbers show up here" })).toBeVisible();
+    await expect(page.getByText("Needs attention")).toHaveCount(0);
 
     // the site's pages are in the sidebar
     const nav = page.getByRole("navigation", { name: "Main navigation" });
