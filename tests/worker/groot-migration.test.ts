@@ -97,10 +97,12 @@ describe("migration continuity (databases created before groot)", () => {
       ),
     ]);
 
-    expect(await migrateD1(db as never, migrations)).toEqual([
-      "0007_url_titles.sql",
-      "0008_core_kv.sql",
-    ]);
+    // 0007 first, then every later migration, in order (the list grows with new migrations)
+    const applied = await migrateD1(db as never, migrations);
+    expect(applied[0]).toBe("0007_url_titles.sql");
+    expect(applied).toEqual(
+      migrations.map((m) => m.name).filter((name) => !/^000[1-6]_/.test(name)),
+    );
     // 0007's backfill ran against the existing rows
     expect(await db.prepare("SELECT title FROM broken_links WHERE id = 'b1'").first("title")).toBe(
       "Page A",
