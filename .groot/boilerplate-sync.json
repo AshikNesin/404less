@@ -5,11 +5,10 @@
   },
   "last_sync": {
     "version": "3.0.0",
-    "commit": "a4b4a7683fda7e71fc238cea99f2b05e3c15e637",
-    "date": "2026-10-31T00:00:00.000Z"
+    "commit": "1a38cc221122ba029a6820bcab9ea7f3ca9f402b",
+    "date": "2026-10-31T13:05:33.718Z"
   },
   "additional_exclusions": [
-    "scripts/seed.ts",
     "vitest.config.worker.ts",
     ".github/workflows/worker-tests.yml",
     ".github/workflows/release.yml",

@@ -157,6 +157,10 @@ export const SKIP_PATTERNS: readonly string[] = [
   // App-owned entry file (downstream branding).
   "apps/web/index.html",
 
+  // App-owned seed data. It imports the app's own schema (the template seeds
+  // todos), so a synced copy breaks `pnpm dev` in any child without those tables.
+  "scripts/seed.ts",
+
   // Project-local tests (app routes, end-to-end).
   "tests/server/app/**",
   "tests/e2e/**",

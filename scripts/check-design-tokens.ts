@@ -151,7 +151,9 @@ const RULES: Rule[] = [
   {
     name: "transition-colors-hover",
     // Kumo rule #7: instant color hover. @groot/ui primitives own the motion
-    // language; pages never add transitions. If a primitive legitimately\n    // needs one it is added (and reviewed) there — allow-list is the whole\n    // packages/ui/src, pattern still applies to pages/shell/jobs/web.
+    // language; pages never add transitions. If a primitive legitimately
+    // needs one it is added (and reviewed) there — allow-list is the whole
+    // packages/ui/src, pattern still applies to pages/shell/jobs/web.
     pattern: "\\btransition-(color|all)s?\\b",
     message:
       "transition-colors/transition-all (DLS rule: instant color hover).\n" +
@@ -209,16 +211,26 @@ function runRule(rule: Rule): { file: string; line: string }[] {
   // status 1 == no matches for this rule.
   if (status !== 0 || !result.stdout.trim()) return [];
 
-  return result.stdout
-    .trim()
-    .split("\n")
-    .map((line) => {
-      const [file, ...rest] = line.split(":");
-      return { file, line: rest.join(":").trim() };
-    })
-    .filter(
-      ({ file }) => !rule.allow?.some((a) => (a.endsWith("/") ? file.startsWith(a) : file === a)),
-    );
+  return (
+    result.stdout
+      .trim()
+      .split("\n")
+      .map((line) => {
+        const [file, ...rest] = line.split(":");
+        return { file, line: rest.join(":").trim() };
+      })
+      // Comments may name a banned class to explain why it is avoided; only code counts.
+      .filter(({ line }) => !isCommentLine(line))
+      .filter(
+        ({ file }) => !rule.allow?.some((a) => (a.endsWith("/") ? file.startsWith(a) : file === a)),
+      )
+  );
+}
+
+/** A `rg -n` match body ("12:  // …") whose source line is a comment (`//`, `/*`, ` * `). */
+function isCommentLine(match: string): boolean {
+  const source = match.replace(/^\d+:/, "").trimStart();
+  return source.startsWith("//") || source.startsWith("/*") || source.startsWith("*");
 }
 
 let failed = false;
