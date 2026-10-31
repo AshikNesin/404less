@@ -272,7 +272,7 @@ test("overview: counts, series, top open, crawl summary; links csv", async () =>
     })
   ).text();
   expect(csv.split("\n")[0]).toBe(
-    "url,title,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url",
+    "url,title,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url,anchor,found_on_title",
   );
   expect(csv).toContain("https://links.test/old-pricing,,ignored,visitor,2");
 });

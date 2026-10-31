@@ -46,6 +46,34 @@ test("crawler success resolves an open link and stamps resolved_at", async () =>
   expect(await row(url)).toEqual({ status: "open", resolved_at: null });
 });
 
+test("where the crawler found a link (page + anchor text) is kept, and survives the fix", async () => {
+  const url = "https://status.test/old-installer";
+  const where = (u: string) =>
+    env.DB.prepare("SELECT found_on, found_on_title, anchor FROM broken_links WHERE url = ?")
+      .bind(u)
+      .first();
+  const foundOn = {
+    url: "https://status.test/download",
+    title: "Download Firefox",
+    anchor: "Mozilla Firefox Offline Installer",
+  };
+  await recordCrawlResult(noEnv, SITE, url, { status: 404, ok: false }, 1000, foundOn);
+  expect(await where(url)).toEqual({
+    found_on: foundOn.url,
+    found_on_title: foundOn.title,
+    anchor: foundOn.anchor,
+  });
+
+  // a recheck with no page behind it (visitor links) leaves it alone
+  await recordCrawlResult(noEnv, SITE, url, { status: 404, ok: false }, 2000);
+  expect((await where(url))!.anchor).toBe(foundOn.anchor);
+
+  // fixed: resolved, and the reference stays
+  await recordCrawlResult(noEnv, SITE, url, { status: 200, ok: true }, 3000);
+  expect(await row(url)).toEqual({ status: "resolved", resolved_at: 3000 });
+  expect((await where(url))!.anchor).toBe(foundOn.anchor);
+});
+
 test("crawler success never stamps an ignored link", async () => {
   const url = "https://status.test/ignored";
   await recordVisitorHit(noEnv, SITE, url, 1000);

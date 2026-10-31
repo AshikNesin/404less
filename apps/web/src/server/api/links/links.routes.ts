@@ -43,7 +43,7 @@ links.get("/sites/:id/links.csv", async (c) => {
   const { links: rows } = await listLinks(c.env, site.site.id, { ...q, page: 1, limit: 5000 });
   const iso = (t: number | null) => (t ? new Date(t).toISOString() : "");
   const header =
-    "url,title,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url";
+    "url,title,status,source,hits,http_status,first_seen,last_seen,found_on,suggested_url,anchor,found_on_title";
   const body = rows
     .map((r) =>
       [
@@ -57,6 +57,8 @@ links.get("/sites/:id/links.csv", async (c) => {
         iso(r.last_seen),
         r.found_on ?? "",
         r.suggested_url ?? "",
+        r.anchor ?? "",
+        r.found_on_title ?? "",
       ]
         .map(csvCell)
         .join(","),

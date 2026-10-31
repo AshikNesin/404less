@@ -49,9 +49,13 @@ export type BrokenLinkRow = {
   title: string | null;
   suggested_url: string | null;
   suggested_title: string | null;
+  /** Where the crawler last found it linked (kept after fixes and across runs). */
+  found_on: string | null;
+  found_on_title: string | null;
+  anchor: string | null;
 };
 
-export type ListRow = BrokenLinkRow & { source_pages: number; found_on: string | null };
+export type ListRow = BrokenLinkRow & { source_pages: number };
 
 export type ListQuery = {
   status: LinkStatus | "all";
@@ -129,6 +133,7 @@ async function insertLink(
   httpStatus: number | null,
   hits: number,
   title: string | null = null,
+  where: { found_on?: string; found_on_title?: string | null; anchor?: string | null } = {},
 ) {
   const id = crypto.randomUUID();
   const [best] = await suggestFor(env, siteId, url, 1);
@@ -146,6 +151,7 @@ async function insertLink(
     title: ownTitle,
     suggested_url: best?.url ?? null,
     suggested_title: best?.title ?? null,
+    ...where,
   });
   return id;
 }
@@ -184,14 +190,22 @@ export async function recordVisitorHit(
 export type CheckOutcome = { alert: boolean; status: LinkStatus | null };
 
 /** The crawler checked the URL: a failure opens/reopens the row, a success resolves it. */
+export type FoundOn = { url: string; title: string | null; anchor: string | null };
+
 export async function recordCrawlResult(
   env: Env,
   siteId: string,
   url: string,
   result: { status: number; ok: boolean },
   ts: number,
+  /** The page (and anchor text) the crawler found the link on, when it came from one. */
+  foundOn?: FoundOn,
 ): Promise<CheckOutcome> {
   const prev = await findByUrl(env, siteId, url);
+  // where it was found, kept on the row for reference (survives the next run and the fix)
+  const where = foundOn
+    ? { found_on: foundOn.url, found_on_title: foundOn.title, anchor: foundOn.anchor }
+    : {};
   if (result.ok) {
     if (!prev) return { alert: false, status: null };
     const status: LinkStatus = prev.status === "open" ? "resolved" : prev.status;
@@ -208,7 +222,7 @@ export async function recordCrawlResult(
     return { alert: false, status };
   }
   if (!prev) {
-    await insertLink(env, siteId, url, "crawler", ts, result.status, 0);
+    await insertLink(env, siteId, url, "crawler", ts, result.status, 0, null, where);
     return { alert: true, status: "open" };
   }
   const reopened = prev.status === "resolved";
@@ -221,6 +235,7 @@ export async function recordCrawlResult(
       status,
       source: sql`CASE WHEN ${brokenLinks.source} = 'visitor' THEN 'both' ELSE ${brokenLinks.source} END`,
       ...(status === "open" && { resolved_at: null }),
+      ...where,
     })
     .where(eq(brokenLinks.id, prev.id));
   return { alert: reopened, status };
@@ -231,7 +246,11 @@ export async function listLinks(env: Env, siteId: string, q: ListQuery) {
   if (q.status !== "all") where.push(eq(brokenLinks.status, q.status));
   if (q.source === "visitor") where.push(inArray(brokenLinks.source, ["visitor", "both"]));
   if (q.source === "crawler") where.push(inArray(brokenLinks.source, ["crawler", "both"]));
-  if (q.q) where.push(sql`instr(lower(${brokenLinks.url}), ${q.q.toLowerCase()}) > 0`);
+  // search the URL and the anchor text it was linked with
+  if (q.q)
+    where.push(
+      sql`(instr(lower(${brokenLinks.url}), ${q.q.toLowerCase()}) > 0 OR instr(lower(coalesce(${brokenLinks.anchor}, '')), ${q.q.toLowerCase()}) > 0)`,
+    );
   const order =
     q.sort === "hits"
       ? [desc(brokenLinks.hits), desc(brokenLinks.last_seen)]
@@ -246,9 +265,6 @@ export async function listLinks(env: Env, siteId: string, q: ListQuery) {
       .select({
         ...getTableColumns(brokenLinks),
         source_pages: sql<number>`(SELECT COUNT(*) FROM ${crawlSources} WHERE ${sourcesOf})`,
-        found_on: sql<
-          string | null
-        >`(SELECT ${crawlSources.source_url} FROM ${crawlSources} WHERE ${sourcesOf} LIMIT 1)`,
       })
       .from(brokenLinks)
       .where(w)

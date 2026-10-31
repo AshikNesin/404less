@@ -3,7 +3,7 @@ import { Link } from "../../lib/router";
 import { ArrowUpRight, CircleCheck, EyeOff, RefreshCw, Undo2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { HttpStatusBadge, SourceBadge } from "../../components/ui/status";
-import { hostOf, isOnSite, pathOf } from "../../lib/format";
+import { hostOf, isOnSite, pathOf, urlLabel } from "../../lib/format";
 import type { LinkSource, LinkStatus } from "../../lib/types";
 import { cn } from "../../lib/utils";
 
@@ -164,6 +164,46 @@ export function StatusActions({
       {status !== "resolved" && btn("resolved", "Resolve", CircleCheck, "outline")}
       {status !== "ignored" && btn("ignored", "Ignore", EyeOff)}
       {status !== "open" && btn("open", "Reopen", Undo2)}
+    </div>
+  );
+}
+
+/**
+ * Where a link sits on the site: the text it is linked with, then the page it
+ * is on (title, opening the page). `more` counts other pages linking to it.
+ */
+export function FoundOnCell({
+  anchor,
+  pageUrl,
+  pageTitle,
+  domain,
+  more = 0,
+  className,
+}: {
+  anchor: string | null;
+  pageUrl: string;
+  pageTitle: string | null;
+  domain: string;
+  more?: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn("min-w-0", className)}>
+      {anchor ? (
+        <div className="truncate text-foreground" title={anchor}>
+          “{anchor}”
+        </div>
+      ) : (
+        <div className="truncate text-muted-foreground">No link text</div>
+      )}
+      <div className="flex min-w-0 items-center gap-1 text-meta">
+        <ExternalUrl
+          url={pageUrl}
+          label={pageTitle || urlLabel(pageUrl, domain)}
+          className="min-w-0 text-muted-foreground"
+        />
+        {more > 0 && <span className="shrink-0">+{more} more</span>}
+      </div>
     </div>
   );
 }

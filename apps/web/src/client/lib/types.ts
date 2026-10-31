@@ -37,8 +37,10 @@ export type BrokenLink = {
   suggested_url: string | null;
   suggested_title: string | null;
   source_pages: number;
+  /** Where the crawler last found it linked: the page, its title, the link text. */
   found_on: string | null;
   found_on_title: string | null;
+  anchor: string | null;
 };
 
 export type LinksPage = {
@@ -52,7 +54,7 @@ export type LinksPage = {
 export type Suggestion = { url: string; title: string | null; score: number };
 
 export type LinkDetail = {
-  link: Omit<BrokenLink, "source_pages" | "found_on">;
+  link: Omit<BrokenLink, "source_pages">;
   suggestions: Suggestion[];
   referrers: { referrer: string; n: number }[];
   sources: { source_url: string; source_title: string | null; anchor: string | null }[];
@@ -104,6 +106,7 @@ export type CrawlRow = {
   link_status: LinkStatus | null;
   found_on: string | null;
   found_on_title: string | null;
+  anchor: string | null;
 };
 
 export type KnownUrl = {

@@ -33,7 +33,16 @@ export type Env = {
 export type CrawlMessage =
   | { kind: "crawl-site"; siteId: string; manual?: boolean } // start a run (enqueue seed pages + rechecks)
   | { kind: "fetch-page"; siteId: string; url: string; depth: number } // fetch page, extract links
-  | { kind: "check-link"; siteId: string; url: string; sourceUrl: string; anchor?: string }
+  | {
+      kind: "check-link";
+      siteId: string;
+      url: string;
+      sourceUrl: string;
+      anchor?: string;
+      /** Set when the link was found on a crawled page (not a recheck): kept on the broken link. */
+      sourceTitle?: string | null;
+      foundOnPage?: true;
+    }
   | { kind: "fetch-titles"; siteId: string; job: string }; // fill real <title>s for untitled known URLs
 
 /** Hono env for 404less routers: bindings + the signed-in user (set by the session middleware). */

@@ -77,6 +77,12 @@ export const LIVE_PAGES: Record<string, string> = {
 /** Internal links on the home page that 404. */
 export const BROKEN_LINKS = ["/old-pricing", "/blog/hello-wrld"];
 
+/** The link text each broken link has on the home page. */
+export const BROKEN_ANCHORS: Record<string, string> = {
+  "/old-pricing": "See our old pricing &amp; plans",
+  "/blog/hello-wrld": "Read the launch post",
+};
+
 type ServerState = { siteKey: string; webhookCalls: unknown[] };
 
 function customerSiteServer(state: ServerState) {
@@ -120,7 +126,7 @@ function customerSiteServer(state: ServerState) {
       const links =
         url.pathname === "/"
           ? [...Object.keys(LIVE_PAGES), ...BROKEN_LINKS]
-              .map((p) => `<a href="${p}">${p}</a>`)
+              .map((p) => `<a href="${p}">${BROKEN_ANCHORS[p] ?? p}</a>`)
               .join(" ")
           : `<a href="/">Home</a>`;
       page(200, title, `<h1>${title}</h1><nav>${links}</nav>`);

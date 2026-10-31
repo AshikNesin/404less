@@ -242,6 +242,14 @@ export const brokenLinks = sqliteTable(
     suggested_url: text("suggested_url"),
     suggested_title: text("suggested_title"),
     title: text("title"),
+    /**
+     * Where the crawler last found this link on the site: the linking page and the
+     * anchor text. Kept on the link (crawl_sources is reset every run), so it stays
+     * for reference after the link is fixed.
+     */
+    anchor: text("anchor"),
+    found_on: text("found_on"),
+    found_on_title: text("found_on_title"),
   },
   (t) => [
     uniqueIndex("idx_broken_links_site_url").on(t.website_id, t.url),

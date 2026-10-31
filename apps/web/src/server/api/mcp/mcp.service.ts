@@ -78,6 +78,9 @@ export async function listBrokenLinks(
       last_seen: brokenLinks.last_seen,
       suggested_url: brokenLinks.suggested_url,
       suggested_title: brokenLinks.suggested_title,
+      found_on: brokenLinks.found_on,
+      found_on_title: brokenLinks.found_on_title,
+      anchor: brokenLinks.anchor,
     })
     .from(brokenLinks)
     .where(and(...where))
@@ -96,6 +99,8 @@ export async function listBrokenLinks(
       first_seen: iso(r.first_seen),
       last_seen: iso(r.last_seen),
       suggested_fix: r.suggested_url ? { url: r.suggested_url, title: r.suggested_title } : null,
+      // where the crawler last saw it linked: the page to edit and the link text to look for
+      found_on: r.found_on ? { url: r.found_on, title: r.found_on_title, anchor: r.anchor } : null,
     })),
   };
 }

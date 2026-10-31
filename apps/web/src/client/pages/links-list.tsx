@@ -1,11 +1,10 @@
 // Broken links: the triage list. Tabs by status, search, source + sort,
 // bulk actions, pagination; everything lives in the URL.
-import { Link } from "../lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { CircleCheck, Download, EyeOff, Search, Undo2 } from "lucide-react";
-import { compact, fullTime, plural, relTime } from "../lib/format";
+import { compact, fullTime, relTime } from "../lib/format";
 import type { LinkStatus } from "../lib/types";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
@@ -25,7 +24,7 @@ import {
   useSetLinkStatus,
   type LinksSearch,
 } from "../features/links/queries";
-import { StatusActions, SuggestionCell, UrlCell } from "../features/links/parts";
+import { FoundOnCell, StatusActions, SuggestionCell, UrlCell } from "../features/links/parts";
 import { useCurrentSite } from "../features/sites/queries";
 
 const STATUSES = ["open", "resolved", "ignored", "all"] as const;
@@ -114,9 +113,9 @@ export function LinksPage() {
                 <Input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search URLs…"
+                  placeholder="Search URLs or link text…"
                   className="w-56 pl-8"
-                  aria-label="Search URLs"
+                  aria-label="Search URLs or link text"
                 />
               </div>
               <Select
@@ -216,7 +215,7 @@ export function LinksPage() {
                 </Th>
                 <Th>URL</Th>
                 <Th className="text-right">Hits</Th>
-                <Th>Found on</Th>
+                <Th>Linked from</Th>
                 <Th>Suggested fix</Th>
                 <Th>{search.sort === "first_seen" ? "First seen" : "Last seen"}</Th>
                 <Th className="w-px">
@@ -257,15 +256,15 @@ export function LinksPage() {
                     <Td className="num text-right font-medium">
                       {l.hits ? compact(l.hits) : <span className="text-muted-foreground">-</span>}
                     </Td>
-                    <Td className="max-w-[12rem]">
-                      {l.source_pages > 0 ? (
-                        <Link
-                          to="/app/sites/$siteId/links/$linkId"
-                          params={{ siteId: site.id, linkId: l.id }}
-                          className="hover:underline"
-                        >
-                          {plural(l.source_pages, "page")}
-                        </Link>
+                    <Td className="max-w-[16rem]">
+                      {l.found_on ? (
+                        <FoundOnCell
+                          anchor={l.anchor}
+                          pageUrl={l.found_on}
+                          pageTitle={l.found_on_title}
+                          domain={site.domain}
+                          more={Math.max(0, l.source_pages - 1)}
+                        />
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}

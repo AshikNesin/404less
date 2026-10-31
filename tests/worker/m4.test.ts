@@ -48,6 +48,26 @@ beforeAll(async () => {
   siteId = site.site.id;
 });
 
+test("extractLinks: anchor text is readable, with image/label fallbacks", () => {
+  const html = `
+    <a href="/a">Tips &amp; Tricks
+      for   <strong>Firefox</strong></a>
+    <a href="/b"><img src="/logo.png" alt="Acme home"></a>
+    <a href="/c" aria-label="Open settings"><svg></svg></a>
+    <a href="/d" data-title="no" title="Download page"><i></i></a>
+    <a href="/e"><span></span></a>`;
+  const anchors = Object.fromEntries(
+    extractLinks("https://crawl.test/", html).links.map((l) => [new URL(l.url).pathname, l.anchor]),
+  );
+  expect(anchors).toEqual({
+    "/a": "Tips & Tricks for Firefox",
+    "/b": "Acme home",
+    "/c": "Open settings",
+    "/d": "Download page",
+    "/e": null,
+  });
+});
+
 test("extractLinks: anchors, assets, relative resolution, junk skipped", () => {
   const html = `
     <a href="/docs/getting-started">Getting Started</a>

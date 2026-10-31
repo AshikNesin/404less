@@ -20,6 +20,13 @@ test.describe("Crawler", () => {
         timeout: 30_000,
       });
     }
+    // each result says where it is linked: the link text (entities decoded) and the page
+    await expect(page.getByRole("row", { name: /\/old-pricing/ }).first()).toContainText(
+      "“See our old pricing & plans”",
+    );
+    await expect(page.getByRole("row", { name: /\/old-pricing/ }).first()).toContainText(
+      "Acme home",
+    );
     // working pages are checked too
     await expect(page.getByRole("row", { name: /\/pricing/ }).first()).toContainText("200");
     // pages it visited become known pages (they seed the next crawl and suggestions)
@@ -33,6 +40,14 @@ test.describe("Crawler", () => {
     await expect(page.getByRole("tab", { name: /^Open/ })).toContainText(
       String(BROKEN_LINKS.length),
     );
+    // the list shows the link text too, and search finds links by it
+    await expect(page.getByRole("row", { name: /\/blog\/hello-wrld/ })).toContainText(
+      "“Read the launch post”",
+    );
+    await page.getByLabel("Search URLs or link text").fill("launch post");
+    await expect(page.getByRole("row", { name: /\/blog\/hello-wrld/ })).toBeVisible();
+    await expect(page.getByRole("row", { name: /\/old-pricing/ })).toHaveCount(0);
+    await page.getByLabel("Search URLs or link text").fill("");
 
     // The detail page shows where the broken link was found.
     await page
@@ -40,7 +55,8 @@ test.describe("Crawler", () => {
       .first()
       .click();
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Open");
-    await expect(page.getByText(/Acme home|127\.0\.0\.1/).first()).toBeVisible();
+    await expect(page.getByText("“See our old pricing & plans”")).toBeVisible();
+    await expect(page.getByText("Acme home").first()).toBeVisible();
   });
 
   test("crawl settings: pages per crawl and ignored status codes", async ({ page }) => {

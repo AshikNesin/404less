@@ -27,7 +27,7 @@ export function extractLinks(base: string, html: string): ExtractedLinks {
   for (const m of html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const url = abs(m[1]);
     if (!url) continue;
-    const anchor = stripTags(m[2]).trim().slice(0, 200) || null;
+    const anchor = anchorText(m[0].slice(0, m[0].length - m[2].length - 4), m[2]);
     if (!out.links.some((l) => l.url === url)) out.links.push({ url, anchor });
   }
   for (const m of html.matchAll(/<img\b[^>]*src\s*=\s*["']([^"']+)["']/gi)) {
@@ -43,6 +43,28 @@ export function extractLinks(base: string, html: string): ExtractedLinks {
 
 function stripTags(s: string): string {
   return s.replace(/<[^>]+>/g, " ");
+}
+
+/** Readable text: entities decoded, whitespace collapsed. */
+function clean(s: string): string {
+  return decodeEntities(s).replace(/\s+/g, " ").trim();
+}
+
+function attr(tag: string, name: string): string | null {
+  const m = tag.match(new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, "i"));
+  return m ? clean(m[1]) || null : null;
+}
+
+/**
+ * What a reader sees as the link: its text, else (an image or icon link) the
+ * image's alt, the link's aria-label or its title. Null when there is none.
+ */
+function anchorText(openTag: string, inner: string): string | null {
+  const text = clean(stripTags(inner));
+  const img = inner.match(/<img\b[^>]*>/i)?.[0];
+  const label =
+    text || (img && attr(img, "alt")) || attr(openTag, "aria-label") || attr(openTag, "title");
+  return label ? label.slice(0, 200) : null;
 }
 
 /** Real page title from <title> (og:title fallback); null when absent. */

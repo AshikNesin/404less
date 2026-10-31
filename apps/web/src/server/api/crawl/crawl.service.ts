@@ -239,6 +239,8 @@ export async function fetchPage(
       url: l.url,
       sourceUrl: url,
       anchor: l.anchor ?? undefined,
+      sourceTitle: title,
+      foundOnPage: true,
     });
   }
   for (const a of assets) {
@@ -257,7 +259,14 @@ export async function fetchPage(
           target: [crawlSources.website_id, crawlSources.source_url, crawlSources.target_url],
         }),
     );
-    next.push({ kind: "check-link", siteId: site.id, url: a, sourceUrl: url });
+    next.push({
+      kind: "check-link",
+      siteId: site.id,
+      url: a,
+      sourceUrl: url,
+      sourceTitle: title,
+      foundOnPage: true,
+    });
   }
   // enqueue same-host pages for further crawling (robots-respecting, memoized per run)
   if (depth < 2) {
@@ -420,7 +429,10 @@ export async function checkLink(
     redirect_chain: result.redirectChain ? JSON.stringify(result.redirectChain) : null,
     checked_at: ts,
   });
-  const outcome = await recordCrawlResult(env, site.id, msg.url, result, ts);
+  const foundOn = msg.foundOnPage
+    ? { url: msg.sourceUrl, title: msg.sourceTitle ?? null, anchor: msg.anchor ?? null }
+    : undefined;
+  const outcome = await recordCrawlResult(env, site.id, msg.url, result, ts, foundOn);
   return outcome.alert;
 }
 

@@ -25,7 +25,7 @@ import { TableSkeleton } from "../components/ui/skeleton";
 import { useToast } from "../components/ui/toast";
 import { Page, PageHeader, SectionHeader } from "../components/page-header";
 import { overviewQuery } from "../features/sites/queries";
-import { ExternalUrl } from "../features/links/parts";
+import { FoundOnCell } from "../features/links/parts";
 import { useCurrentSite } from "../features/sites/queries";
 
 export function CrawlPage() {
@@ -271,7 +271,7 @@ export function CrawlPage() {
                 <tr>
                   <Th>URL</Th>
                   <Th>Status</Th>
-                  <Th>Found on</Th>
+                  <Th>Linked from</Th>
                   <Th>Checked</Th>
                   <Th>Triage</Th>
                 </tr>
@@ -306,15 +306,16 @@ export function CrawlPage() {
                         )}
                       </span>
                     </Td>
-                    <Td className="max-w-[16rem] text-muted-foreground">
+                    <Td className="max-w-[18rem]">
                       {r.found_on ? (
-                        <ExternalUrl
-                          url={r.found_on}
-                          label={r.found_on_title || urlLabel(r.found_on, site.domain)}
-                          className="text-muted-foreground"
+                        <FoundOnCell
+                          anchor={r.anchor}
+                          pageUrl={r.found_on}
+                          pageTitle={r.found_on_title}
+                          domain={site.domain}
                         />
                       ) : (
-                        "-"
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </Td>
                     <Td

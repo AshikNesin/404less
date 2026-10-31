@@ -202,7 +202,12 @@ export async function crawlReport(
     .where(and(eq(linkChecks.website_id, site.id), gte(linkChecks.checked_at, since)))
     .groupBy(linkChecks.url)
     .as("latest");
-  const firstSource = (column: typeof crawlSources.source_url | typeof crawlSources.source_title) =>
+  const firstSource = (
+    column:
+      | typeof crawlSources.source_url
+      | typeof crawlSources.source_title
+      | typeof crawlSources.anchor,
+  ) =>
     sql<
       string | null
     >`(SELECT ${column} FROM ${crawlSources} WHERE ${crawlSources.website_id} = ${lc.website_id} AND ${crawlSources.target_url} = ${lc.url} LIMIT 1)`;
@@ -217,6 +222,7 @@ export async function crawlReport(
       link_status: brokenLinks.status,
       found_on: firstSource(crawlSources.source_url),
       found_on_title: firstSource(crawlSources.source_title),
+      anchor: firstSource(crawlSources.anchor),
     })
     .from(lc)
     .innerJoin(latest, and(eq(latest.url, lc.url), eq(latest.m, lc.checked_at)))

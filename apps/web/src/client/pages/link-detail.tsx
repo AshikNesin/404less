@@ -33,7 +33,7 @@ import { PageSkeleton } from "../components/ui/skeleton";
 import { QueryError } from "../components/ui/query-state";
 import { BackLink, Page, PageHeader } from "../components/page-header";
 import { linkQuery, useRecheckLink, useSetLinkStatus } from "../features/links/queries";
-import { ExternalUrl, StatusActions } from "../features/links/parts";
+import { ExternalUrl, FoundOnCell, StatusActions } from "../features/links/parts";
 import { RedirectSnippet } from "../features/links/redirect-snippet";
 import { useCurrentSite } from "../features/sites/queries";
 import { cn } from "../lib/utils";
@@ -328,32 +328,41 @@ export function LinkDetailPage() {
                 <Bot className="size-4 text-muted-foreground" /> Linked from your pages
               </CardTitle>
               <CardDescription>
-                Pages the crawler found this link on. Fix these at the source.
+                Pages the crawler found this link on, and the text it is linked with. Fix these at
+                the source.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {sources.length === 0 ? (
+              {sources.length > 0 ? (
+                <ul className="-mx-4 divide-y divide-border">
+                  {sources.map((s) => (
+                    <li key={s.source_url} className="px-4 py-2 text-[0.8125rem]">
+                      <FoundOnCell
+                        anchor={s.anchor}
+                        pageUrl={s.source_url}
+                        pageTitle={s.source_title}
+                        domain={site.domain}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : link.found_on ? (
+                // the latest crawl didn't see it (fixed, or not crawled since): where it last was
+                <div className="space-y-1 text-[0.8125rem]">
+                  <FoundOnCell
+                    anchor={link.anchor}
+                    pageUrl={link.found_on}
+                    pageTitle={link.found_on_title}
+                    domain={site.domain}
+                  />
+                  <p className="text-meta">Where the crawler last found it.</p>
+                </div>
+              ) : (
                 <p className="text-caption">
                   {site.crawl_enabled || site.last_crawl_at
                     ? "Not found on any crawled page."
                     : "Run a crawl to find which of your pages link here."}
                 </p>
-              ) : (
-                <ul className="-mx-4 divide-y divide-border">
-                  {sources.map((s) => (
-                    <li key={s.source_url} className="px-4 py-2">
-                      <ExternalUrl
-                        url={s.source_url}
-                        label={s.source_title || urlLabel(s.source_url, site.domain)}
-                        className="text-[0.8125rem] text-foreground"
-                      />
-                      <div className="text-meta truncate" title={s.source_url}>
-                        {urlLabel(s.source_url, site.domain)}
-                        {s.anchor && <> · anchor: “{s.anchor}”</>}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
               )}
             </CardContent>
           </Card>
