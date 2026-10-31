@@ -64,7 +64,7 @@ export function ChannelForm({ teamId, onAdded }: { teamId: string; onAdded?: () 
             onClick={() => setType(t.value)}
             aria-pressed={type === t.value}
             className={cn(
-              "cursor-pointer rounded-lg border px-3 py-2 text-left",
+              "pressable cursor-pointer rounded-lg border px-3 py-2 text-left",
               type === t.value
                 ? "border-primary bg-primary/[0.05] ring-1 ring-primary"
                 : "border-border bg-card hover:bg-foreground/[0.02]",

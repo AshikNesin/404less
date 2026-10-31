@@ -12,6 +12,10 @@
   --color-subtle: var(--subtle);
   --color-chart: var(--chart);
   --color-chart-muted: var(--chart-muted);
+  /* Motion: Tailwind's stock curves are too soft. A strong ease-out for things
+     entering or responding to a press; an iOS-like curve for the drawer. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 :root {
@@ -135,7 +139,8 @@ body {
 
 /* Row actions that appear on hover; keyboard focus and touch show them too. Put `group` on the row. */
 @utility reveal-on-hover {
-  @apply opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100;
+  /* instant: seen on every row hover, a fade would only slow the list down */
+  @apply opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100;
 }
 
 /* Focus: one standard, everywhere. */
@@ -164,11 +169,34 @@ body {
   }
 }
 @utility animate-fade-up {
-  animation: fade-up 0.18s ease-out;
+  animation: fade-up 0.2s var(--ease-out);
 }
+
+/* Press feedback for pressables that aren't <Button> (Button gets it in components/ui/button). */
+@utility pressable {
+  transition: transform 150ms var(--ease-out);
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* Reduced motion means less motion, not none: drop movement (transform
+   transitions, slide/zoom entrances), keep fades, color changes and spinners. */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  ::before,
+  ::after {
+    transition-property: opacity, color, background-color, border-color, fill !important;
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  [data-slot$="-content"] {
     animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
   }
 }

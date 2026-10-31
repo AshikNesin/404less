@@ -104,23 +104,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileNav, setMobileNav] = useState(false);
   const location = useLocation();
   useEffect(() => setMobileNav(false), [location.pathname]);
+  // the drawer closes on Escape, like any overlay
+  useEffect(() => {
+    if (!mobileNav) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileNav(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileNav]);
 
   return (
     <div className="flex min-h-screen bg-sidebar">
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0",
+          "fixed inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-drawer md:sticky md:top-0 md:h-screen md:translate-x-0",
           mobileNav ? "translate-x-0 shadow-2xl" : "-translate-x-full",
         )}
       >
         <SidebarContent />
       </aside>
-      {mobileNav && (
-        <div
-          className="fixed inset-0 z-20 bg-foreground/25 md:hidden"
-          onClick={() => setMobileNav(false)}
-        />
-      )}
+      {/* scrim: always mounted so it fades with the drawer instead of popping in and out */}
+      <div
+        aria-hidden
+        className={cn(
+          "fixed inset-0 z-20 bg-foreground/25 transition-opacity duration-300 ease-drawer md:hidden",
+          mobileNav ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={() => setMobileNav(false)}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col md:pt-2">
         <div className="flex min-h-full flex-1 flex-col bg-background md:rounded-tl-xl md:border-t md:border-l md:border-sidebar-border">

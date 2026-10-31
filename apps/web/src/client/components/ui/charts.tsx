@@ -103,10 +103,7 @@ export function BarChart({
                 {d.hits > 0 && (
                   <path
                     d={columnPath(x, y, barW, h, 4)}
-                    className={cn(
-                      "fill-chart transition-opacity",
-                      hover !== null && !active && "opacity-60",
-                    )}
+                    className={cn("fill-chart", hover !== null && !active && "opacity-60")}
                   />
                 )}
                 {d.hits === 0 && (

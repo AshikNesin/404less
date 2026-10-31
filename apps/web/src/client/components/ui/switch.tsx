@@ -21,13 +21,13 @@ export function Switch({
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-[18px] w-8 shrink-0 cursor-pointer items-center rounded-full border border-transparent disabled:cursor-not-allowed disabled:opacity-50",
+        "pressable relative inline-flex h-[18px] w-8 shrink-0 cursor-pointer items-center rounded-full border border-transparent disabled:cursor-not-allowed disabled:opacity-50",
         checked ? "bg-primary" : "bg-foreground/20",
       )}
     >
       <span
         className={cn(
-          "inline-block size-3.5 rounded-full bg-background shadow-sm transition-transform",
+          "inline-block size-3.5 rounded-full bg-background shadow-sm transition-transform duration-200 ease-out",
           checked ? "translate-x-[15px]" : "translate-x-[3px]",
         )}
       />
