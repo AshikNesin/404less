@@ -70,4 +70,10 @@
   "vars": {
     "NODE_ENV": "production",
   },
+
+  // Preview deploys (Workers Builds on non-production branches) get no bindings:
+  // they prove the branch builds and uploads, without touching the production
+  // D1 or queue. Opening a preview URL fails at boot (no DB) by design. For
+  // working previews, point this block at test resources, never production ones.
+  "previews": {},
 }
