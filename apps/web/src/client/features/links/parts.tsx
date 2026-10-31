@@ -36,7 +36,8 @@ export function UrlCell({
       ) : (
         !onSite && <span className="font-normal text-muted-foreground">{hostOf(url)}</span>
       )}
-      {label}
+      {/* the path in mono, like the marketing site: a URL reads as a URL, not as prose */}
+      <span className="font-mono text-[0.9em] font-normal">{label}</span>
     </span>
   );
   return (
