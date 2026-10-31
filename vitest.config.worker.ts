@@ -23,7 +23,7 @@ export default defineConfig({
           CORS_ALLOWED_ORIGINS: "https://dashboard.404less.test",
         },
         // scratch databases for the migration-continuity test
-        d1Databases: ["LEGACY_DB", "FRESH_DB"],
+        d1Databases: ["LEGACY_DB", "FRESH_DB", "SKIPPED_DB", "FRESH2_DB"],
       },
     }),
   ],

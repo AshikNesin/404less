@@ -4,6 +4,7 @@ import { siteFilters } from "../sites/sites.service";
 import { recordVisitorHit, suggestFor } from "../links/links.service";
 import { siteOrigin } from "../crawl/crawl.service";
 import { urlMatchesPattern } from "../../lib/suggest";
+import { isAlwaysIgnored } from "../../lib/ignored-urls";
 import type { Env } from "../../types";
 import { eq } from "drizzle-orm";
 import { db, notFoundEvents, websites } from "../../db";
@@ -48,9 +49,10 @@ ingest.post("/track", async (c) => {
   const verdict = await rl.fetch(`https://ratelimit/${site.id}/check`, { method: "POST" });
   if (verdict.status === 429) return c.json({ ok: true, limited: true });
 
-  // Per-site exclusions: drop events the user chose to ignore.
+  // Built-in ignores (lib/ignored-urls.ts) and per-site exclusions: drop the event.
   const { excludes } = siteFilters(site);
-  if (excludes.some((p) => urlMatchesPattern(url, p))) return c.json({ ok: true, ignored: true });
+  if (isAlwaysIgnored(url) || excludes.some((p) => urlMatchesPattern(url, p)))
+    return c.json({ ok: true, ignored: true });
 
   const ts = Date.now();
   await db.insert(notFoundEvents).values({

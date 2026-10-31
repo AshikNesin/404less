@@ -237,3 +237,24 @@ test("import-sitemap: unreachable sitemap -> 422", async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test("Cloudflare's /cdn-cgi/l/email-protection is never tracked, on any site", async () => {
+  for (const url of [
+    "https://import.test/cdn-cgi/l/email-protection",
+    "https://import.test/cdn-cgi/l/email-protection#a1b2c3",
+    "https://import.test/CDN-CGI/l/email-protection/x",
+  ]) {
+    const r = await SELF.fetch("http://localhost/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ siteKey, url }),
+    });
+    expect(await r.json()).toEqual({ ok: true, ignored: true });
+  }
+  const row = await env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM broken_links WHERE website_id = ? AND url LIKE '%email-protection%'",
+  )
+    .bind(siteId)
+    .first<{ n: number }>();
+  expect(row!.n).toBe(0);
+});

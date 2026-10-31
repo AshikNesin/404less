@@ -7,6 +7,7 @@ import { extractLinks, pageTitle } from "./html";
 import { loadRobots, type Robots } from "./robots";
 import { newId } from "../../lib/auth";
 import { urlMatchesPattern } from "../../lib/suggest";
+import { isAlwaysIgnored } from "../../lib/ignored-urls";
 import {
   invalidateKnownUrls,
   openVisitorLinks,
@@ -101,7 +102,7 @@ export async function startCrawl(env: Env, site: CrawlSiteRow): Promise<CrawlMes
 }
 
 function excluded(url: string, patterns: string[]): boolean {
-  return patterns.some((p) => urlMatchesPattern(url, p));
+  return isAlwaysIgnored(url) || patterns.some((p) => urlMatchesPattern(url, p));
 }
 
 /** Fetch a page, extract links, record sources, enqueue checks + same-host page fetches. */
