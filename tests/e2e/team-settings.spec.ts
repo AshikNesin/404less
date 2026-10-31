@@ -65,8 +65,20 @@ test.describe("API & MCP", () => {
         .innerText()
     ).trim();
     expect(secret).toMatch(/^404l_[0-9a-f]{20,}$/);
-    // the agent setup is filled in with the real key
-    await expect(page.getByText(`Bearer ${secret}`).first()).toBeVisible();
+    // the connect dialog fills the real key into each client's setup
+    await page.getByRole("button", { name: "Connect an agent" }).click();
+    const dialog = page.getByRole("dialog", { name: "Connect an agent" });
+    await expect(dialog.getByText("Using the key you just created")).toBeVisible();
+    await dialog.getByRole("radio", { name: "Cursor" }).click();
+    await expect(dialog.getByText(`"Bearer ${secret}"`)).toBeVisible();
+    // one-click install carries the same config
+    const install = await dialog.getByRole("link", { name: "Add to Cursor" }).getAttribute("href");
+    const config = JSON.parse(
+      Buffer.from(new URL(install!).searchParams.get("config")!, "base64").toString("utf8"),
+    );
+    expect(config).toEqual({ url: `${APP}/mcp`, headers: { Authorization: `Bearer ${secret}` } });
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
 
     const callMcp = (token: string) =>
       page.request.post(`${APP}/mcp`, {
@@ -94,4 +106,30 @@ test.describe("API & MCP", () => {
     await expect(page.getByText("No API keys")).toBeVisible();
     expect((await callMcp(secret)).status()).toBe(401);
   });
+});
+
+test("connect dialog: no key on hand, create one in place and the setup works", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/app/settings/api-keys");
+  await page.getByRole("button", { name: "Done" }).click(); // the first key's secret is gone
+
+  // picking a client on the page opens the dialog on it
+  await page.getByRole("radio", { name: "Claude Code" }).click();
+  const dialog = page.getByRole("dialog", { name: "Connect an agent" });
+  await expect(dialog.getByRole("region", { name: "Add 404less to Claude Code" })).toBeVisible();
+  await expect(dialog.getByText("Bearer 404l_your_key")).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Create key" }).click();
+  await expect(dialog.getByText("Using the key you just created")).toBeVisible();
+  const command = await dialog.locator("pre").first().innerText();
+  const secret = command.match(/Bearer (404l_[0-9a-f]+)/)![1];
+  expect(command).toContain(`claude mcp add --transport http 404less ${APP}/mcp`);
+
+  const res = await page.request.post(`${APP}/mcp`, {
+    headers: { Authorization: `Bearer ${secret}` },
+    data: { jsonrpc: "2.0", id: 1, method: "tools/list" },
+  });
+  expect(res.status()).toBe(200);
 });

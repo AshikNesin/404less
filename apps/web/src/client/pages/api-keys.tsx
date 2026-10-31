@@ -1,7 +1,7 @@
 // API keys + MCP setup. Secrets are shown once.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
-import { KeyRound, Plus, Sparkles } from "lucide-react";
+import { KeyRound, Plug, Plus, Sparkles } from "lucide-react";
 import { api } from "../lib/api";
 import type { ApiKey } from "../lib/types";
 import { relTime } from "../lib/format";
@@ -22,7 +22,8 @@ import { TableSkeleton } from "../components/ui/skeleton";
 import { useToast } from "../components/ui/toast";
 import { Page, PageHeader } from "../components/page-header";
 import { meQuery } from "../features/sites/queries";
-import { McpSetup } from "../features/keys/mcp-setup";
+import { mcpUrl } from "../features/keys/mcp-setup";
+import { AgentGrid, ConnectAgentDialog, useLastAgent } from "../features/keys/connect-agent-dialog";
 
 export function ApiKeysPage() {
   const qc = useQueryClient();
@@ -30,6 +31,8 @@ export function ApiKeysPage() {
   const me = useQuery(meQuery);
   const teamId = me.data?.teams[0]?.id;
   const [secret, setSecret] = useState("");
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [agent, setAgent] = useLastAgent();
   const keys = useQuery({
     queryKey: ["keys", teamId],
     queryFn: () => api<{ keys: ApiKey[] }>(`/api/v1/teams/${teamId}/keys`),
@@ -63,14 +66,20 @@ export function ApiKeysPage() {
         title="API & MCP"
         description="Bearer tokens for the REST API and the MCP server. Keys belong to the team and can read every site on it."
         actions={
-          <Button
-            size="sm"
-            pending={create.isPending}
-            disabled={!teamId}
-            onClick={() => create.mutate()}
-          >
-            <Plus /> Create key
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              pending={create.isPending}
+              disabled={!teamId}
+              onClick={() => create.mutate()}
+            >
+              <Plus /> Create key
+            </Button>
+            <Button size="sm" onClick={() => setConnectOpen(true)}>
+              <Plug /> Connect an agent
+            </Button>
+          </>
         }
       />
 
@@ -94,16 +103,21 @@ export function ApiKeysPage() {
             <Sparkles className="size-4 text-muted-foreground" /> Connect your agent
           </CardTitle>
           <CardDescription>
-            Hand this whole setup to Claude Code, Cursor or any MCP client. It lists broken links,
+            Claude Code, Cursor, VS Code, Codex and any MCP client. Your agent lists broken links,
             reads referrers and suggested fixes, and opens the PR.
           </CardDescription>
           <CardAction>
-            <code className="text-code text-muted-foreground">{window.location.origin}/mcp</code>
+            <code className="text-code text-muted-foreground">{mcpUrl()}</code>
           </CardAction>
         </CardHeader>
-        {/* a truncated real key would copy into a command that fails auth: the full secret or a placeholder */}
         <CardContent>
-          <McpSetup apiKey={secret || "404l_your_key"} />
+          <AgentGrid
+            value={agent}
+            onChange={(next) => {
+              setAgent(next);
+              setConnectOpen(true);
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -152,6 +166,17 @@ export function ApiKeysPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* a truncated real key would copy into a config that fails auth: the full secret or a placeholder */}
+      <ConnectAgentDialog
+        open={connectOpen}
+        onOpenChange={setConnectOpen}
+        agent={agent}
+        onAgentChange={setAgent}
+        apiKey={secret}
+        onCreateKey={() => create.mutate()}
+        creatingKey={create.isPending}
+      />
     </Page>
   );
 }
