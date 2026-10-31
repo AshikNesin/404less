@@ -58,6 +58,14 @@ test("exclusion patterns: substring + glob", () => {
   expect(urlMatchesPattern("https://example.com/blog/x", "/wp-admin/")).toBe(false);
   expect(urlMatchesPattern("https://example.com/a/b/c.png", "*/images/*")).toBe(false);
   expect(urlMatchesPattern("https://example.com/images/c.png", "*/images/*")).toBe(true);
+  // a glob starting with "/" matches the path (the settings page's own example)
+  expect(urlMatchesPattern("https://example.com/wp-admin/setup.php", "/wp-admin/*")).toBe(true);
+  expect(urlMatchesPattern("https://example.com/blog/wp-admin/x", "/wp-admin/*")).toBe(false);
+  expect(urlMatchesPattern("https://example.com/a.php?x=1", "*.php")).toBe(false);
+  expect(urlMatchesPattern("https://example.com/a.php", "*.php")).toBe(true);
+  expect(urlMatchesPattern("https://example.com/preview/x", "https://example.com/preview/*")).toBe(
+    true,
+  );
 });
 
 test("rank respects limit", () => {

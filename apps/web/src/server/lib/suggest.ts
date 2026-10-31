@@ -171,11 +171,24 @@ export function globToRegex(pattern: string): RegExp | null {
   }
 }
 
-/** Full-URL match against a pattern: plain substring, or glob if it contains *. */
+/**
+ * URL match against a pattern: plain substring, or glob if it contains *.
+ * A glob is anchored, so one starting with "/" (`/wp-admin/*`) is matched
+ * against the path + query; any other glob against the full URL.
+ */
 export function urlMatchesPattern(url: string, pattern: string): boolean {
   if (pattern.includes("*")) {
     const re = globToRegex(pattern);
-    if (re) return re.test(url);
+    if (re) return re.test(pattern.startsWith("/") ? pathAndQuery(url) : url);
   }
   return url.toLowerCase().includes(pattern.toLowerCase());
+}
+
+function pathAndQuery(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.pathname + u.search;
+  } catch {
+    return url;
+  }
 }

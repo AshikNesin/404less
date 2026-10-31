@@ -9,6 +9,7 @@
     "date": "2026-10-31T00:00:00.000Z"
   },
   "additional_exclusions": [
+    "scripts/seed.ts",
     "vitest.config.worker.ts",
     ".github/workflows/worker-tests.yml",
     ".github/workflows/release.yml",

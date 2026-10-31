@@ -1,7 +1,7 @@
 // Crawler: status + settings, known pages (sitemap import), latest results.
 import { Link } from "../lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, LoaderCircle, Play, Search, X } from "lucide-react";
 import { api, json, patch } from "../lib/api";
 import { compact, fullTime, plural, relTime, urlLabel } from "../lib/format";
@@ -39,6 +39,16 @@ export function CrawlPage() {
     queryFn: () => api<{ results: CrawlRow[] }>(`/api/v1/sites/${site.id}/crawl-report?limit=100`),
     refetchInterval: crawl?.running ? 5_000 : false,
   });
+  // Polling stops once the crawl ends: fetch its final results and the pages it indexed once more.
+  const running = crawl?.running ?? false;
+  const wasRunning = useRef(running);
+  useEffect(() => {
+    if (wasRunning.current && !running) {
+      void qc.invalidateQueries({ queryKey: ["crawl-report", site.id] });
+      void qc.invalidateQueries({ queryKey: ["known-urls", site.id] });
+    }
+    wasRunning.current = running;
+  }, [running, qc, site.id]);
 
   const patchSite = useMutation({
     mutationFn: (body: Record<string, unknown>) => api(`/api/v1/sites/${site.id}`, patch(body)),
@@ -214,7 +224,7 @@ export function CrawlPage() {
           </CardContent>
         </Card>
 
-        <KnownPages siteId={site.id} domain={site.domain} />
+        <KnownPages siteId={site.id} domain={site.domain} crawling={running} />
       </div>
 
       <section className="space-y-3">
@@ -336,7 +346,15 @@ export function CrawlPage() {
   );
 }
 
-function KnownPages({ siteId, domain }: { siteId: string; domain: string }) {
+function KnownPages({
+  siteId,
+  domain,
+  crawling,
+}: {
+  siteId: string;
+  domain: string;
+  crawling: boolean;
+}) {
   const qc = useQueryClient();
   const toast = useToast();
   const [q, setQ] = useState("");
@@ -353,9 +371,14 @@ function KnownPages({ siteId, domain }: { siteId: string; domain: string }) {
         `/api/v1/sites/${siteId}/known-urls?limit=12${debounced ? `&q=${encodeURIComponent(debounced)}` : ""}`,
       ),
     placeholderData: (p) => p,
-    // titles arrive in the background after an import; keep the list live until they do
+    // a crawl indexes the pages it visits, and titles arrive in the background after an
+    // import: keep the list live while either is happening
     refetchInterval: (query) =>
-      query.state.data?.knownUrls.some((k) => !k.title && !k.title_checked_at) ? 10_000 : false,
+      crawling
+        ? 5_000
+        : query.state.data?.knownUrls.some((k) => !k.title && !k.title_checked_at)
+          ? 10_000
+          : false,
   });
   const importSitemap = useMutation({
     mutationFn: () =>
