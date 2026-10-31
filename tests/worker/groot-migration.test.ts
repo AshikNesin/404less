@@ -7,7 +7,7 @@ import { migrations } from "../../apps/web/drizzle";
 import embedScript from "../../apps/web/src/server/api/embed/embed-script";
 
 type D1 = typeof env.DB;
-const scratch = env as unknown as { LEGACY_DB: D1; FRESH_DB: D1 };
+const scratch = env as unknown as { LEGACY_DB: D1; FRESH_DB: D1; SKIPPED_DB: D1; FRESH2_DB: D1 };
 
 const LEGACY = migrations.filter((m) => /^000[1-7]_/.test(m.name));
 
@@ -64,6 +64,50 @@ describe("migration continuity (databases created before groot)", () => {
     const fresh = scratch.FRESH_DB;
     expect(await migrateD1(fresh as never, migrations)).toEqual(migrations.map((m) => m.name));
     expect(await schemaOf(fresh)).toEqual(await schemaOf(legacy));
+  });
+
+  test("an install whose last wrangler deploy skipped 0007 gets it on first boot", async () => {
+    // Production as of the move: Workers Builds ran `wrangler deploy` without
+    // `d1 migrations apply`, so 0007 (broken_links.title …) never landed.
+    const db = scratch.SKIPPED_DB;
+    await db
+      .prepare(
+        "CREATE TABLE d1_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+      )
+      .run();
+    for (const m of migrations.filter((m) => /^000[1-6]_/.test(m.name))) {
+      await db.batch([
+        ...splitStatements(m.sql).map((s) => db.prepare(s)),
+        db.prepare("INSERT INTO d1_migrations (name) VALUES (?)").bind(m.name),
+      ]);
+    }
+    await db.batch([
+      db.prepare("INSERT INTO users (id, email, created_at) VALUES ('u1', 'a@example.com', 1)"),
+      db.prepare(
+        "INSERT INTO teams (id, name, owner_user_id, created_at) VALUES ('t1', 'T', 'u1', 1)",
+      ),
+      db.prepare(
+        "INSERT INTO websites (id, team_id, name, domain, site_key, created_at) VALUES ('w1', 't1', 'S', 's.test', 'k1', 1)",
+      ),
+      db.prepare(
+        "INSERT INTO known_urls (id, website_id, url, title, added_at) VALUES ('k1', 'w1', 'https://s.test/a', 'Page A', 1)",
+      ),
+      db.prepare(
+        "INSERT INTO broken_links (id, website_id, url, first_seen, last_seen) VALUES ('b1', 'w1', 'https://s.test/a', 1, 1)",
+      ),
+    ]);
+
+    expect(await migrateD1(db as never, migrations)).toEqual([
+      "0007_url_titles.sql",
+      "0008_core_kv.sql",
+    ]);
+    // 0007's backfill ran against the existing rows
+    expect(await db.prepare("SELECT title FROM broken_links WHERE id = 'b1'").first("title")).toBe(
+      "Page A",
+    );
+    const fresh = scratch.FRESH2_DB;
+    await migrateD1(fresh as never, migrations);
+    expect(await schemaOf(db)).toEqual(await schemaOf(fresh));
   });
 
   test("migration files sort in the order they were written", () => {
