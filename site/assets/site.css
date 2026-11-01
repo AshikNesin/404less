@@ -49,6 +49,8 @@ code,
 pre,
 kbd {
   font-family: var(--mono);
+  /* show exactly what to type: no `===` or `->` ligatures */
+  font-variant-ligatures: none;
 }
 :focus-visible {
   outline: 2px solid rgba(31, 31, 35, 0.45);
@@ -416,6 +418,7 @@ h1 .hl {
 .trace-title code {
   font-weight: 500;
   font-size: 13px;
+  white-space: nowrap; /* a path drops to its own line rather than splitting at a hyphen */
 }
 .trace-meta {
   font-size: 13px;
@@ -431,8 +434,10 @@ h1 .hl {
   background: var(--dark);
   color: var(--on-dark);
   font-family: var(--mono);
-  font-size: 12.5px;
-  overflow-x: auto;
+  font-size: 12px;
+  /* an illustration, not a code block: wrap at the spaces instead of scrolling */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 /* First view only: the steps arrive in order, fast, then stay put. */
 @media (prefers-reduced-motion: no-preference) {
@@ -705,6 +710,7 @@ h1 .hl {
 }
 .step .vis pre {
   margin: 0;
+  overflow: hidden; /* cropped on purpose: the snippet bleeds off the card */
   position: absolute;
   left: 24px;
   top: 32px;
@@ -744,7 +750,14 @@ pre.code {
   font-size: 14px;
   line-height: 1.65;
   overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
   margin: 0;
+}
+/* illustrative transcripts wrap rather than scroll */
+pre.code.is-wrapped {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 pre.code .k {
   color: #a5b4fc;
@@ -770,6 +783,7 @@ pre.code .c {
   font-size: 14px;
   line-height: 1.6;
   overflow-x: auto;
+  scrollbar-width: thin;
   margin: 0;
 }
 
@@ -894,6 +908,7 @@ pre.code .c {
   border-radius: var(--radius);
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: thin;
 }
 .table-wrap .table tr:last-child td {
   border-bottom: 0;
@@ -1165,6 +1180,18 @@ img {
 @media (max-width: 640px) {
   body {
     font-size: 16px;
+  }
+  pre.code,
+  .code-light {
+    font-size: 13px;
+    padding: 14px 16px;
+  }
+  .table {
+    font-size: 14px;
+  }
+  .table th,
+  .table td {
+    padding: 11px 8px;
   }
   .grid-3,
   .grid-2,
