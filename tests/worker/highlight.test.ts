@@ -77,6 +77,10 @@ describe("highlight", () => {
     expect(marks("const ok = a <b", "jsx")).toEqual(["keyword:const"]);
   });
 
+  test("jsx: a tag right after return, without parentheses", () => {
+    expect(marks("return <div>hi</div>", "jsx")).toEqual(["keyword:return", "tag:div", "tag:div"]);
+  });
+
   test("json: keys apart from string values", () => {
     expect(marks('{ "permanent": true, "source": "/a", "n": 2 }', "json")).toEqual([
       'attr:"permanent"',
@@ -100,6 +104,10 @@ describe("highlight", () => {
       "number:301",
     ]);
     expect(marks("Redirect 301 /a /b", "conf")).toEqual(["keyword:Redirect", "number:301"]);
+  });
+
+  test("header: the name apart from the value", () => {
+    expect(marks("Authorization: Bearer 404l_x", "header")).toEqual(["attr:Authorization"]);
   });
 
   test("text is one plain token", () => {

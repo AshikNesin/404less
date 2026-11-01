@@ -40,6 +40,20 @@ const JS_KEYWORDS = new Set([
   "var",
 ]);
 
+/** Words after which an expression starts, so a `<` there opens a JSX tag. */
+const EXPRESSION_KEYWORDS = new Set([
+  "return",
+  "yield",
+  "await",
+  "case",
+  "default",
+  "else",
+  "do",
+  "in",
+  "of",
+  "typeof",
+]);
+
 /** Splits `code` into tokens; joining their text gives back `code` exactly. */
 export function highlight(code: string, language: Language): Token[] {
   const out: Token[] = [];
@@ -170,7 +184,13 @@ function scanJs(code: string, push: Push, jsx: boolean) {
   let i = 0;
   let depth = 0; // open JSX elements: inside one, text is children, not code
   // a `<` opens a tag only where an expression can start, not after a value
-  const canStartTag = () => depth > 0 || !/[\w)\]"'`]$/.test(code.slice(0, i).trimEnd());
+  const canStartTag = () => {
+    if (depth > 0) return true;
+    const before = code.slice(0, i).trimEnd();
+    const word = before.match(/[A-Za-z_$][\w$]*$/)?.[0];
+    if (word && EXPRESSION_KEYWORDS.has(word)) return true; // `return <div>`
+    return !/[\w)\]"'`]$/.test(before);
+  };
   while (i < code.length) {
     const rest = code.slice(i);
     let m: RegExpMatchArray | null;
