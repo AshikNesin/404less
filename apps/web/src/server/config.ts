@@ -11,7 +11,7 @@ import { defineConfig } from "@groot/core/config";
  */
 export const appConfig = defineConfig({
   app: { name: "404less" },
-  // No groot job queue: crawling runs on Cloudflare Queues, retention and the
-  // title backlog on the Worker's own cron triggers (worker/cron.ts).
+  // No groot job queue: crawling and the title backlog run on the crawl tick
+  // (api/crawl/crawl.tick.ts), retention on the nightly cron (worker/cron.ts).
   jobs: { enabled: false },
 });
