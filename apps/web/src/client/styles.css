@@ -66,8 +66,8 @@
 
   /* syntax highlighting in code blocks: the marketing site's code palette
      (indigo, green strings, amber attributes), darkened for a light block */
-  --syntax-comment: oklch(18% 0.006 270 / 50%);
-  --syntax-punct: oklch(18% 0.006 270 / 58%);
+  --syntax-comment: oklch(18% 0.006 270 / 62%);
+  --syntax-punct: oklch(18% 0.006 270 / 62%);
   --syntax-keyword: oklch(48% 0.17 305);
   --syntax-tag: oklch(46% 0.15 275);
   --syntax-attr: oklch(50% 0.11 60);
