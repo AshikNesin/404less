@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { CodeBlock } from "../../components/copy-button";
+import type { Language } from "../../lib/highlight";
 import { SegmentedTabs } from "../../components/ui/tabs";
 import { pathOf } from "../../lib/format";
 
@@ -49,6 +50,15 @@ function rule(
   }
 }
 
+const language: Record<Platform, Language> = {
+  agent: "text",
+  redirects: "conf",
+  vercel: "json",
+  nextjs: "jsx",
+  nginx: "conf",
+  apache: "conf",
+};
+
 export function RedirectSnippet({ fromUrl, toUrl }: { fromUrl: string; toUrl: string }) {
   const [platform, setPlatform] = useState<Platform>("agent");
   const from = pathOf(fromUrl).split("?")[0];
@@ -78,6 +88,7 @@ export function RedirectSnippet({ fromUrl, toUrl }: { fromUrl: string; toUrl: st
       )}
       <CodeBlock
         code={rule(platform, from, to, fromUrl, toUrl)}
+        language={language[platform]}
         label={platform === "agent" ? "Copy agent prompt" : "Copy redirect rule"}
       />
     </div>
