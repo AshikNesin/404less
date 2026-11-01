@@ -105,7 +105,11 @@ export function PlatformSnippet({ siteKey, domain }: { siteKey: string; domain: 
         </>
       ) : (
         <>
-          <CodeBlock code={snippetFor(siteKey, platform)} label="Copy snippet" />
+          <CodeBlock
+            code={snippetFor(siteKey, platform)}
+            language={platform === "next" ? "jsx" : "html"}
+            label="Copy snippet"
+          />
           <p className="text-meta">{guidance[platform]}</p>
         </>
       )}

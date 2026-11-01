@@ -8,6 +8,7 @@ import { ArrowUpRight, KeyRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@groot/ui/tabs";
 import { Button } from "../../components/ui/button";
 import { CodeBlock } from "../../components/copy-button";
+import type { Language } from "../../lib/highlight";
 import { cn } from "../../lib/utils";
 import { agentSetupPrompt, mcpUrl } from "./mcp-setup";
 import claudeCodeIcon from "./agent-icons/claudecode-color.svg";
@@ -42,11 +43,15 @@ const PLACEHOLDER_KEY = "404l_your_key";
 const KEY_ENV = "FOUR04LESS_API_KEY"; // gitleaks:allow
 const LAST_AGENT = "404less.connect-agent";
 
+/** A step's code and how to highlight it. */
+type Snippet = { code: string; language: Language };
+const sh = (code: string): Snippet => ({ code, language: "shell" });
+
 /** Per-client setup: what it is, an optional one-click install, and the steps. */
 function setupFor(agent: AgentKey, key: string) {
   const url = mcpUrl();
   const auth = { Authorization: `Bearer ${key}` };
-  const json = (v: unknown) => JSON.stringify(v, null, 2);
+  const json = (v: unknown): Snippet => ({ code: JSON.stringify(v, null, 2), language: "json" });
   const ask = (
     <>
       Ask: <q>List my open broken links on 404less and fix the top one.</q> Tools are read-only;
@@ -65,7 +70,9 @@ function setupFor(agent: AgentKey, key: string) {
           ask,
         ],
         code: {
-          0: `claude mcp add --transport http 404less ${url} \\\n  --header "Authorization: Bearer ${key}"`,
+          0: sh(
+            `claude mcp add --transport http 404less ${url} \\\n  --header "Authorization: Bearer ${key}"`,
+          ),
         },
       };
     case "cursor": {
@@ -106,7 +113,7 @@ function setupFor(agent: AgentKey, key: string) {
           </>,
           ask,
         ],
-        code: { 0: `code --add-mcp '${JSON.stringify(config)}'` },
+        code: { 0: sh(`code --add-mcp '${JSON.stringify(config)}'`) },
       };
     }
     case "codex":
@@ -122,8 +129,8 @@ function setupFor(agent: AgentKey, key: string) {
           </>,
         ],
         code: {
-          0: `export ${KEY_ENV}=${key}`,
-          1: `codex mcp add 404less --url ${url} --bearer-token-env-var ${KEY_ENV}`,
+          0: sh(`export ${KEY_ENV}=${key}`),
+          1: sh(`codex mcp add 404less --url ${url} --bearer-token-env-var ${KEY_ENV}`),
         },
       };
     case "opencode":
@@ -177,7 +184,10 @@ function setupFor(agent: AgentKey, key: string) {
             <b>get_suggestions</b>.
           </>,
         ],
-        code: { 0: url, 1: `Authorization: Bearer ${key}` },
+        code: {
+          0: { code: url, language: "text" },
+          1: { code: `Authorization: Bearer ${key}`, language: "header" },
+        },
       };
   }
 }
@@ -235,7 +245,7 @@ export function ConnectAgent({
           <CodeBlock code={mcpUrl()} label="Copy URL" />
         </Field>
         <Field label="Header" hint="The API key as a bearer token, on every request.">
-          <CodeBlock code={`Authorization: Bearer ${key}`} label="Copy header" />
+          <CodeBlock code={`Authorization: Bearer ${key}`} language="header" label="Copy header" />
         </Field>
       </TabsContent>
     </Tabs>
@@ -350,7 +360,7 @@ function AgentSetup({ agent, apiKey }: { agent: AgentKey; apiKey: string }) {
       </header>
       <ol className="space-y-3 px-4 py-4">
         {setup.steps.map((step, i) => {
-          const code = (setup.code as Record<number, string>)[i];
+          const snippet = (setup.code as Record<number, Snippet>)[i];
           return (
             <li key={i} className="flex gap-3">
               <span className="num grid size-5 shrink-0 place-items-center rounded-full border border-border text-[0.6875rem] text-muted-foreground">
@@ -358,7 +368,13 @@ function AgentSetup({ agent, apiKey }: { agent: AgentKey; apiKey: string }) {
               </span>
               <div className="min-w-0 flex-1 space-y-2 pt-px text-[0.8125rem] [&_b]:font-medium">
                 <div>{step}</div>
-                {code && <CodeBlock code={code} label={`Copy step ${i + 1}`} />}
+                {snippet && (
+                  <CodeBlock
+                    code={snippet.code}
+                    language={snippet.language}
+                    label={`Copy step ${i + 1}`}
+                  />
+                )}
               </div>
             </li>
           );

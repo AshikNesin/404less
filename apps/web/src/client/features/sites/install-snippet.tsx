@@ -26,7 +26,9 @@ export function InstallSnippet({
     `/embed-preview.html?site=${encodeURIComponent(siteKey)}&url=${encodeURIComponent(`https://${domain}/some-missing-page`)}${extra}`;
   return (
     <div className={cn("space-y-3", className)}>
-      {!hideCode && <CodeBlock code={embedSnippet(siteKey, origin)} label="Copy snippet" />}
+      {!hideCode && (
+        <CodeBlock code={embedSnippet(siteKey, origin)} language="html" label="Copy snippet" />
+      )}
       {!compact && (
         <ul className="space-y-1.5 text-[0.8125rem] text-foreground/80">
           <li>
