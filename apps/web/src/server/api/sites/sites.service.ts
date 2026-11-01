@@ -10,6 +10,7 @@ import {
   batch,
   brokenLinks,
   crawlSources,
+  crawlTasks,
   db,
   knownUrls,
   linkChecks,
@@ -18,13 +19,11 @@ import {
   websites,
 } from "../../db";
 
+import { crawlIntervalHours } from "../crawl/crawl.tick";
+
 export * from "./sites.helpers";
 
 const DAY = 86_400_000;
-// A crawl is "running" while checks keep landing; the queue has no end signal. Before the
-// first check, allow for the queue to start and the first pages to load.
-const CRAWL_START_WINDOW_MS = 90_000;
-const CRAWL_IDLE_WINDOW_MS = 45_000;
 
 export type SiteSummary = Omit<SiteRow, "ignore_status_codes" | "exclude_patterns"> & {
   ignore_status_codes: number[];
@@ -164,11 +163,8 @@ export async function siteOverview(
   for (const r of counts) byStatus[r.status as LinkStatus] = r.n;
   const c = crawl[0];
   const lastCheckAt = c.last_check_at ?? null;
-  const running =
-    !!site.last_crawl_at &&
-    (lastCheckAt
-      ? now - lastCheckAt < CRAWL_IDLE_WINDOW_MS
-      : now - site.last_crawl_at < CRAWL_START_WINDOW_MS);
+  // a run is in progress until the crawl tick has worked through its last task
+  const running = site.crawl_cursor !== null;
   return {
     counts: byStatus,
     series: fillDays(series, 30, now),
@@ -182,6 +178,7 @@ export async function siteOverview(
       checked: site.last_crawl_at ? c.checked : 0,
       broken: site.last_crawl_at ? (c.broken ?? 0) : 0,
       running,
+      intervalHours: crawlIntervalHours(env),
     },
     knownUrls: known[0].n,
     channels: channels[0].n,
@@ -242,6 +239,7 @@ export async function deleteSite(env: Env, siteId: string): Promise<void> {
     db.delete(knownUrls).where(eq(knownUrls.website_id, siteId)),
     db.delete(linkChecks).where(eq(linkChecks.website_id, siteId)),
     db.delete(crawlSources).where(eq(crawlSources.website_id, siteId)),
+    db.delete(crawlTasks).where(eq(crawlTasks.website_id, siteId)),
     db.delete(brokenLinks).where(eq(brokenLinks.website_id, siteId)),
     db.delete(alerts).where(eq(alerts.website_id, siteId)),
     db.delete(websites).where(eq(websites.id, siteId)),

@@ -40,7 +40,7 @@
         >
       </div>
       <p class="note">
-        Your own Worker, D1 and Queues. No account with us, no usage fees at hobby scale.
+        Your own Worker and D1 database. No account with us, no usage fees at hobby scale.
       </p>
     </div>
 
@@ -455,8 +455,8 @@
       <div>
         <h2>Self-host in one click. Pay nothing at hobby scale.</h2>
         <p class="lead">
-          The whole thing is one Cloudflare Worker with D1, Queues and Durable Objects, all on the
-          Workers Free plan. The deploy button provisions everything in your account.
+          The whole thing is one Cloudflare Worker with D1, Durable Objects and cron triggers, all
+          on the Workers Free plan. The deploy button provisions everything in your account.
         </p>
         <ul class="list">
           <li>
@@ -526,9 +526,9 @@
               <td>Bounded by per-site rate limit + retention</td>
             </tr>
             <tr>
-              <td>Queues</td>
-              <td>10k ops / day</td>
-              <td>Crawl batches, capped per run</td>
+              <td>Outbound requests</td>
+              <td>50 per invocation</td>
+              <td>Crawler: 40 per minute-tick, resumed next tick</td>
             </tr>
             <tr>
               <td>Durable Objects</td>
@@ -537,8 +537,8 @@
             </tr>
             <tr>
               <td>Cron triggers</td>
-              <td>3 per Worker</td>
-              <td>Crawler + nightly retention</td>
+              <td>5 per account</td>
+              <td>Crawl tick + nightly retention</td>
             </tr>
           </tbody>
         </table>

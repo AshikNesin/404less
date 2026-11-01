@@ -17,6 +17,9 @@ export type SiteRow = {
   crawl_enabled: number;
   crawl_max_pages: number;
   last_crawl_at: number | null;
+  /** Non-null while a crawl run is in progress (see crawl_tasks). */
+  crawl_cursor: number | null;
+  crawl_pages: number;
 };
 
 export type TeamRole = "owner" | "admin" | "viewer";

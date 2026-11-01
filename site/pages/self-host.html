@@ -4,7 +4,7 @@
   "nav": "self-host",
   "title": "Self-host 404less on Cloudflare’s free tier",
   "ogTitle": "Self-host in one click. Pay nothing at hobby scale.",
-  "description": "Deploy your own 404less: one Cloudflare Worker with D1, Queues and Durable Objects, all on the Workers Free plan. One-click deploy or three commands.",
+  "description": "Deploy your own 404less: one Cloudflare Worker with D1, Durable Objects and cron triggers, all on the Workers Free plan. One-click deploy or three commands.",
   "og": "/og/og-self-host.png"
 }
 -->
@@ -15,9 +15,8 @@
         <span class="eyebrow"><span class="dot"></span> Self-host</span>
         <h1>Your own 404less, on Cloudflare’s <span class="hl">free tier</span>.</h1>
         <p class="lead">
-          Everything runs in one Worker with D1 (SQLite), Queues, Durable Objects and two cron
-          triggers. All of it is on the Workers Free plan, so a personal instance costs nothing at
-          hobby scale.
+          Everything runs in one Worker with D1 (SQLite), Durable Objects and two cron triggers. All
+          of it is on the Workers Free plan, so a personal instance costs nothing at hobby scale.
         </p>
         <div class="toc">
           <a href="#one-click">One-click deploy</a><a href="#manual">Manual deploy</a
@@ -43,7 +42,7 @@
             <div>
               <div class="trace-title">Provisioned</div>
               <div class="trace-meta">
-                Worker, D1, Queues, Durable Objects and two crons. Migrations run on deploy
+                Worker, D1, Durable Objects and two crons. Migrations run on deploy
               </div>
             </div>
           </li>
@@ -63,7 +62,7 @@
         <h2>One-click deploy</h2>
         <p>
           The Deploy to Cloudflare button clones the repository into your GitHub account and
-          provisions the D1 database, the queue and the Durable Objects declared in
+          provisions the D1 database and the Durable Objects declared in
           <code>wrangler.jsonc</code>. Migrations and the dashboard build run as part of the deploy.
         </p>
         <p>
@@ -131,7 +130,7 @@
               <tr>
                 <td><code>MAX_SITES_PER_TEAM</code></td>
                 <td>5</td>
-                <td>Keeps crawl volume and queue ops predictable</td>
+                <td>Keeps crawl volume and D1 writes predictable</td>
               </tr>
               <tr>
                 <td><code>EVENT_RETENTION_DAYS</code></td>
@@ -146,20 +145,22 @@
               <tr>
                 <td>Crawl pages per run</td>
                 <td>100 (max 500)</td>
-                <td>Per-site setting on the Crawler page</td>
+                <td>Per-site setting on the Crawler page; counts the pages a run discovers</td>
               </tr>
               <tr>
-                <td>Crawl schedule</td>
-                <td>Every 30 minutes</td>
-                <td>Only for sites with scheduling on</td>
+                <td><code>CRAWL_INTERVAL_HOURS</code></td>
+                <td>24</td>
+                <td>How often sites with scheduled crawling are crawled</td>
               </tr>
             </tbody>
           </table>
         </div>
         <p class="muted">
-          Cloudflare’s own numbers: 100k Worker requests, 100k D1 writes and 5M reads, 10k queue
-          operations and 100k Durable Object requests per day on the Free plan, with three cron
-          triggers per Worker.
+          Cloudflare’s own numbers: 100k Worker requests, 100k D1 writes and 5M reads and 100k
+          Durable Object requests per day on the Free plan, 50 outbound requests per invocation, and
+          five cron triggers per account. 404less crawls without Queues: a cron tick every minute
+          checks up to 40 links and stops, and the next tick carries on, so a crawl never exceeds
+          what one invocation may do. A tick with nothing to do only reads.
         </p>
       </section>
 

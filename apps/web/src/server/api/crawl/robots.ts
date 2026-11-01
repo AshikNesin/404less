@@ -1,5 +1,7 @@
 // Minimal robots.txt parser (RFC 9309 subset): collects Disallow rules per
 // user-agent group, preferring our agent (404less-bot) over * when present.
+import { crawlerFetch, rethrowIfBudgetSpent } from "./subrequests";
+
 export type Robots = { allowed: (path: string) => boolean };
 
 const OUR_AGENT = "404less-bot";
@@ -74,7 +76,7 @@ export async function loadRobots(origin: string): Promise<Robots> {
 async function fetchRobots(origin: string): Promise<Robots | null> {
   const UA = "404less-bot/0.1 (+https://404less.com)";
   try {
-    const res = await fetch(new URL("/robots.txt", origin).toString(), {
+    const res = await crawlerFetch(new URL("/robots.txt", origin).toString(), {
       headers: { "User-Agent": UA },
       redirect: "follow",
       signal: AbortSignal.timeout(5_000),
@@ -82,7 +84,8 @@ async function fetchRobots(origin: string): Promise<Robots | null> {
     if (res.status >= 500) return null;
     if (!res.ok) return { allowed: () => true };
     return parseRobots(origin, await res.text());
-  } catch {
+  } catch (e) {
+    rethrowIfBudgetSpent(e);
     return null;
   }
 }

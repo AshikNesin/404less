@@ -1,12 +1,13 @@
 // Authenticated: POST /api/sites/:id/import-sitemap: fetch sitemap.xml (follows
 // one level of <sitemapindex>), store known URLs in D1 for the suggestions engine.
-// Sitemaps carry no titles: a fetch-titles queue job reads them from the pages.
+// Sitemaps carry no titles: the crawl tick reads them from the pages.
 import { Hono } from "hono";
 import { isValidHttpUrl, parseSitemap } from "../../lib/sitemap";
 import { newId, now } from "../../lib/auth";
 import { siteForUser } from "../sites/sites.service";
 import { refreshSuggestions } from "../links/links.service";
-import { siteOrigin, startTitleJobs } from "../crawl/crawl.service";
+import { siteOrigin } from "../crawl/crawl.service";
+import { INLINE_SLICE, crawlTick } from "../crawl/crawl.tick";
 import type { Env } from "../../types";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { batch, changes, db, knownUrls } from "../../db";
@@ -125,11 +126,8 @@ sitemap.post("/sites/:id/import-sitemap", async (c) => {
     c,
     refreshSuggestions(c.env, site.site.id).catch(() => {}),
   );
-  const [titles] = await startTitleJobs(c.env, [site.site.id]);
-  waitUntil(
-    c,
-    c.env.CRAWLQ.send(titles).catch(() => {}),
-  );
+  // start reading the new pages' titles now; the cron tick carries on with the rest
+  waitUntil(c, crawlTick(c.env, INLINE_SLICE));
   return c.json({ ok: true, imported: rows.size, inserted });
 });
 

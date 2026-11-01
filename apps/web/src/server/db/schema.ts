@@ -74,9 +74,15 @@ export const websites = sqliteTable("websites", {
   digest_minutes: integer("digest_minutes").notNull().default(15),
   crawl_enabled: integer("crawl_enabled").notNull().default(0),
   crawl_max_pages: integer("crawl_max_pages").notNull().default(100),
+  /** When the current (or last) crawl run started. */
   last_crawl_at: integer("last_crawl_at"),
-  /** The site's current title job; messages from an older job stop. */
-  title_job: text("title_job"),
+  /**
+   * The crawl run in progress: the id of the last crawl_tasks row done. NULL
+   * when no run is in progress.
+   */
+  crawl_cursor: integer("crawl_cursor"),
+  /** Pages queued in the current run, held to crawl_max_pages. */
+  crawl_pages: integer("crawl_pages").notNull().default(0),
 });
 
 export const notFoundEvents = sqliteTable(
@@ -216,6 +222,42 @@ export const crawlSources = sqliteTable(
   (t) => [
     primaryKey({ columns: [t.website_id, t.source_url, t.target_url] }),
     index("idx_crawl_sources_target").on(t.website_id, t.target_url),
+  ],
+);
+
+/**
+ * The crawl frontier: what the current run of each site still has to do, one
+ * row per page to fetch or link to check. The crawl tick (api/crawl/crawl.tick.ts)
+ * works through a site's rows in id order, remembering how far it got in
+ * websites.crawl_cursor, so finishing a task costs no write. The unique index
+ * makes a URL found on many pages one task per run. Rows are deleted when the
+ * run ends.
+ */
+export const crawlTasks = sqliteTable(
+  "crawl_tasks",
+  {
+    id: integer("id").primaryKey(),
+    website_id: text("website_id")
+      .notNull()
+      .references(() => websites.id),
+    /** page (fetch, extract links) | link (check) */
+    kind: text("kind").$type<"page" | "link">().notNull(),
+    url: text("url").notNull(),
+    /** Pages: link distance from a starting page (0..2). */
+    depth: integer("depth").notNull().default(0),
+    /** Links: the page the link was first found on (the homepage for rechecks). */
+    source_url: text("source_url"),
+    source_title: text("source_title"),
+    anchor: text("anchor"),
+    /** Links: 1 when found on a crawled page, 0 for a recheck of a visitor-reported link. */
+    found_on_page: integer("found_on_page").notNull().default(0),
+    /** Failed attempts; a task that keeps failing is skipped. */
+    attempts: integer("attempts").notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex("idx_crawl_tasks_site_kind_url").on(t.website_id, t.kind, t.url),
+    // SQLite appends the rowid to every index: this one lists a site's tasks in id order
+    index("idx_crawl_tasks_site").on(t.website_id),
   ],
 );
 

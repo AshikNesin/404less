@@ -1,6 +1,5 @@
 import { logger } from "@groot/core/logger";
-import { consumeCrawlBatch } from "./api/crawl/crawl.consumer";
-import type { CrawlMessage, Env } from "./types";
+import type { Env } from "./types";
 
 /**
  * In-process stand-ins for the Workers bindings, so the whole app runs on Node
@@ -8,15 +7,12 @@ import type { CrawlMessage, Env } from "./types";
  * enough for development; production is Cloudflare (`pnpm dev:worker` runs the
  * real runtime locally).
  *
- * - CRAWLQ: messages run in this process shortly after they are sent
- *   (sequentially, like the queue consumer's batches).
  * - RATELIMIT: the RateLimiterDO's fixed window (500 events/site/hour), in memory.
  * - DIGEST: logs the event instead of buffering and alerting.
  */
 export function createNodeBindings(vars: Record<string, string | undefined> = process.env): Env {
   const env = {
     ...stringVars(vars),
-    CRAWLQ: inlineQueue(() => env),
     RATELIMIT: namespace(rateLimiter()),
     DIGEST: namespace(async (_name, request) => {
       logger.debug({ event: await request.text() }, "digest event (Node: alerts are not sent)");
@@ -33,30 +29,6 @@ function stringVars(vars: Record<string, string | undefined>) {
     if (typeof value === "string" && value !== "") out[key] = value;
   }
   return out;
-}
-
-function inlineQueue(getEnv: () => Env) {
-  let chain = Promise.resolve();
-  const run = (messages: CrawlMessage[]) => {
-    chain = chain
-      .then(() => new Promise((resolve) => setTimeout(resolve, 0)))
-      .then(() =>
-        consumeCrawlBatch(
-          { messages: messages.map((body) => ({ body, ack() {}, retry() {} })) as never },
-          getEnv(),
-          { waitUntil: (p: Promise<unknown>) => void p.catch(() => {}) },
-        ),
-      )
-      .catch((error: unknown) => logger.error({ err: error }, "crawl batch failed"));
-  };
-  return {
-    async send(body: CrawlMessage) {
-      run([body]);
-    },
-    async sendBatch(messages: { body: CrawlMessage }[]) {
-      run(messages.map((m) => m.body));
-    },
-  };
 }
 
 type Handler = (name: string, request: Request) => Promise<Response>;

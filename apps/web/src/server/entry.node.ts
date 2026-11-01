@@ -14,6 +14,7 @@ import { startWorkers, stopWorkers } from "@groot/jobs/server/worker";
 import { startWebApp } from "./app";
 import { openDatabase } from "./db/node";
 import { createNodeBindings } from "./node-bindings";
+import { CRON_SLICE, crawlTick } from "./api/crawl/crawl.tick";
 
 /**
  * Node entry: SQLite on disk, in-process stand-ins for the Workers bindings
@@ -52,7 +53,7 @@ if (config.sentry.dsn) {
   captureException = (error, extra) => Sentry.captureException(error, { extra });
 }
 const port = config.app.port;
-// What Workers would pass as `env`: vars plus the queue / Durable Object stand-ins.
+// What Workers would pass as `env`: vars plus the Durable Object stand-ins.
 const bindings = createNodeBindings();
 /** Hono's fetch with the bindings attached (node-server's own env is kept alongside). */
 const fetchWithBindings = (request: Request, nodeEnv?: object) =>
@@ -67,6 +68,10 @@ async function main(): Promise<void> {
     server.listen(port, resolve);
   });
   logger.info(`Server is running on http://localhost:${port}`);
+
+  // what the Worker's every-minute cron does (a tick with nothing to do only reads)
+  const crawlTimer = setInterval(() => void crawlTick(bindings, CRON_SLICE), 30_000);
+  crawlTimer.unref();
 
   if (config.jobs.enabled) {
     await startWorkers();

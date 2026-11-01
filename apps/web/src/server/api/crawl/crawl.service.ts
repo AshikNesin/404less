@@ -1,8 +1,10 @@
-// Crawl orchestration: seed discovery, budgeting, result persistence, and the
-// real page titles of known URLs.
+// Crawl work, one task at a time: starting a run, fetching a page, checking a
+// link, reading the real titles of known URLs. The crawl tick (crawl.tick.ts)
+// decides when each runs. Pages and links to visit are rows in crawl_tasks
+// (the run's frontier), deduplicated per run by URL.
 // Findings land in broken_links (see ../links/service), which also decides
 // what counts as a new failure worth alerting.
-import type { CrawlMessage, Env } from "../../types";
+import type { Env } from "../../types";
 import { extractLinks, pageTitle } from "./html";
 import { loadRobots, type Robots } from "./robots";
 import { newId } from "../../lib/auth";
@@ -15,13 +17,15 @@ import {
   refreshSuggestions,
 } from "../links/links.service";
 import { checkUrl, isWorking } from "./checker";
-import { and, eq, gte, isNull, ne, or, sql } from "drizzle-orm";
+import { crawlerFetch, rethrowIfBudgetSpent } from "./subrequests";
+import { and, eq, gte, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import {
   batch,
   batchAll,
   brokenLinks,
   crawlSources,
+  crawlTasks,
   db,
   knownUrls,
   linkChecks,
@@ -36,9 +40,13 @@ export type CrawlSiteRow = {
   exclude_patterns: string;
   ignore_status_codes: string;
   name: string;
-  title_job: string | null;
   last_crawl_at: number | null;
+  crawl_cursor: number | null;
+  crawl_pages: number;
 };
+
+export type CrawlTask = typeof crawlTasks.$inferSelect;
+type NewTask = Omit<typeof crawlTasks.$inferInsert, "id" | "website_id" | "attempts">;
 
 const UA = "404less-bot/0.1 (+https://404less.com)";
 
@@ -52,8 +60,9 @@ export async function getSite(env: Env, siteId: string): Promise<CrawlSiteRow | 
       crawl_max_pages: websites.crawl_max_pages,
       exclude_patterns: websites.exclude_patterns,
       ignore_status_codes: websites.ignore_status_codes,
-      title_job: websites.title_job,
       last_crawl_at: websites.last_crawl_at,
+      crawl_cursor: websites.crawl_cursor,
+      crawl_pages: websites.crawl_pages,
     })
     .from(websites)
     .where(eq(websites.id, siteId))
@@ -80,66 +89,122 @@ export async function seedUrls(env: Env, site: CrawlSiteRow): Promise<string[]> 
   return [`${siteOrigin(site.domain)}/`];
 }
 
-/** Start a run: reset per-run sources, stamp the site, return the first batch of messages. */
-export async function startCrawl(env: Env, site: CrawlSiteRow): Promise<CrawlMessage[]> {
-  const now = Date.now();
+/**
+ * Start a run: drop what is left of the previous one, stamp the site, and queue
+ * the starting pages plus a recheck of every open link (so links visitors
+ * reported resolve on their own once fixed). The crawl tick does the rest.
+ */
+export async function startRun(env: Env, site: CrawlSiteRow): Promise<void> {
+  const seeds = (await seedUrls(env, site)).slice(0, site.crawl_max_pages);
+  const rechecks = await openVisitorLinks(env, site.id);
   await batch([
-    db.delete(crawlSources).where(eq(crawlSources.website_id, site.id)),
-    db.update(websites).set({ last_crawl_at: now }).where(eq(websites.id, site.id)),
+    db.delete(crawlTasks).where(eq(crawlTasks.website_id, site.id)),
+    db
+      .update(websites)
+      .set({ last_crawl_at: Date.now(), crawl_cursor: 0, crawl_pages: seeds.length })
+      .where(eq(websites.id, site.id)),
   ]);
-  const seeds = await seedUrls(env, site);
-  const pages: CrawlMessage[] = seeds
-    .slice(0, site.crawl_max_pages)
-    .map((url) => ({ kind: "fetch-page", siteId: site.id, url, depth: 0 }));
-  // Verify open links visitors reported so they auto-resolve once fixed.
-  const recheck: CrawlMessage[] = (await openVisitorLinks(env, site.id)).map((url) => ({
-    kind: "check-link",
-    siteId: site.id,
-    url,
-    sourceUrl: `${siteOrigin(site.domain)}/`,
-  }));
-  return [...pages, ...recheck];
+  const home = `${siteOrigin(site.domain)}/`;
+  await queueTasks(site.id, [
+    ...seeds.map((url): NewTask => ({ kind: "page", url, depth: 0 })),
+    ...rechecks.map((url): NewTask => ({ kind: "link", url, source_url: home })),
+  ]);
+}
+
+// D1 caps a statement at 100 bound parameters; a task row binds up to 8.
+const TASKS_PER_INSERT = 10;
+
+/**
+ * Add tasks to a site's run; a URL already queued in this run is not queued
+ * again. A link first queued as a recheck takes the page it is then found on,
+ * so a broken link still records where it lives.
+ */
+export async function queueTasks(siteId: string, tasks: NewTask[]): Promise<void> {
+  const stmts: BatchItem<"sqlite">[] = [];
+  for (let i = 0; i < tasks.length; i += TASKS_PER_INSERT) {
+    const rows = tasks.slice(i, i + TASKS_PER_INSERT).map((t) => ({
+      website_id: siteId,
+      kind: t.kind,
+      url: t.url,
+      depth: t.depth ?? 0,
+      source_url: t.source_url ?? null,
+      source_title: t.source_title ?? null,
+      anchor: t.anchor ?? null,
+      found_on_page: t.found_on_page ?? 0,
+    }));
+    stmts.push(
+      db
+        .insert(crawlTasks)
+        .values(rows)
+        .onConflictDoUpdate({
+          target: [crawlTasks.website_id, crawlTasks.kind, crawlTasks.url],
+          set: {
+            source_url: sql`excluded.source_url`,
+            source_title: sql`excluded.source_title`,
+            anchor: sql`excluded.anchor`,
+            found_on_page: 1,
+          },
+          // otherwise a no-op: an existing row is not rewritten (no D1 write)
+          setWhere: sql`${crawlTasks.found_on_page} = 0 AND excluded.found_on_page = 1`,
+        }),
+    );
+  }
+  for (let i = 0; i < stmts.length; i += 50) await batchAll(stmts.slice(i, i + 50));
+}
+
+/** Of these page URLs, the ones not yet queued in the site's run. */
+async function unqueuedPages(siteId: string, urls: string[]): Promise<string[]> {
+  const queued = new Set<string>();
+  for (let i = 0; i < urls.length; i += 90) {
+    const rows = await db
+      .select({ url: crawlTasks.url })
+      .from(crawlTasks)
+      .where(
+        and(
+          eq(crawlTasks.website_id, siteId),
+          eq(crawlTasks.kind, "page"),
+          inArray(crawlTasks.url, urls.slice(i, i + 90)),
+        ),
+      );
+    for (const r of rows) queued.add(r.url);
+  }
+  return urls.filter((u) => !queued.has(u));
 }
 
 function excluded(url: string, patterns: string[]): boolean {
   return isAlwaysIgnored(url) || patterns.some((p) => urlMatchesPattern(url, p));
 }
 
-/** Fetch a page, extract links, record sources, enqueue checks + same-host page fetches. */
+/**
+ * Fetch a page, record the links on it, and queue a check for each link plus a
+ * fetch of each same-site page it links to (robots-respecting, within the
+ * site's page budget). Returns how many pages it queued.
+ */
 export async function fetchPage(
   env: Env,
   site: CrawlSiteRow,
   url: string,
   depth: number,
-): Promise<CrawlMessage[]> {
-  const next: CrawlMessage[] = [];
-  if (depth > 2) return next;
-  // many pages link to the same page: fetch it once per run (crawl_sources is reset at run start),
-  // and not at all once its link check failed
-  const done = await db
+): Promise<number> {
+  // a page whose link check already failed this run isn't fetched
+  const failed = await db
     .select({ ok: sql<number>`1` })
-    .from(crawlSources)
-    .where(and(eq(crawlSources.website_id, site.id), eq(crawlSources.source_url, url)))
-    .unionAll(
-      db
-        .select({ ok: sql<number>`1` })
-        .from(linkChecks)
-        .where(
-          and(
-            eq(linkChecks.website_id, site.id),
-            eq(linkChecks.url, url),
-            eq(linkChecks.ok, 0),
-            gte(linkChecks.checked_at, site.last_crawl_at ?? Date.now()),
-          ),
-        ),
+    .from(linkChecks)
+    .where(
+      and(
+        eq(linkChecks.website_id, site.id),
+        eq(linkChecks.url, url),
+        eq(linkChecks.ok, 0),
+        gte(linkChecks.checked_at, site.last_crawl_at ?? Date.now()),
+      ),
     )
     .limit(1);
-  if (done.length) return next;
+  if (failed.length) return 0;
   const host = site.domain.replace(/^www\./, "");
 
   let html: string;
   try {
-    const res = await fetch(url, {
+    const res = await crawlerFetch(url, {
       headers: { "User-Agent": UA },
       redirect: "follow",
       signal: AbortSignal.timeout(10_000),
@@ -148,7 +213,7 @@ export async function fetchPage(
       // a broken seed page (sitemap entry, homepage) is a finding; a linked page is checked
       // from the page that links to it, which also records where it was found
       await res.body?.cancel();
-      if (depth > 0 || isWorking(res.status, site)) return next;
+      if (depth > 0 || isWorking(res.status, site)) return 0;
       const ts = Date.now();
       await db.insert(linkChecks).values({
         id: newId(),
@@ -167,18 +232,24 @@ export async function fetchPage(
         ts,
       );
       if (outcome.alert) await notifyDigest(env, site.id, url, null);
-      return next;
+      return 0;
     }
-    // a redirect to another site isn't one of our pages; a same-site redirect is the page it lands on
+    // a redirect to another site isn't one of our pages; a same-site redirect is the page
+    // it lands on, crawled as its own task (once per run, however many URLs lead there)
     const landed = new URL(res.url || url);
     if (landed.host.replace(/^www\./, "") !== host) {
       await res.body?.cancel();
-      return next;
+      return 0;
     }
-    url = landed.toString();
+    if (landed.toString() !== new URL(url).toString()) {
+      await res.body?.cancel();
+      await queueTasks(site.id, [{ kind: "page", url: landed.toString(), depth }]);
+      return 0;
+    }
     html = await res.text();
-  } catch {
-    return next;
+  } catch (error) {
+    rethrowIfBudgetSpent(error);
+    return 0;
   }
 
   // capture the real page title (spares the page a separate title fetch)
@@ -213,65 +284,17 @@ export async function fetchPage(
     excludes = JSON.parse(site.exclude_patterns ?? "[]");
   } catch {}
 
-  const stmts: BatchItem<"sqlite">[] = [];
-  for (const l of links) {
-    if (excluded(l.url, excludes)) continue;
-    stmts.push(
-      db
-        .insert(crawlSources)
-        .values({
-          website_id: site.id,
-          source_url: url,
-          source_title: title,
-          target_url: l.url,
-          anchor: l.anchor,
-        })
-        .onConflictDoUpdate({
-          target: [crawlSources.website_id, crawlSources.source_url, crawlSources.target_url],
-          set: {
-            anchor: sql`excluded.anchor`,
-            source_title: sql`COALESCE(excluded.source_title, ${crawlSources.source_title})`,
-          },
-        }),
-    );
-    next.push({
-      kind: "check-link",
-      siteId: site.id,
-      url: l.url,
-      sourceUrl: url,
-      anchor: l.anchor ?? undefined,
-      sourceTitle: title,
-      foundOnPage: true,
-    });
-  }
-  for (const a of assets) {
-    if (excluded(a, excludes)) continue;
-    stmts.push(
-      db
-        .insert(crawlSources)
-        .values({
-          website_id: site.id,
-          source_url: url,
-          source_title: title,
-          target_url: a,
-          anchor: null,
-        })
-        .onConflictDoNothing({
-          target: [crawlSources.website_id, crawlSources.source_url, crawlSources.target_url],
-        }),
-    );
-    next.push({
-      kind: "check-link",
-      siteId: site.id,
-      url: a,
-      sourceUrl: url,
-      sourceTitle: title,
-      foundOnPage: true,
-    });
-  }
-  // enqueue same-host pages for further crawling (robots-respecting, memoized per run)
-  if (depth < 2) {
+  // every link and asset on the page: its anchor (assets have none)
+  const found = new Map<string, string | null>();
+  for (const l of links) if (!excluded(l.url, excludes)) found.set(l.url, l.anchor);
+  for (const a of assets) if (!found.has(a) && !excluded(a, excludes)) found.set(a, null);
+
+  // same-host pages to crawl further, within the run's page budget
+  const pages: string[] = [];
+  const budget = site.crawl_max_pages - site.crawl_pages;
+  if (depth < 2 && budget > 0) {
     let robots: Robots | null = null;
+    const candidates: string[] = [];
     for (const l of links) {
       let u: URL;
       try {
@@ -284,74 +307,119 @@ export async function fetchPage(
       if (excluded(l.url, excludes)) continue;
       robots ??= await loadRobots(siteOrigin(site.domain));
       if (!robots.allowed(u.pathname)) continue;
-      next.push({ kind: "fetch-page", siteId: site.id, url: l.url, depth: depth + 1 });
+      candidates.push(l.url);
     }
+    if (candidates.length)
+      pages.push(...(await unqueuedPages(site.id, candidates)).slice(0, budget));
   }
-  // write sources in chunks
-  for (let i = 0; i < stmts.length; i += 50) {
-    await batchAll(stmts.slice(i, i + 50));
-  }
-  return next;
-}
 
-// A few pages per message: up to 10 messages share one consumer invocation, and the
-// Free plan allows 50 subrequests per invocation.
-const TITLES_PER_MESSAGE = 5;
-
-/** Start title jobs for these sites, replacing any job already running. Returns the first messages to send. */
-export async function startTitleJobs(env: Env, siteIds: string[]): Promise<CrawlMessage[]> {
-  const jobs = siteIds.map((siteId) => ({
-    kind: "fetch-titles" as const,
-    siteId,
-    job: crypto.randomUUID(),
-  }));
-  for (let i = 0; i < jobs.length; i += 50) {
-    await batchAll(
-      jobs
-        .slice(i, i + 50)
-        .map((j) => db.update(websites).set({ title_job: j.job }).where(eq(websites.id, j.siteId))),
-    );
-  }
-  return jobs;
+  await recordSources(site.id, url, title, found);
+  await queueTasks(site.id, [
+    ...[...found].map(
+      ([target, anchor]): NewTask => ({
+        kind: "link",
+        url: target,
+        source_url: url,
+        source_title: title,
+        anchor,
+        found_on_page: 1,
+      }),
+    ),
+    ...pages.map((page): NewTask => ({ kind: "page", url: page, depth: depth + 1 })),
+  ]);
+  return pages.length;
 }
 
 /**
- * Fetch real <title>s for known pages that haven't been tried yet (sitemap imports
- * store none). Returns the next message while more pages are waiting, so a site's
- * backlog drains a few pages at a time, one request at a time.
+ * Bring a page's rows in crawl_sources in line with the links found on it: add
+ * new ones, update changed anchors/titles, drop links no longer there. An
+ * unchanged page writes nothing.
  */
-export async function fetchTitles(
-  env: Env,
-  site: CrawlSiteRow,
-  job: string,
-): Promise<CrawlMessage[]> {
-  if (site.title_job !== job) return []; // a newer job took over
+async function recordSources(
+  siteId: string,
+  sourceUrl: string,
+  title: string | null,
+  found: Map<string, string | null>,
+): Promise<void> {
+  const existing = await db
+    .select({
+      target_url: crawlSources.target_url,
+      anchor: crawlSources.anchor,
+      source_title: crawlSources.source_title,
+    })
+    .from(crawlSources)
+    .where(and(eq(crawlSources.website_id, siteId), eq(crawlSources.source_url, sourceUrl)));
+  const had = new Map(existing.map((r) => [r.target_url, r]));
+  const row = (target: string) =>
+    and(
+      eq(crawlSources.website_id, siteId),
+      eq(crawlSources.source_url, sourceUrl),
+      eq(crawlSources.target_url, target),
+    );
+
+  const stmts: BatchItem<"sqlite">[] = [];
+  for (const [target, anchor] of found) {
+    const old = had.get(target);
+    if (!old) {
+      stmts.push(
+        db
+          .insert(crawlSources)
+          .values({
+            website_id: siteId,
+            source_url: sourceUrl,
+            target_url: target,
+            anchor,
+            source_title: title,
+          })
+          .onConflictDoNothing(),
+      );
+    } else if (old.anchor !== anchor || (title !== null && old.source_title !== title)) {
+      stmts.push(
+        db
+          .update(crawlSources)
+          .set({ anchor, source_title: title ?? old.source_title })
+          .where(row(target)),
+      );
+    }
+  }
+  for (const target of had.keys()) {
+    if (!found.has(target)) stmts.push(db.delete(crawlSources).where(row(target)));
+  }
+  for (let i = 0; i < stmts.length; i += 50) await batchAll(stmts.slice(i, i + 50));
+}
+
+/**
+ * Fetch real <title>s for up to `limit` known pages of a site that haven't been
+ * tried yet (sitemap imports store none). Returns true once the site has none
+ * left, after re-ranking its open links so their suggestions carry the titles.
+ */
+export async function fetchTitles(env: Env, siteId: string, limit: number): Promise<boolean> {
   const pending = await db
     .select({ url: knownUrls.url })
     .from(knownUrls)
-    .where(and(eq(knownUrls.website_id, site.id), isNull(knownUrls.title_checked_at)))
-    .limit(TITLES_PER_MESSAGE);
+    .where(and(eq(knownUrls.website_id, siteId), isNull(knownUrls.title_checked_at)))
+    .limit(limit + 1);
 
   const stmts: BatchItem<"sqlite">[] = [];
-  for (const { url } of pending) {
+  for (const { url } of pending.slice(0, limit)) {
     const title = await fetchTitle(url);
     // no title found: keep what's there (NULL, or a slug guess from before titles were fetched)
     stmts.push(
       db
         .update(knownUrls)
         .set({ title: sql`COALESCE(${title}, ${knownUrls.title})`, title_checked_at: Date.now() })
-        .where(and(eq(knownUrls.website_id, site.id), eq(knownUrls.url, url))),
+        .where(and(eq(knownUrls.website_id, siteId), eq(knownUrls.url, url))),
     );
     if (title) {
       // the page works: its real title is better than anything a broken row has
-      stmts.push(setBrokenLinkTitle(site.id, url, title));
+      stmts.push(setBrokenLinkTitle(siteId, url, title));
       stmts.push(
         db
           .update(crawlSources)
           .set({ source_title: title })
           .where(
             and(
-              eq(crawlSources.website_id, site.id),
+              eq(crawlSources.website_id, siteId),
               eq(crawlSources.source_url, url),
               isNull(crawlSources.source_title),
             ),
@@ -359,20 +427,18 @@ export async function fetchTitles(
       );
     }
   }
-  await batchAll(stmts);
-  if (pending.length === TITLES_PER_MESSAGE) {
-    invalidateKnownUrls(site.id);
-    return [{ kind: "fetch-titles", siteId: site.id, job }];
-  }
+  for (let i = 0; i < stmts.length; i += 50) await batchAll(stmts.slice(i, i + 50));
+  invalidateKnownUrls(siteId);
+  if (pending.length > limit) return false;
   // done: re-rank open links so their stored suggestions carry the titles (shared ones dropped)
-  await refreshSuggestions(env, site.id, 50);
-  return [];
+  await refreshSuggestions(env, siteId, 50);
+  return true;
 }
 
 /** A page's title, reading only as far as </head>; null for errors, non-HTML and untitled pages. */
 async function fetchTitle(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url, {
+    const res = await crawlerFetch(url, {
       headers: { "User-Agent": UA },
       redirect: "follow",
       signal: AbortSignal.timeout(10_000),
@@ -392,7 +458,8 @@ async function fetchTitle(url: string): Promise<string | null> {
     }
     await reader.cancel();
     return pageTitle(head);
-  } catch {
+  } catch (error) {
+    rethrowIfBudgetSpent(error);
     return null;
   }
 }
@@ -401,9 +468,9 @@ async function fetchTitle(url: string): Promise<string | null> {
 export async function checkLink(
   env: Env,
   site: CrawlSiteRow,
-  msg: Extract<CrawlMessage, { kind: "check-link" }>,
+  task: Pick<CrawlTask, "url" | "source_url" | "source_title" | "anchor" | "found_on_page">,
 ): Promise<boolean> {
-  // every page linking to a URL enqueues a check for it: check it once per run
+  // a URL that is also a page, or a recheck found on a page, is checked once per run
   if (site.last_crawl_at) {
     const done = await db
       .select({ ok: sql<number>`1` })
@@ -411,7 +478,7 @@ export async function checkLink(
       .where(
         and(
           eq(linkChecks.website_id, site.id),
-          eq(linkChecks.url, msg.url),
+          eq(linkChecks.url, task.url),
           gte(linkChecks.checked_at, site.last_crawl_at),
         ),
       )
@@ -419,21 +486,22 @@ export async function checkLink(
       .get();
     if (done) return false;
   }
-  const result = await checkUrl(msg.url, site);
+  const result = await checkUrl(task.url, site);
   const ts = Date.now();
   await db.insert(linkChecks).values({
     id: crypto.randomUUID(),
     website_id: site.id,
-    url: msg.url,
+    url: task.url,
     status: result.status,
     ok: result.ok ? 1 : 0,
     redirect_chain: result.redirectChain ? JSON.stringify(result.redirectChain) : null,
     checked_at: ts,
   });
-  const foundOn = msg.foundOnPage
-    ? { url: msg.sourceUrl, title: msg.sourceTitle ?? null, anchor: msg.anchor ?? null }
-    : undefined;
-  const outcome = await recordCrawlResult(env, site.id, msg.url, result, ts, foundOn);
+  const foundOn =
+    task.found_on_page && task.source_url
+      ? { url: task.source_url, title: task.source_title ?? null, anchor: task.anchor ?? null }
+      : undefined;
+  const outcome = await recordCrawlResult(env, site.id, task.url, result, ts, foundOn);
   return outcome.alert;
 }
 

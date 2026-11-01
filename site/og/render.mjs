@@ -29,7 +29,7 @@ const CARDS = [
   {
     file: "og-self-host.png",
     title: "Self-host in one click. Pay nothing at hobby scale.",
-    sub: "One Worker with D1, Queues and Durable Objects. All on the Cloudflare Workers Free plan.",
+    sub: "One Worker with D1 and Durable Objects. All on the Cloudflare Workers Free plan.",
     visual: `<div class="deploy"><span class="btn">Deploy to Cloudflare →</span>\n<span class="m">$</span> npx wrangler d1 create 404less\n<span class="m">$</span> npm run deploy\n<span class="c"># migrations + dashboard + worker</span></div>`,
   },
   {

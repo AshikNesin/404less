@@ -13,6 +13,9 @@ import {
 import type { AppBindings, Env } from "../../types";
 import { and, asc, count, desc, eq, max, min, sql } from "drizzle-orm";
 import { batch, db, notFoundEvents, teamMembers, teams, users, websites } from "../../db";
+import { waitUntil } from "../../lib/background";
+import { getSite, startRun } from "../crawl/crawl.service";
+import { INLINE_SLICE, crawlTick } from "../crawl/crawl.tick";
 
 export const sites = new Hono<AppBindings>();
 
@@ -203,7 +206,10 @@ sites.delete("/sites/:id", async (c) => {
 sites.get("/sites/:id/overview", async (c) => {
   const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
-  return c.json(await siteOverview(c.env, found.site));
+  const overview = await siteOverview(c.env, found.site);
+  // the dashboard polls this every few seconds while a crawl runs: each poll moves it along
+  if (overview.crawl.running) waitUntil(c, crawlTick(c.env, INLINE_SLICE));
+  return c.json(overview);
 });
 
 // start a crawl now (manual trigger; same path the cron takes)
@@ -211,16 +217,11 @@ sites.post("/sites/:id/crawl", async (c) => {
   const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
   if (found.role === "viewer") return c.json({ error: "forbidden" }, 403);
-  // stamp the run now: until the queue picks it up the dashboard would show the previous run as current
-  const stamp = (ts: number | null) =>
-    db.update(websites).set({ last_crawl_at: ts }).where(eq(websites.id, found.site.id));
-  await stamp(now());
-  try {
-    await c.env.CRAWLQ.send({ kind: "crawl-site", siteId: found.site.id, manual: true });
-  } catch (err) {
-    await stamp(found.site.last_crawl_at); // nothing was queued: the previous run is still the current one
-    throw err;
-  }
+  const site = await getSite(c.env, found.site.id);
+  if (!site) return c.json({ error: "not found" }, 404);
+  // queues the run's first pages; the first tick starts right after the response
+  await startRun(c.env, site);
+  waitUntil(c, crawlTick(c.env, INLINE_SLICE));
   return c.json({ ok: true, started: true });
 });
 

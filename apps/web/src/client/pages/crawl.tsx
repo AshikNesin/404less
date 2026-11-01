@@ -28,6 +28,13 @@ import { overviewQuery } from "../features/sites/queries";
 import { FoundOnCell } from "../features/links/parts";
 import { useCurrentSite } from "../features/sites/queries";
 
+/** "daily", "every 6 hours", "every 30 minutes". */
+function crawlEvery(hours: number): string {
+  if (hours === 24) return "daily";
+  if (hours < 1) return `every ${Math.round(hours * 60)} minutes`;
+  return hours === 1 ? "hourly" : `every ${+hours.toFixed(1)} hours`;
+}
+
 export function CrawlPage() {
   const site = useCurrentSite();
   const qc = useQueryClient();
@@ -116,7 +123,11 @@ export function CrawlPage() {
           <CardContent className="divide-y divide-border">
             <Field
               label="Scheduled crawling"
-              hint={site.crawl_enabled ? "Runs every 30 minutes" : "Off: manual crawls only"}
+              hint={
+                site.crawl_enabled
+                  ? `Runs ${crawlEvery(crawl?.intervalHours ?? 24)}`
+                  : "Off: manual crawls only"
+              }
             >
               <Switch
                 checked={site.crawl_enabled === 1}
@@ -126,7 +137,7 @@ export function CrawlPage() {
             </Field>
             <Field
               label="Pages per crawl"
-              hint="Starting pages per run (sitemap or homepage). Keeps you inside free-tier limits."
+              hint="Pages fetched per run: your sitemap or homepage, then the pages they link to. Keeps you inside free-tier limits."
             >
               <form
                 onSubmit={(e) => {

@@ -91,6 +91,8 @@ export type Overview = {
     checked: number;
     broken: number;
     running: boolean;
+    /** Hours between scheduled crawls (CRAWL_INTERVAL_HOURS). */
+    intervalHours: number;
   };
   knownUrls: number;
   channels: number;

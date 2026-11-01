@@ -1,6 +1,7 @@
 // URL checker: follows redirects manually to capture the chain, applies the
 // site's status-code ignore list, and classifies ok/broken.
 import type { SiteRow } from "../sites/sites.helpers";
+import { crawlerFetch, rethrowIfBudgetSpent, SubrequestBudgetSpent } from "./subrequests";
 
 export type CheckResult = {
   status: number;
@@ -14,7 +15,7 @@ const MAX_REDIRECTS = 6;
 
 function get(url: string): Promise<Response> {
   const attempt = () =>
-    fetch(url, {
+    crawlerFetch(url, {
       method: "GET",
       redirect: "manual",
       headers: { "User-Agent": UA },
@@ -22,6 +23,7 @@ function get(url: string): Promise<Response> {
     });
   // a dropped connection ("Network connection lost") is worth one fresh attempt; a timeout is not
   return attempt().catch((e: unknown) => {
+    if (e instanceof SubrequestBudgetSpent) throw e;
     if (e instanceof Error && e.name === "TimeoutError") throw e;
     return attempt();
   });
@@ -51,7 +53,8 @@ export async function checkUrl(
     let res: Response;
     try {
       res = await get(url);
-    } catch {
+    } catch (e) {
+      rethrowIfBudgetSpent(e); // not a broken link: the tick ran out of fetches
       return {
         status: 0,
         ok: false,

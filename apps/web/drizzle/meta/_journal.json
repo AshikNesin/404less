@@ -64,6 +64,13 @@
       "when": 1793451008676,
       "tag": "0009_link_anchor",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793509338424,
+      "tag": "0010_crawl_tasks",
+      "breakpoints": true
     }
   ]
 }

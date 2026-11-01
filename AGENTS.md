@@ -48,10 +48,16 @@ Use **pnpm** for everything. Don't call `vp` directly (use `pnpm check`,
 ## Runtime
 
 Production is Cloudflare Workers only (`apps/web/src/server/entry.worker.ts`):
-D1, the `CRAWLQ` queue (crawl fan-out; never move it onto groot's jobs
-table, as it would eat the free-tier D1 write budget), Durable Objects
-(`DigestDO` alert digests, `RateLimiterDO` ingest limits), Static Assets, and
-two crons (crawl every 30 min, retention nightly). Routes and services receive
+D1, Durable Objects (`DigestDO` alert digests, `RateLimiterDO` ingest
+limits), Static Assets, and two crons (the crawl tick every minute, retention
+nightly). **No Cloudflare Queues**: the Free plan's 10k ops/day ran out within
+one crawl. Crawling is the tick in `api/crawl/crawl.tick.ts` working through
+`crawl_tasks` (the run's frontier: one row per URL per run, finished by
+advancing `websites.crawl_cursor`, so a task costs no write when done). Keep it
+inside the Free plan: every crawler fetch goes through `crawlerFetch()`
+(`subrequests.ts`, 40 per tick of the 50 allowed), a tick with no work must not
+write, and don't move crawl onto groot's jobs table (insert + claim + complete
+per message eats the D1 write budget). Routes and services receive
 the bindings as `c.env`/`env`; database access is Drizzle's query builder on
 groot's `db` (`import { db, batch, … } from "apps/web/src/server/db"`), never
 `env.DB`, except where no app boot exists (Durable Objects, `worker/boot.ts`),
@@ -61,8 +67,9 @@ D1 caps a statement at 100 bound parameters: batch single-row inserts rather
 than one large multi-row insert. Schema keys are snake_case on purpose: rows
 go to the client as-is, so the JSON keeps the column names.
 
-`pnpm dev` runs the same app on Node with in-process stand-ins for the queue
-and DOs (`node-bindings.ts`); `pnpm dev:worker` runs the real Worker locally.
+`pnpm dev` runs the same app on Node with in-process stand-ins for the DOs
+(`node-bindings.ts`) and a timer for the crawl tick; `pnpm dev:worker` runs
+the real Worker locally.
 
 ## Principles
 
@@ -97,10 +104,9 @@ and DOs (`node-bindings.ts`); `pnpm dev:worker` runs the real Worker locally.
 - `not_found_events` is the raw visitor log (pruned nightly); `link_checks` is
   crawler history (30 days).
 - `known_urls` (sitemap import + crawler) feeds suggestions. `title` is the
-  page's real `<title>`: imports store none, and a `fetch-titles` queue job
-  reads them a few pages per message (`title_checked_at` marks a finished
-  attempt; `websites.title_job` keeps one job per site; the nightly cron
-  resumes any backlog). The ranker drops a title 3+ pages share.
+  page's real `<title>`: imports store none, and the crawl tick reads them
+  with whatever fetch budget a tick has left (`title_checked_at` marks a
+  finished attempt). The ranker drops a title 3+ pages share.
 
 ## Commands
 

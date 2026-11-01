@@ -1,4 +1,4 @@
-// M4: crawler. HTML link extraction, checker classification, queue+cron handlers,
+// M4: crawler. HTML link extraction, checker classification, crawl tasks + cron tick,
 // diff-based new-failure alerts, crawl report endpoint.
 import {
   SELF,
@@ -6,14 +6,10 @@ import {
   createScheduledController,
   createExecutionContext,
   waitOnExecutionContext,
-  createMessageBatch,
 } from "cloudflare:test";
-import worker from "../../apps/web/src/server/entry.worker";
-import {
-  queue as queueHandler,
-  scheduled as scheduledHandler,
-} from "../../apps/web/src/server/worker/cron";
-import { beforeAll, expect, test, vi } from "vitest";
+import { scheduled as scheduledHandler } from "../../apps/web/src/server/worker/cron";
+import { beforeAll, expect, test } from "vitest";
+import { drainCrawl, siteRun, startTestRun, tasksOf, tick } from "./crawl-helpers";
 import { extractLinks } from "../../apps/web/src/server/api/crawl/html";
 
 let cookie = "";
@@ -151,19 +147,13 @@ test("checkUrl classifies broken, and ignore-list rescues 403", async () => {
   }
 });
 
-test("fetch-page message: extracts links, records sources, enqueues checks + same-host pages", async () => {
+test("a page task: extracts links, records sources, queues link checks + same-host pages", async () => {
   // enable crawling first
   await SELF.fetch(`http://localhost/api/v1/sites/${siteId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", cookie },
     body: JSON.stringify({ crawl_enabled: true, crawl_max_pages: 5 }),
   });
-
-  const sent: any[] = [];
-  const realSend = (env as any).CRAWLQ.sendBatch.bind(env.CRAWLQ);
-  (env as any).CRAWLQ.sendBatch = async (msgs: any[]) => {
-    sent.push(...msgs.map((m) => m.body));
-  };
 
   const restore = stubFetch({
     "https://crawl.test/": {
@@ -172,81 +162,47 @@ test("fetch-page message: extracts links, records sources, enqueues checks + sam
     },
   });
   try {
-    const batch = createMessageBatch("crawl-q", [
-      {
-        id: "p1",
-        timestamp: new Date(0),
-        attempts: 1,
-        body: { kind: "fetch-page", siteId, url: "https://crawl.test/", depth: 0 },
-      } as never,
+    await startTestRun(siteId, [{ kind: "page", url: "https://crawl.test/", depth: 0 }]);
+    // room for the page (and robots.txt) only: what it queued is still waiting
+    await tick({ fetches: 2 });
+    const queued = (await tasksOf(siteId)).map((t) => `${t.kind} ${t.url}`);
+    expect(queued).toEqual([
+      "page https://crawl.test/",
+      "link https://crawl.test/page1",
+      "link https://ext.example/x",
+      "link https://crawl.test/i.png",
+      "page https://crawl.test/page1", // same-host -> crawled
     ]);
-    const ctx = createExecutionContext();
-    await queueHandler(batch, env as never, ctx);
-    await waitOnExecutionContext(ctx);
-    expect(batch.messages[0].ackAll ?? true).toBeTruthy();
-
-    const kinds = sent.map((m) => m.kind);
-    expect(kinds).toContain("check-link");
-    expect(kinds).toContain("fetch-page"); // /page1 is same-host -> crawled
+    expect((await siteRun(siteId))!.crawl_pages).toBe(2);
     const src = await env.DB.prepare("SELECT COUNT(*) AS n FROM crawl_sources WHERE website_id = ?")
       .bind(siteId)
       .first<{ n: number }>();
-    expect(src!.n).toBeGreaterThanOrEqual(2);
+    expect(src!.n).toBe(3);
+    await drainCrawl();
   } finally {
     restore();
-    (env as any).CRAWLQ.sendBatch = realSend;
   }
 });
 
-test("check-link message: persists result; repeated failure is not new", async () => {
+test("a link task: persists the result; a repeated failure is not new", async () => {
   const restore = stubFetch({ "https://ext.example/x": { status: 404 } });
-  const doCalls: any[] = [];
-  // spy on DO fetch for alert verification
   try {
     for (let run = 0; run < 2; run++) {
-      const batch = createMessageBatch("crawl-q", [
-        {
-          id: `c${run}`,
-          timestamp: new Date(0),
-          attempts: 1,
-          body: {
-            kind: "check-link",
-            siteId,
-            url: "https://ext.example/x",
-            sourceUrl: "https://crawl.test/",
-          },
-        } as never,
+      await new Promise((r) => setTimeout(r, 5)); // each run starts after the last check
+      await startTestRun(siteId, [
+        { kind: "link", url: "https://ext.example/x", source_url: "https://crawl.test/" },
       ]);
-      const ctx = createExecutionContext();
-      await queueHandler(batch, env as never, ctx);
-      await waitOnExecutionContext(ctx);
+      await drainCrawl();
     }
     const rows = await env.DB.prepare(
       "SELECT ok, status FROM link_checks WHERE website_id = ? AND url = ?",
     )
       .bind(siteId, "https://ext.example/x")
       .all();
-    expect(rows.results).toHaveLength(2);
-    expect(rows.results[0].ok).toBe(0);
+    expect(rows.results).toHaveLength(3); // the page run's check + one per run here
+    expect(rows.results.every((r) => r.ok === 0)).toBe(true);
   } finally {
     restore();
-  }
-});
-
-test("cron handler enqueues crawl-site for enabled sites only", async () => {
-  const sent: any[] = [];
-  const realSend = (env as any).CRAWLQ.sendBatch.bind(env.CRAWLQ);
-  (env as any).CRAWLQ.sendBatch = async (msgs: any[]) => {
-    sent.push(...msgs.map((m) => m.body));
-  };
-  try {
-    const ctrl = createScheduledController({ scheduledTime: new Date(0), cron: "*/30 * * * *" });
-    const ctx = createExecutionContext();
-    await scheduledHandler(ctrl, env as never, ctx);
-    await waitOnExecutionContext(ctx);
-    expect(sent).toEqual([{ kind: "crawl-site", siteId }]);
-  } finally {
-    (env as any).CRAWLQ.sendBatch = realSend;
   }
 });
 
@@ -267,10 +223,49 @@ test("crawl-report endpoint returns broken with sources", async () => {
 test("POST /crawl starts a crawl (auth + role checked)", async () => {
   const r1 = await SELF.fetch(`http://localhost/api/v1/sites/${siteId}/crawl`, { method: "POST" });
   expect(r1.status).toBe(401);
-  const r2 = await SELF.fetch(`http://localhost/api/v1/sites/${siteId}/crawl`, {
-    method: "POST",
-    headers: { cookie },
-  });
-  expect(r2.status).toBe(200);
-  expect(((await r2.json()) as any).started).toBe(true);
+  const restore = stubFetch({});
+  try {
+    const r2 = await SELF.fetch(`http://localhost/api/v1/sites/${siteId}/crawl`, {
+      method: "POST",
+      headers: { cookie },
+    });
+    expect(r2.status).toBe(200);
+    expect(((await r2.json()) as any).started).toBe(true);
+    expect((await siteRun(siteId))!.crawl_cursor).not.toBeNull();
+    await drainCrawl();
+  } finally {
+    restore();
+  }
+});
+
+test("the cron tick starts runs for sites with crawling on once they are due", async () => {
+  const cron = async () => {
+    const ctrl = createScheduledController({ scheduledTime: new Date(0), cron: "* * * * *" });
+    const ctx = createExecutionContext();
+    await scheduledHandler(ctrl, env as never, ctx);
+    await waitOnExecutionContext(ctx);
+  };
+  const setRun = (enabled: number, lastCrawlAt: number) =>
+    env.DB.prepare("UPDATE websites SET crawl_enabled = ?, last_crawl_at = ? WHERE id = ?")
+      .bind(enabled, lastCrawlAt, siteId)
+      .run();
+  const restore = stubFetch({});
+  try {
+    const recent = Date.now() - 60_000;
+    await setRun(1, recent);
+    await cron();
+    expect((await siteRun(siteId))!.last_crawl_at).toBe(recent); // crawled a minute ago: not due
+
+    await setRun(0, 1);
+    await cron();
+    expect((await siteRun(siteId))!.last_crawl_at).toBe(1); // crawling off: never due
+
+    await setRun(1, Date.now() - 25 * 3_600_000);
+    await cron();
+    const run = await siteRun(siteId);
+    expect(run!.last_crawl_at).toBeGreaterThan(recent); // a day since the last run: started
+    await drainCrawl();
+  } finally {
+    restore();
+  }
 });
