@@ -1,4 +1,4 @@
-// Rate limiting, retention pruning, robots.txt, queue config.
+// Rate limiting, retention pruning, robots.txt.
 import {
   SELF,
   env,

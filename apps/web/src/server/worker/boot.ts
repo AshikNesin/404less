@@ -12,7 +12,7 @@ let ready: Promise<WebApp> | undefined;
 
 /**
  * Boot once per isolate: apply pending migrations, then bootstrap groot. Every
- * Workers handler (fetch, scheduled, queue) awaits this first, so groot's `db`
+ * Workers handler (fetch, scheduled) awaits this first, so groot's `db`
  * is wired whichever event wakes the isolate. Later calls reuse the app.
  *
  * `wrangler deploy` is the whole deploy: migrations run here on first use

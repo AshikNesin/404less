@@ -192,24 +192,3 @@ test("the overview reports a run as running until its last task is done", async 
     s.restore();
   }
 });
-
-test("messages left in the old crawl queue are acknowledged and dropped", async () => {
-  const { createExecutionContext, createMessageBatch, getQueueResult } =
-    await import("cloudflare:test");
-  const worker = (await import("../../apps/web/src/server/entry.worker")).default;
-  const batch = createMessageBatch("404less-crawl", [
-    {
-      id: "old-1",
-      timestamp: new Date(0),
-      attempts: 1,
-      body: { kind: "crawl-site", siteId },
-    },
-  ]);
-  const ctx = createExecutionContext();
-  await worker.queue(batch as never, env as never, ctx);
-  const result = await getQueueResult(batch, ctx);
-  expect(result.ackAll).toBe(true);
-  expect(result.retryBatch.retry).toBe(false);
-  expect(result.retryMessages).toEqual([]);
-  expect(await tasksOf(siteId)).toEqual([]); // nothing crawled from the old message
-});

@@ -120,11 +120,10 @@ row writes per run (the first run also records every page's links). Crawling
 daily that is a few percent of the Free plan's 100k writes/day;
 `CRAWL_INTERVAL_HOURS=6` is still comfortable for a few sites.
 
-Upgrading from a version that used Queues: deploy as usual. The old
-`404less-crawl` queue's consumer stays attached to the Worker until you remove
-it, so the Worker keeps a queue handler that drops leftover messages (without
-one, Cloudflare rejects the deploy). Then delete the queue:
-`pnpm exec wrangler queues delete 404less-crawl`.
+Upgrading from a version that used Queues: delete the old queue first
+(`pnpm exec wrangler queues delete 404less-crawl`), then deploy. While its
+consumer is attached, Cloudflare rejects a Worker without a queue handler
+("Queue handler is missing", code 11001).
 
 ## Install the snippet
 

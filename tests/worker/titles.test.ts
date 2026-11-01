@@ -131,7 +131,7 @@ async function knownRow(url: string) {
     .first<{ title: string | null; title_checked_at: number | null }>();
 }
 
-test("fetch-titles: stores real titles, skips non-HTML and errors, updates stored suggestions", async () => {
+test("title backlog: stores real titles, skips non-HTML and errors, updates stored suggestions", async () => {
   const urls = [
     "https://titles.test/docs/install",
     "https://titles.test/guide.pdf",
@@ -171,7 +171,7 @@ test("fetch-titles: stores real titles, skips non-HTML and errors, updates store
   expect(suggestions[0]).toMatchObject({ url: urls[0], title: "Install – Docs" });
 });
 
-test("fetch-titles: works through a backlog within each tick's fetch budget; pages count as tried only once fetched", async () => {
+test("title backlog: works through a backlog within each tick's fetch budget; pages count as tried only once fetched", async () => {
   await addKnown([0, 1, 2, 3, 4, 5, 6].map((i) => `https://titles.test/p/${i}`));
   let checkedDuringFetch: number | null | undefined;
   const pages = stubPages(
@@ -196,7 +196,7 @@ test("fetch-titles: works through a backlog within each tick's fetch budget; pag
   expect((await knownRow("https://titles.test/p/6"))!.title).toBe("Page 6");
 });
 
-test("fetch-titles: a title three pages share stays out of stored suggestions", async () => {
+test("title backlog: a title three pages share stays out of stored suggestions", async () => {
   await addKnown([
     "https://titles.test/app/settings",
     "https://titles.test/app/billing",
