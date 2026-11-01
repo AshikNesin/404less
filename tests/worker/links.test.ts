@@ -1,14 +1,9 @@
 // Broken-link triage: the lifecycle both detectors drive (open → resolved → reopened,
 // ignored stays quiet), the list/detail/status endpoints, overview stats, site delete.
-import {
-  SELF,
-  env,
-  createExecutionContext,
-  waitOnExecutionContext,
-  createMessageBatch,
-} from "cloudflare:test";
-import { queue as queueHandler } from "../../apps/web/src/server/worker/cron";
+import { SELF, env } from "cloudflare:test";
 import { beforeAll, expect, test } from "vitest";
+import { getSite, startRun } from "../../apps/web/src/server/api/crawl/crawl.service";
+import { drainCrawl, startTestRun, tasksOf } from "./crawl-helpers";
 
 let cookie = "";
 let siteId = "";
@@ -169,47 +164,32 @@ test("status: resolve → visitor hit reopens; ignore → counted but never aler
 });
 
 test("crawler: failure creates a crawler-source link, success resolves an open one", async () => {
-  const sent: any[] = [];
-  const realSend = (env as any).CRAWLQ.sendBatch.bind(env.CRAWLQ);
-  (env as any).CRAWLQ.sendBatch = async (msgs: any[]) => {
-    sent.push(...msgs.map((m) => m.body));
-  };
+  // a run (manual, crawling off) seeds known urls + rechecks open links
+  await startRun(env as never, (await getSite(env as never, siteId))!);
+  const queued = await tasksOf(siteId);
+  expect(queued.some((t) => t.kind === "page")).toBe(true);
+  expect(queued.some((t) => t.kind === "link" && t.url === "https://links.test/docs/instal")).toBe(
+    true,
+  );
+  const site = await env.DB.prepare("SELECT last_crawl_at FROM websites WHERE id = ?")
+    .bind(siteId)
+    .first<{ last_crawl_at: number }>();
+  expect(site!.last_crawl_at).toBeGreaterThan(0);
+
+  // known pages already carry titles: keep the tick to these two checks
+  await env.DB.prepare("UPDATE known_urls SET title_checked_at = 1 WHERE website_id = ?")
+    .bind(siteId)
+    .run();
   const restore = stubFetch({
     "https://links.test/missing.png": 404,
     "https://links.test/docs/instal": 200,
   });
   try {
-    const run = async (body: any) => {
-      const batch = createMessageBatch("crawl-q", [
-        { id: crypto.randomUUID(), timestamp: new Date(0), attempts: 1, body } as never,
-      ]);
-      const ctx = createExecutionContext();
-      await queueHandler(batch, env as never, ctx);
-      await waitOnExecutionContext(ctx);
-    };
-    // crawl-site with crawling off but manual=true still starts; seeds known urls + rechecks open links
-    await run({ kind: "crawl-site", siteId, manual: true });
-    expect(sent.some((m) => m.kind === "fetch-page")).toBe(true);
-    expect(
-      sent.some((m) => m.kind === "check-link" && m.url === "https://links.test/docs/instal"),
-    ).toBe(true);
-    const site = await env.DB.prepare("SELECT last_crawl_at FROM websites WHERE id = ?")
-      .bind(siteId)
-      .first<{ last_crawl_at: number }>();
-    expect(site!.last_crawl_at).toBeGreaterThan(0);
-
-    await run({
-      kind: "check-link",
-      siteId,
-      url: "https://links.test/missing.png",
-      sourceUrl: "https://links.test/",
-    });
-    await run({
-      kind: "check-link",
-      siteId,
-      url: "https://links.test/docs/instal",
-      sourceUrl: "https://links.test/",
-    });
+    await startTestRun(siteId, [
+      { kind: "link", url: "https://links.test/missing.png", source_url: "https://links.test/" },
+      { kind: "link", url: "https://links.test/docs/instal", source_url: "https://links.test/" },
+    ]);
+    await drainCrawl();
 
     const all = await list("?status=all");
     const png = all.links.find((l: any) => l.url === "https://links.test/missing.png");
@@ -225,7 +205,6 @@ test("crawler: failure creates a crawler-source link, success resolves an open o
     ]);
   } finally {
     restore();
-    (env as any).CRAWLQ.sendBatch = realSend;
   }
 });
 

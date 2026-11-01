@@ -16,8 +16,9 @@
 - **Crawler (Phase 2):** a scheduled crawler scans the whole site (all links + assets), finds broken
   ones, notifies, and shows them in a dashboard with suggested fixes.
 
-The entire backend runs on a single Cloudflare **Worker** + **D1** (SQLite) + **Queues** + **Cron
-Triggers**, all of which are on the Workers **Free** plan as of 2026. Anyone can self-host in one
+The entire backend runs on a single Cloudflare **Worker** + **D1** (SQLite) + **Durable Objects** +
+**Cron Triggers**, all of which are on the Workers **Free** plan as of 2026. (The draft below used
+Queues for crawl fan-out; see §11 for why crawling now runs on a cron tick instead.) Anyone can self-host in one
 click with zero infrastructure cost.
 
 ## 2. Goals & Non-Goals
@@ -189,12 +190,22 @@ under D1's 500MB free cap.
 |---|---|---|
 | Worker requests | 100k/day | ingest + dashboard; ~thousands/day |
 | D1 | 5M reads, 100k writes/day, 500MB | bounded by rate limiter + retention |
-| Queues | 10k ops/day | 1 op per 404 event + crawl batches: fine |
+| Outbound fetches | 50 per invocation | crawl tick: ≤40 per minute-tick, resumed next tick |
 | Durable Objects (SQLite) | 100k req/day, 100k writes/day | digest/session DOs: negligible |
-| Cron Triggers | 3 per Worker (free plan) | crawler + retention + digest: fits in 3 |
+| Cron Triggers | 5 per account (free plan) | crawl tick (every minute) + retention |
 
-Verified: Queues free-plan availability (Feb 2026 changelog) · DO SQLite free tier (Apr 2025) · D1
-limits (docs). Links: see §10.
+No Queues: a crawl sends one unit of work per page and per link (a 100-page site is thousands of
+checks before deduplication), and the Free plan's 10k queue ops/day (each message is a write, a
+read and a delete) ran out within one run. The crawl frontier lives in D1 instead (§11).
+
+Per crawl run of a 100-page site with ~300 distinct links: ~400 fetches over 20-odd ticks (about
+20 minutes unattended, faster while someone watches) and ~4k D1 row writes (frontier rows in and
+out, one `link_checks` row per link, page titles); the first run also writes each page's links into
+`crawl_sources`, later runs only the changes. At the default daily schedule that is a few percent
+of the write budget.
+
+Verified: DO SQLite free tier (Apr 2025) · D1 limits (docs) · Workers subrequest limits (docs).
+Links: see §10.
 
 ## 7. One-Click Deploy
 
@@ -272,5 +283,16 @@ Shipped: M1–M4 plus the read-only MCP server. Deviations from the sections abo
 - **Auth:** first sign-in creates a personal team; sites can be added without a team step. Expired links bounce to
   the sign-in page with an error instead of a bare 400.
 - **Retention:** nightly prune of events (90d default) and crawler check history (30d). Managed rows are kept.
+- **Crawling runs on a cron tick, not Queues** (migration 0010). Queues' Free-plan 10k ops/day ran out
+  within a single crawl of one site. A run's work is now rows in `crawl_tasks` (one per page to fetch
+  or link to check, unique per URL per run, so a link on every page is one task). A cron tick every
+  minute works through each running site's rows in id order and remembers its place in
+  `websites.crawl_cursor`, so a finished task costs no write; it stops at 40 fetches (the plan allows
+  50 per invocation), 5 parsed pages (10 ms CPU on Free) or 40 s, and the next tick resumes. A lease row in `kv` keeps it to
+  one tick at a time; an idle tick only reads. "Crawl now", sitemap imports and the dashboard's polling
+  of a running crawl start a tick at once, so a watched crawl is quick. `crawl_max_pages` now bounds every
+  page a run fetches (discovered ones too); scheduled crawls run every `CRAWL_INTERVAL_HOURS` (default 24,
+  was every 30 min); `crawl_sources` is reconciled per page instead of rewritten every run; the title
+  backlog is drained by the same tick (no more title jobs).
 
 ```

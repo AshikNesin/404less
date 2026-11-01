@@ -9,6 +9,7 @@ import m5 from "./0006_known_url_titles.sql";
 import m6 from "./0007_url_titles.sql";
 import m7 from "./0008_core_kv.sql";
 import m8 from "./0009_link_anchor.sql";
+import m9 from "./0010_crawl_tasks.sql";
 
 export const migrations = [
   { name: "0001_init.sql", sql: m0 },
@@ -20,4 +21,5 @@ export const migrations = [
   { name: "0007_url_titles.sql", sql: m6 },
   { name: "0008_core_kv.sql", sql: m7 },
   { name: "0009_link_anchor.sql", sql: m8 },
+  { name: "0010_crawl_tasks.sql", sql: m9 },
 ];

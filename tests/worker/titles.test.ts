@@ -1,9 +1,9 @@
-// Real page titles: read from the pages (crawler + fetch-titles job), shown by suggestions;
+// Real page titles: read from the pages (crawler + the tick's title backlog), shown by suggestions;
 // sitemap imports store none and never overwrite one.
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, expect, test } from "vitest";
 import { pageTitle } from "../../apps/web/src/server/api/crawl/html";
-import { startTitleJobs } from "../../apps/web/src/server/api/crawl/crawl.service";
+import { drainCrawl, startTestRun, tick } from "./crawl-helpers";
 
 test("pageTitle: <title>, og:title fallback, whitespace collapse, absent", () => {
   expect(pageTitle("<html><head><title>  Real   Title </title></head></html>")).toBe("Real Title");
@@ -72,26 +72,10 @@ test("fetch-page persists real <title> to known_urls; shows in suggestions", asy
     return new Response("nf", { status: 404 });
   }) as typeof fetch;
   try {
-    const worker = (await import("../../apps/web/src/server/entry.worker")).default;
-    const { createMessageBatch, createExecutionContext, waitOnExecutionContext } =
-      await import("cloudflare:test");
-    const batch = createMessageBatch("q", [
-      {
-        id: "t1",
-        timestamp: new Date(0),
-        attempts: 1,
-        body: {
-          kind: "fetch-page",
-          siteId,
-          url: "https://titles.test/til/cloudflare-claude",
-          depth: 0,
-        },
-      } as never,
+    await startTestRun(siteId, [
+      { kind: "page", url: "https://titles.test/til/cloudflare-claude", depth: 0 },
     ]);
-    const ctx = createExecutionContext();
-    const { queue } = await import("../../apps/web/src/server/worker/cron");
-    await queue(batch, env as never, ctx);
-    await waitOnExecutionContext(ctx);
+    await drainCrawl();
 
     const row = await env.DB.prepare(
       "SELECT title FROM known_urls WHERE website_id = ? AND url = ?",
@@ -103,31 +87,6 @@ test("fetch-page persists real <title> to known_urls; shows in suggestions", asy
     globalThis.fetch = real;
   }
 });
-
-async function runQueue(body: unknown) {
-  const { createMessageBatch, createExecutionContext, waitOnExecutionContext } =
-    await import("cloudflare:test");
-  const { queue } = await import("../../apps/web/src/server/worker/cron");
-  const batch = createMessageBatch("q", [
-    { id: crypto.randomUUID(), timestamp: new Date(0), attempts: 1, body } as never,
-  ]);
-  const ctx = createExecutionContext();
-  await queue(batch, env as never, ctx);
-  await waitOnExecutionContext(ctx);
-}
-
-function captureQueue() {
-  const sent: any[] = [];
-  const q = (env as any).CRAWLQ;
-  const real = { send: q.send, sendBatch: q.sendBatch };
-  q.send = async (body: any) => {
-    sent.push(body);
-  };
-  q.sendBatch = async (msgs: any[]) => {
-    sent.push(...msgs.map((m) => m.body));
-  };
-  return { sent, restore: () => Object.assign(q, real) };
-}
 
 function stubPages(page: (url: string) => Response) {
   const real = globalThis.fetch;
@@ -190,13 +149,10 @@ test("fetch-titles: stores real titles, skips non-HTML and errors, updates store
       return new Response("%PDF-1.7", { headers: { "content-type": "application/pdf" } });
     return new Response("<title>Not found</title>", { status: 404, headers: HTML });
   });
-  const q = captureQueue();
   try {
-    const [first] = await startTitleJobs(env as never, [siteId]);
-    await runQueue(first);
+    await drainCrawl();
   } finally {
     pages.restore();
-    q.restore();
   }
 
   expect(await knownRow(urls[0])).toMatchObject({ title: "Install – Docs" });
@@ -206,8 +162,7 @@ test("fetch-titles: stores real titles, skips non-HTML and errors, updates store
   const link = await env.DB.prepare(
     "SELECT suggested_url, suggested_title FROM broken_links WHERE id = 'bl1'",
   ).first();
-  expect(link).toEqual({ suggested_url: urls[0], suggested_title: "Install – Docs" }); // refreshed when the job finished
-  expect(q.sent).toEqual([]); // backlog drained, no follow-up
+  expect(link).toEqual({ suggested_url: urls[0], suggested_title: "Install – Docs" }); // refreshed when the backlog drained
 
   const r = await SELF.fetch(
     `http://localhost/api/suggestions?site=${siteKey}&url=https://titles.test/docs/instal`,
@@ -216,7 +171,7 @@ test("fetch-titles: stores real titles, skips non-HTML and errors, updates store
   expect(suggestions[0]).toMatchObject({ url: urls[0], title: "Install – Docs" });
 });
 
-test("fetch-titles: works through a backlog a few pages per message; pages count as tried only once fetched", async () => {
+test("fetch-titles: works through a backlog within each tick's fetch budget; pages count as tried only once fetched", async () => {
   await addKnown([0, 1, 2, 3, 4, 5, 6].map((i) => `https://titles.test/p/${i}`));
   let checkedDuringFetch: number | null | undefined;
   const pages = stubPages(
@@ -228,38 +183,17 @@ test("fetch-titles: works through a backlog a few pages per message; pages count
       checkedDuringFetch = (await knownRow("https://titles.test/p/0"))!.title_checked_at;
     return realFetch(input);
   }) as typeof fetch;
-  const q = captureQueue();
   try {
-    const [first] = await startTitleJobs(env as never, [siteId]);
-    await runQueue(first);
+    await tick({ fetches: 5 });
     expect(pages.fetched()).toBe(5);
     expect(checkedDuringFetch).toBeNull(); // the dashboard keeps showing "fetching title…" until it lands
-    expect(q.sent).toEqual([first]); // more waiting -> next message, same job
-    await runQueue(q.sent.pop());
+    await tick({ fetches: 5 }); // the next tick carries on
     expect(pages.fetched()).toBe(7);
-    expect(q.sent).toEqual([]);
+    expect((await tick()).state).toBe("idle");
   } finally {
     pages.restore();
-    q.restore();
   }
   expect((await knownRow("https://titles.test/p/6"))!.title).toBe("Page 6");
-});
-
-test("fetch-titles: a newer job takes over, so a site never has two fetching at once", async () => {
-  await addKnown(["https://titles.test/q/a", "https://titles.test/q/b"]);
-  const pages = stubPages(() => new Response("<title>Q</title>", { headers: HTML }));
-  const q = captureQueue();
-  try {
-    const [older] = await startTitleJobs(env as never, [siteId]);
-    const [newer] = await startTitleJobs(env as never, [siteId]);
-    await runQueue(older);
-    expect(pages.fetched()).toBe(0);
-    await runQueue(newer);
-    expect(pages.fetched()).toBe(2);
-  } finally {
-    pages.restore();
-    q.restore();
-  }
 });
 
 test("fetch-titles: a title three pages share stays out of stored suggestions", async () => {
@@ -270,13 +204,10 @@ test("fetch-titles: a title three pages share stays out of stored suggestions", 
   ]);
   await addBrokenLink("bl2", "https://titles.test/app/setting");
   const pages = stubPages(() => new Response("<title>Acme App</title>", { headers: HTML }));
-  const q = captureQueue();
   try {
-    const [first] = await startTitleJobs(env as never, [siteId]);
-    await runQueue(first);
+    await drainCrawl();
   } finally {
     pages.restore();
-    q.restore();
   }
   expect((await knownRow("https://titles.test/app/settings"))!.title).toBe("Acme App"); // stored as fetched
   const link = await env.DB.prepare(
@@ -288,7 +219,7 @@ test("fetch-titles: a title three pages share stays out of stored suggestions", 
   });
 });
 
-test("sitemap import stores no guessed titles, keeps crawled ones, and starts the title job", async () => {
+test("sitemap import stores no guessed titles, keeps crawled ones, and starts reading titles", async () => {
   const SITEMAP = `<urlset>
     <url><loc>https://titles.test/blog/fresh-post</loc></url>
     <url><loc>https://titles.test/til/cloudflare-claude</loc></url>
@@ -298,23 +229,28 @@ test("sitemap import stores no guessed titles, keeps crawled ones, and starts th
       ? new Response(SITEMAP)
       : new Response("nf", { status: 404 }),
   );
-  const q = captureQueue();
   try {
-    const r = await SELF.fetch(`http://localhost/api/v1/sites/${siteId}/import-sitemap`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", cookie },
-      body: "{}",
-    });
+    const { createExecutionContext, waitOnExecutionContext } = await import("cloudflare:test");
+    const worker = (await import("../../apps/web/src/server/entry.worker")).default;
+    const ctx = createExecutionContext();
+    const r = await worker.fetch(
+      new Request(`http://localhost/api/v1/sites/${siteId}/import-sitemap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", cookie },
+        body: "{}",
+      }) as never,
+      env as never,
+      ctx,
+    );
     expect(await r.json()).toMatchObject({ imported: 2, inserted: 1 });
-    expect(q.sent).toContainEqual(expect.objectContaining({ kind: "fetch-titles", siteId }));
+    await waitOnExecutionContext(ctx); // the tick it started after responding
+    expect(pages.fetched()).toBe(2); // the sitemap, then the new page's title
   } finally {
     pages.restore();
-    q.restore();
   }
-  expect(await knownRow("https://titles.test/blog/fresh-post")).toEqual({
-    title: null,
-    title_checked_at: null,
-  });
+  const fresh = await knownRow("https://titles.test/blog/fresh-post");
+  expect(fresh!.title).toBeNull(); // no guessed title; the page had none to read
+  expect(fresh!.title_checked_at).toBeGreaterThan(0);
   expect((await knownRow("https://titles.test/til/cloudflare-claude"))!.title).toBe(
     "Cloudflare Claude Setup Guide",
   ); // crawled title survives

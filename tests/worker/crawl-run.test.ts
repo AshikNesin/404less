@@ -1,16 +1,9 @@
 // One crawl run end to end: each page fetched and each link checked once per run,
 // redirects recorded as the page they land on, flaky connections retried, honest counts.
-import {
-  SELF,
-  env,
-  createExecutionContext,
-  waitOnExecutionContext,
-  createMessageBatch,
-} from "cloudflare:test";
+import { SELF, env } from "cloudflare:test";
 import { beforeAll, expect, test } from "vitest";
-import { queue as queueHandler } from "../../apps/web/src/server/worker/cron";
 import { checkUrl } from "../../apps/web/src/server/api/crawl/checker";
-import worker from "../../apps/web/src/server/entry.worker";
+import { drainCrawl, siteRun, tasksOf } from "./crawl-helpers";
 
 let cookie = "";
 let siteId = "";
@@ -88,34 +81,6 @@ function stub() {
   };
 }
 
-/** Drain the crawl queue in-process, the way the consumer would. */
-async function runQueue(first: unknown[]) {
-  const realSend = (env as any).CRAWLQ.sendBatch.bind(env.CRAWLQ);
-  let pending: unknown[] = [...first];
-  (env as any).CRAWLQ.sendBatch = async (msgs: { body: unknown }[]) => {
-    pending.push(...msgs.map((m) => m.body));
-  };
-  try {
-    for (let round = 0; pending.length && round < 20; round++) {
-      const msgs = pending.splice(0);
-      const batch = createMessageBatch(
-        "q",
-        msgs.map((body, i) => ({
-          id: `${round}-${i}`,
-          timestamp: new Date(0),
-          attempts: 1,
-          body,
-        })) as never,
-      );
-      const ctx = createExecutionContext();
-      await queueHandler(batch, env as never, ctx);
-      await waitOnExecutionContext(ctx);
-    }
-  } finally {
-    (env as any).CRAWLQ.sendBatch = realSend;
-  }
-}
-
 test("sitemap import keeps URLs on a domain with a port, and the default sitemap is plain http there", async () => {
   const restore = stub();
   try {
@@ -156,7 +121,7 @@ test("a crawl fetches each page and checks each link once, and counts unique URL
       headers: { cookie },
     });
     expect(start.status).toBe(200);
-    // the run is stamped as soon as it's requested, before the queue picks it up
+    // the run is stamped and its first pages queued as soon as it's requested
     expect(
       (
         (await (
@@ -166,7 +131,7 @@ test("a crawl fetches each page and checks each link once, and counts unique URL
         ).json()) as any
       ).crawl.running,
     ).toBe(true);
-    await runQueue([{ kind: "crawl-site", siteId, manual: true }]);
+    await drainCrawl();
   } finally {
     restore();
   }
@@ -196,6 +161,9 @@ test("a crawl fetches each page and checks each link once, and counts unique URL
     .first<{ n: number }>();
   expect(o.crawl.checked).toBe(checks!.n);
   expect(o.crawl.broken).toBe(1); // /gone
+  expect(o.crawl.running).toBe(false);
+  expect(await tasksOf(siteId)).toEqual([]); // a finished run leaves no tasks behind
+  expect((await siteRun(siteId))!.crawl_cursor).toBeNull();
 });
 
 test('a seed page answering with a "treat as working" status is not a broken link', async () => {
@@ -211,7 +179,7 @@ test('a seed page answering with a "treat as working" status is not a broken lin
       method: "POST",
       headers: { cookie },
     });
-    await runQueue([{ kind: "crawl-site", siteId, manual: true }]);
+    await drainCrawl();
   } finally {
     restore();
   }
@@ -300,30 +268,6 @@ test("sitemap import explains when every on-site URL carries a query string", as
   } finally {
     restore();
   }
-});
-
-test('"crawl now" keeps the previous run current when nothing could be queued', async () => {
-  const before = await env.DB.prepare("SELECT last_crawl_at FROM websites WHERE id = ?")
-    .bind(siteId)
-    .first<{ last_crawl_at: number }>();
-  const CRAWLQ = {
-    send: async () => {
-      throw new Error("queue down");
-    },
-  };
-  const res = await worker.fetch(
-    new Request(`http://localhost/api/v1/sites/${siteId}/crawl`, {
-      method: "POST",
-      headers: { cookie },
-    }),
-    { ...env, CRAWLQ } as never,
-    createExecutionContext(),
-  );
-  expect(res.status).toBe(500);
-  const after = await env.DB.prepare("SELECT last_crawl_at FROM websites WHERE id = ?")
-    .bind(siteId)
-    .first<{ last_crawl_at: number }>();
-  expect(after!.last_crawl_at).toBe(before!.last_crawl_at);
 });
 
 test("checkUrl stops reading a redirect body after 64 KB", async () => {

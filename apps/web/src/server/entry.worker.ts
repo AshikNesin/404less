@@ -4,14 +4,14 @@ import type {
   Request as WorkerRequest,
   Response as WorkerResponse,
 } from "@cloudflare/workers-types";
-import type { CrawlMessage, Env } from "./types";
+import type { Env } from "./types";
 import { bootWorker } from "./worker/boot";
-import { queue, scheduled } from "./worker/cron";
+import { scheduled } from "./worker/cron";
 
 /**
- * Cloudflare Workers entry: 404less's production runtime: D1, a crawl queue,
- * two Durable Objects, the marketing site + SPA from Static Assets, and two
- * cron triggers (crawl every 30 min, nightly retention). Bindings live in
+ * Cloudflare Workers entry: 404less's production runtime: D1, two Durable
+ * Objects, the marketing site + SPA from Static Assets, and two cron triggers
+ * (the crawl tick every minute, nightly retention). Bindings live in
  * wrangler.jsonc. Pending migrations apply on the first event of an isolate.
  */
 
@@ -27,5 +27,4 @@ export default {
     return response as unknown as WorkerResponse;
   },
   scheduled,
-  queue,
-} satisfies ExportedHandler<Env, CrawlMessage>;
+} satisfies ExportedHandler<Env>;
