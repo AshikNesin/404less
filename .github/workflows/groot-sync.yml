@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   groot-sync:
-    runs-on: [self-hosted, linux, x64]
+    runs-on: instabox-medium
     timeout-minutes: 5
 
     steps:
