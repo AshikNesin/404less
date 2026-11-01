@@ -158,7 +158,7 @@ function html(code: string, push: Push) {
       push("tag", open[0].slice(slash));
       i = tagBody(code, i + open[0].length, push, false);
     } else {
-      const text = rest.match(/^[^<]+|^</)![0];
+      const text = rest.match(/^[^<]+/)?.[0] ?? rest[0]; // text up to the next `<`, or the `<`
       push("plain", text);
       i += text.length;
     }
@@ -197,8 +197,10 @@ function scanJs(code: string, push: Push, jsx: boolean) {
       i = end + 1;
       continue;
     } else if (depth > 0) {
-      m = rest.match(/^[^<{]+|^[<{]/)!;
-      push("plain", m[0]); // children text
+      const text = rest.match(/^[^<{]+/)?.[0] ?? rest[0]; // children text
+      push("plain", text);
+      i += text.length;
+      continue;
     } else if ((m = rest.match(/^\/\/[^\n]*/)) || (m = rest.match(/^\/\*[\s\S]*?(\*\/|$)/))) {
       push("comment", m[0]);
     } else if ((m = rest.match(/^("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)/))) {
@@ -212,8 +214,10 @@ function scanJs(code: string, push: Push, jsx: boolean) {
     } else if ((m = rest.match(/^[{}()[\];,.:=<>+\-*/!?&|]/))) {
       push("punct", m[0]);
     } else {
-      m = rest.match(/^\s+|^[\s\S]/)!;
-      push("plain", m[0]);
+      const text = rest.match(/^\s+/)?.[0] ?? rest[0];
+      push("plain", text);
+      i += text.length;
+      continue;
     }
     i += m[0].length;
   }
