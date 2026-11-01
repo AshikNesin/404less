@@ -1,6 +1,7 @@
 import type {
   ExecutionContext,
   ExportedHandler,
+  MessageBatch,
   Request as WorkerRequest,
   Response as WorkerResponse,
 } from "@cloudflare/workers-types";
@@ -27,4 +28,15 @@ export default {
     return response as unknown as WorkerResponse;
   },
   scheduled,
+  /**
+   * Crawling no longer uses Cloudflare Queues (see api/crawl/crawl.tick.ts),
+   * but an instance deployed before that still has the old `404less-crawl`
+   * queue's consumer attached to this Worker, and Cloudflare rejects a deploy
+   * without a queue handler while one is ("Queue handler is missing", code
+   * 11001). This keeps those upgrades deployable: leftover messages are
+   * acknowledged and dropped. Deleting the queue detaches the consumer.
+   */
+  async queue(batch: MessageBatch<unknown>) {
+    batch.ackAll();
+  },
 } satisfies ExportedHandler<Env>;
