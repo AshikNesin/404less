@@ -200,6 +200,13 @@ test("mcp: cross-team isolation (key from other team sees no docu.test)", async 
       body: JSON.stringify({ name: "Other" }),
     })
   ).json()) as any;
+  // a site in team2, so the listing is non-empty and the negative assertion
+  // below actually proves filtering (not just an empty team)
+  await SELF.fetch("http://localhost/api/v1/sites", {
+    method: "POST",
+    headers: h2,
+    body: JSON.stringify({ name: "Other site", domain: "other.test", teamId: team2.team.id }),
+  });
   const key2 = (await (
     await SELF.fetch(`http://localhost/api/v1/teams/${team2.team.id}/keys`, {
       method: "POST",
@@ -219,5 +226,71 @@ test("mcp: cross-team isolation (key from other team sees no docu.test)", async 
   });
   const body = await r.json();
   const inner = JSON.parse(body.result.content[0].text);
-  expect(inner.sites.map((s: any) => s.domain)).not.toContain("docu.test");
+  expect(inner.sites.map((s: any) => s.domain)).toEqual(["other.test"]);
+});
+
+test("api key bearer works on the /api/v1 JSON endpoints, scoped to its team", async () => {
+  // /agent documents the same bearer key for the REST API as for /mcp; the
+  // dashboard API must accept it (acting as the key's team owner).
+  const bearer = { Authorization: `Bearer ${apiKey}` };
+  const sites = (await (
+    await SELF.fetch("http://localhost/api/v1/sites", { headers: bearer })
+  ).json()) as any;
+  expect(Array.isArray(sites.sites)).toBe(true);
+  expect(sites.sites.map((s: any) => s.domain)).toContain("docu.test");
+
+  const events = await SELF.fetch(`http://localhost/api/v1/sites/${siteId}/events?limit=5`, {
+    headers: bearer,
+  });
+  expect(events.status).toBe(200);
+
+  const badKey = await SELF.fetch("http://localhost/api/v1/sites", {
+    headers: { Authorization: "Bearer nope" },
+  });
+  expect(badKey.status).toBe(401);
+});
+
+test("bearer key is confined to its team on the /api/v1 JSON endpoints", async () => {
+  // Same owner, two teams: a key minted for one team must not read or manage
+  // the owner's other teams (the owner's cookie can; the key must not).
+  const h = { "Content-Type": "application/json", cookie };
+  const other = (await (
+    await SELF.fetch("http://localhost/api/v1/teams", {
+      method: "POST",
+      headers: h,
+      body: JSON.stringify({ name: "Bearer confinement" }),
+    })
+  ).json()) as any;
+  await SELF.fetch("http://localhost/api/v1/sites", {
+    method: "POST",
+    headers: h,
+    body: JSON.stringify({ name: "Other", domain: "other-team.test" }),
+  });
+
+  const bearer = { Authorization: `Bearer ${apiKey}` }; // key of team 1 (MCP)
+
+  // listings show only the key's team's sites, not the owner's every site
+  const sites = (await (
+    await SELF.fetch("http://localhost/api/v1/sites", { headers: bearer })
+  ).json()) as any;
+  expect(sites.sites.map((s: any) => s.domain)).toEqual(["docu.test"]);
+
+  // team listings show only the key's team
+  const teams = (await (
+    await SELF.fetch("http://localhost/api/v1/teams", { headers: bearer })
+  ).json()) as any;
+  expect(teams.teams.map((t: any) => t.name)).toEqual(["MCP"]);
+
+  // minting keys, channels or sites in another team is refused
+  const mintKey = await SELF.fetch(`http://localhost/api/v1/teams/${other.team.id}/keys`, {
+    method: "POST",
+    headers: bearer,
+  });
+  expect(mintKey.status).toBe(404);
+  const otherSite = await SELF.fetch("http://localhost/api/v1/sites", {
+    method: "POST",
+    headers: { ...bearer, "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Sneak", teamId: other.team.id, domain: "sneak.test" }),
+  });
+  expect(otherSite.status).toBe(403);
 });

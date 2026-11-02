@@ -52,3 +52,6 @@ settings.local.json
 # 404less
 *.log
 /.review/
+
+# local verification instances (agents/skills/verify-404less) — cookies.txt holds live sessions
+.verify/

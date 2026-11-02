@@ -8,18 +8,18 @@ import { siteForUser } from "../sites/sites.service";
 import { refreshSuggestions } from "../links/links.service";
 import { siteOrigin } from "../crawl/crawl.service";
 import { INLINE_SLICE, crawlTick } from "../crawl/crawl.tick";
-import type { Env } from "../../types";
+import type { AppBindings, Env } from "../../types";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { batch, changes, db, knownUrls } from "../../db";
 import { waitUntil } from "../../lib/background";
 
-export const sitemap = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
+export const sitemap = new Hono<AppBindings>();
 
 const MAX_URLS = 5000; // free-tier friendly cap per import
 const MAX_SITEMAP_BYTES = 5 * 1024 * 1024;
 
 sitemap.post("/sites/:id/import-sitemap", async (c) => {
-  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
 
   const body = await c.req.json().catch(() => ({}));
@@ -132,7 +132,7 @@ sitemap.post("/sites/:id/import-sitemap", async (c) => {
 });
 
 sitemap.get("/sites/:id/known-urls", async (c) => {
-  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
   const limit = Math.min(Number(c.req.query("limit") ?? 100), 500);
   const q = c.req.query("q")?.toLowerCase();

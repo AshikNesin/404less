@@ -19,7 +19,7 @@ import { INLINE_SLICE, crawlTick } from "../crawl/crawl.tick";
 
 export const sites = new Hono<AppBindings>();
 
-async function teamsForUser(env: Env, userId: string) {
+async function teamsForUser(env: Env, userId: string, teamId?: string) {
   return db
     .select({
       id: teams.id,
@@ -30,7 +30,11 @@ async function teamsForUser(env: Env, userId: string) {
     })
     .from(teams)
     .innerJoin(teamMembers, eq(teamMembers.team_id, teams.id))
-    .where(eq(teamMembers.user_id, userId))
+    .where(
+      teamId
+        ? and(eq(teamMembers.user_id, userId), eq(teamMembers.team_id, teamId))
+        : eq(teamMembers.user_id, userId),
+    )
     .orderBy(asc(teams.created_at));
 }
 
@@ -44,14 +48,18 @@ sites.get("/me", async (c) => {
     .where(eq(users.id, userId))
     .get();
   if (!user) return c.json({ error: "unauthorized" }, 401);
-  return c.json({ user, teams: await teamsForUser(c.env, userId) });
+  return c.json({ user, teams: await teamsForUser(c.env, userId, c.get("bearerTeamId")) });
 });
 
 // --- teams ---
 
-sites.get("/teams", async (c) => c.json({ teams: await teamsForUser(c.env, c.get("userId")) }));
+sites.get("/teams", async (c) =>
+  c.json({ teams: await teamsForUser(c.env, c.get("userId"), c.get("bearerTeamId")) }),
+);
 
 sites.post("/teams", async (c) => {
+  // API keys are confined to their team; they cannot bootstrap new teams.
+  if (c.get("bearerTeamId")) return c.json({ error: "not allowed with an api key" }, 403);
   const { name } = await c.req.json().catch(() => ({ name: null }));
   if (!name || typeof name !== "string" || name.length > 100)
     return c.json({ error: "invalid name" }, 400);
@@ -70,7 +78,11 @@ sites.post("/teams", async (c) => {
 
 // --- sites ---
 
-sites.get("/sites", async (c) => c.json({ sites: await listSitesForUser(c.env, c.get("userId")) }));
+sites.get("/sites", async (c) =>
+  c.json({
+    sites: await listSitesForUser(c.env, c.get("userId"), c.get("bearerTeamId")),
+  }),
+);
 
 sites.post("/sites", async (c) => {
   const body = await c.req.json().catch(() => ({}));
@@ -79,9 +91,18 @@ sites.post("/sites", async (c) => {
   if (!name || !domain) return c.json({ error: "name and domain required" }, 400);
   const userId = c.get("userId");
 
-  // team: explicit, else the user's first team (created at first sign-in)
-  const teams = await teamsForUser(c.env, userId);
-  const team = body?.teamId ? teams.find((t) => t.id === body.teamId) : teams[0];
+  // team: explicit, else the bearer key's team, else the user's first team (created at first sign-in).
+  // Bearer-key requests are confined to the key's team: an explicit `teamId`
+  // for any other team is refused, not silently redirected.
+  const bearerTeam = c.get("bearerTeamId");
+  const teams = bearerTeam
+    ? await teamsForUser(c.env, userId, bearerTeam)
+    : await teamsForUser(c.env, userId);
+  const team = body?.teamId
+    ? teams.find((t) => t.id === body.teamId)
+    : bearerTeam
+      ? (teams.find((t) => t.id === bearerTeam) ?? teams[0])
+      : teams[0];
   if (!team) return c.json({ error: "not a team member" }, 403);
   if (team.role === "viewer") return c.json({ error: "viewers cannot create sites" }, 403);
 
@@ -125,7 +146,7 @@ sites.post("/sites", async (c) => {
 });
 
 sites.patch("/sites/:id", async (c) => {
-  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
   if (found.role === "viewer") return c.json({ error: "viewers cannot change settings" }, 403);
   const site = found.site;
@@ -195,7 +216,7 @@ sites.patch("/sites/:id", async (c) => {
 });
 
 sites.delete("/sites/:id", async (c) => {
-  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
   if (found.role === "viewer") return c.json({ error: "viewers cannot delete sites" }, 403);
   await deleteSite(c.env, found.site.id);
@@ -204,7 +225,7 @@ sites.delete("/sites/:id", async (c) => {
 
 // everything the overview page shows
 sites.get("/sites/:id/overview", async (c) => {
-  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
   const overview = await siteOverview(c.env, found.site);
   // the dashboard polls this every few seconds while a crawl runs: each poll moves it along
@@ -214,7 +235,7 @@ sites.get("/sites/:id/overview", async (c) => {
 
 // start a crawl now (manual trigger; same path the cron takes)
 sites.post("/sites/:id/crawl", async (c) => {
-  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
   if (found.role === "viewer") return c.json({ error: "forbidden" }, 403);
   const site = await getSite(c.env, found.site.id);
@@ -227,7 +248,7 @@ sites.post("/sites/:id/crawl", async (c) => {
 
 // latest check per URL from the current run (broken first)
 sites.get("/sites/:id/crawl-report", async (c) => {
-  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
   const limit = Math.min(Number(c.req.query("limit") ?? 100), 200);
   const rows = await crawlReport(c.env, found.site, limit);
@@ -235,7 +256,7 @@ sites.get("/sites/:id/crawl-report", async (c) => {
 });
 
 sites.get("/sites/:id/events", async (c) => {
-  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
   const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
   return c.json({ events: await listEvents(c.env, found.site.id, limit) });
@@ -243,7 +264,7 @@ sites.get("/sites/:id/events", async (c) => {
 
 // CSV export of raw events, or aggregated by url
 sites.get("/sites/:id/events.csv", async (c) => {
-  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const found = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in found) return c.json({ error: found.error }, found.status as 403 | 404);
   const site = found.site;
   const group = c.req.query("group") === "url";
