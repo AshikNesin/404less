@@ -21,5 +21,5 @@ The visitor never sees the dashboard: they hit a 404 page on the customer's site
 ## Gotchas
 
 - The typo page must exist _at the typo URL_ (the fixture builds it); a generic `404-page.html` scores ~0 against `/docs/...` paths and the toast stays hidden by design.
-- `knownIndex` caches per isolate for 5 min — known URLs must exist before the first suggestions call, or restart the instance.
+- `knownIndex` caches per isolate for 5 min; a sitemap import invalidates it for the site on the importing isolate — other isolates can serve stale suggestions for up to 5 min. Seed known URLs before the first suggestions call, or restart the instance.
 - The widget hides when dismissed for the session (sessionStorage) — use a fresh context or clear it.

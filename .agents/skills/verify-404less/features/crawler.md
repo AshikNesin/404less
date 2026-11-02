@@ -24,4 +24,4 @@ Crawler tab → `Crawl now` → rows appear by polling (30 s timeout in the e2e 
 - The crawl uses `siteOrigin`: `127.0.0.1` hosts are fetched over http — the fixture must serve plain http.
 - robots.txt is fetched once per origin per ~5 min; a missing robots.txt allows all (4xx = no rules), so the fixture works with or without one.
 - On the Node instance each dashboard poll of the crawl report triggers a tick via waitUntil — poll to advance a big run.
-- Worker tests drive ticks directly (`tests/worker/crawl-helpers.ts` `startTestRun` + `tickUntilDone`) when you need deterministic, budget-free runs.
+- Worker tests drive ticks directly (`tests/worker/crawl-helpers.ts` `startTestRun` + `drainCrawl`) when you need deterministic, budget-free runs.

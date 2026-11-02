@@ -2,18 +2,21 @@
 import { Hono } from "hono";
 import { newId, now } from "../../lib/auth";
 import { validateChannelConfig, type ChannelType } from "../../lib/notify";
-import type { Env } from "../../types";
+import type { AppBindings, Env } from "../../types";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { alertChannels, alerts, batch, db, teamMembers, websites } from "../../db";
 
-export const channels = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
+export const channels = new Hono<AppBindings>();
 
 async function teamRole(
   env: Env,
   teamId: string | undefined,
   userId: string,
+  bearerTeamId?: string,
 ): Promise<"owner" | "admin" | "viewer" | null> {
   if (!teamId) return null;
+  // Bearer-key requests are confined to the key's team.
+  if (bearerTeamId && teamId !== bearerTeamId) return null;
   const row = await db
     .select({ role: teamMembers.role })
     .from(teamMembers)
@@ -24,7 +27,7 @@ async function teamRole(
 
 // list channels for a team
 channels.get("/teams/:teamId/channels", async (c) => {
-  const role = await teamRole(c.env, c.req.param("teamId"), c.get("userId"));
+  const role = await teamRole(c.env, c.req.param("teamId"), c.get("userId"), c.get("bearerTeamId"));
   if (!role) return c.json({ error: "not found" }, 404);
   const rows = await db
     .select({
@@ -44,7 +47,7 @@ channels.get("/teams/:teamId/channels", async (c) => {
 // create channel (config stored once, never returned)
 channels.post("/teams/:teamId/channels", async (c) => {
   const teamId = c.req.param("teamId");
-  const role = await teamRole(c.env, teamId, c.get("userId"));
+  const role = await teamRole(c.env, teamId, c.get("userId"), c.get("bearerTeamId"));
   if (!role) return c.json({ error: "not found" }, 404);
   if (role === "viewer") return c.json({ error: "viewers cannot manage channels" }, 403);
 
@@ -72,7 +75,7 @@ channels.post("/teams/:teamId/channels", async (c) => {
 // enable/disable or delete
 channels.patch("/teams/:teamId/channels/:id", async (c) => {
   const teamId = c.req.param("teamId");
-  const role = await teamRole(c.env, teamId, c.get("userId"));
+  const role = await teamRole(c.env, teamId, c.get("userId"), c.get("bearerTeamId"));
   if (!role) return c.json({ error: "not found" }, 404);
   if (role === "viewer") return c.json({ error: "viewers cannot manage channels" }, 403);
   const body = await c.req.json().catch(() => ({}));
@@ -87,7 +90,7 @@ channels.patch("/teams/:teamId/channels/:id", async (c) => {
 
 channels.delete("/teams/:teamId/channels/:id", async (c) => {
   const teamId = c.req.param("teamId");
-  const role = await teamRole(c.env, teamId, c.get("userId"));
+  const role = await teamRole(c.env, teamId, c.get("userId"), c.get("bearerTeamId"));
   if (!role) return c.json({ error: "not found" }, 404);
   if (role === "viewer") return c.json({ error: "viewers cannot manage channels" }, 403);
   // its alert history goes too (alerts.channel_id references it, and history is shown per channel)
@@ -111,11 +114,17 @@ channels.delete("/teams/:teamId/channels/:id", async (c) => {
 
 // recent alert history for a site
 channels.get("/sites/:id/alerts", async (c) => {
+  const bearerTeamId = c.get("bearerTeamId");
+  const scope = bearerTeamId ? eq(teamMembers.team_id, bearerTeamId) : undefined;
   const site = await db
     .select({ id: websites.id })
     .from(websites)
     .innerJoin(teamMembers, eq(teamMembers.team_id, websites.team_id))
-    .where(and(eq(websites.id, c.req.param("id")), eq(teamMembers.user_id, c.get("userId"))))
+    .where(
+      scope
+        ? and(eq(websites.id, c.req.param("id")), eq(teamMembers.user_id, c.get("userId")), scope)
+        : and(eq(websites.id, c.req.param("id")), eq(teamMembers.user_id, c.get("userId"))),
+    )
     .get();
   if (!site) return c.json({ error: "not found" }, 404);
   const rows = await db
@@ -137,7 +146,7 @@ channels.get("/sites/:id/alerts", async (c) => {
 // test-fire a digest for a channel (validates wiring without waiting for a real 404)
 channels.post("/teams/:teamId/channels/:id/test", async (c) => {
   const teamId = c.req.param("teamId");
-  const role = await teamRole(c.env, teamId, c.get("userId"));
+  const role = await teamRole(c.env, teamId, c.get("userId"), c.get("bearerTeamId"));
   if (!role) return c.json({ error: "not found" }, 404);
   const ch = await db
     .select({ id: alertChannels.id, type: alertChannels.type, config: alertChannels.config })

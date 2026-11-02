@@ -1,6 +1,6 @@
 import { getCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
-import { db, teamMembers, teams } from "../db";
+import { db, teams } from "../db";
 import { SESSION_COOKIE, verifySession } from "../lib/auth";
 import { teamForToken } from "../api/keys/keys.service";
 import type { AppBindings } from "../types";
@@ -13,8 +13,8 @@ import { eq } from "drizzle-orm";
  * middleware, whose `AuthUser.userId` is numeric.
  *
  * An API key bearer token also works (the /agent page documents it for the
- * REST API): it acts as the key's team owner, with `bearerTeamId` set so site
- * creation lands in the key's team instead of the owner's first team.
+ * REST API): it acts as the key's team owner, and is confined to that team —
+ * `bearerTeamId` makes every team-scoped lookup below reject other teams.
  */
 export const sessionMiddleware = createMiddleware<AppBindings>(async (c, next) => {
   const auth = c.req.header("Authorization");
@@ -26,13 +26,7 @@ export const sessionMiddleware = createMiddleware<AppBindings>(async (c, next) =
       .from(teams)
       .where(eq(teams.id, teamId))
       .get();
-    const memberId = await db
-      .select({ user_id: teamMembers.user_id })
-      .from(teamMembers)
-      .where(eq(teamMembers.team_id, teamId))
-      .limit(1)
-      .get();
-    const userId = owner?.owner_user_id ?? memberId?.user_id;
+    const userId = owner?.owner_user_id;
     if (!userId) return c.json({ error: "invalid api key" }, 401);
     c.set("userId", userId);
     c.set("bearerTeamId", teamId);

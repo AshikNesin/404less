@@ -11,9 +11,9 @@ import {
   type LinkStatus,
   type ListQuery,
 } from "../links/links.service";
-import type { Env } from "../../types";
+import type { AppBindings } from "../../types";
 
-export const links = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
+export const links = new Hono<AppBindings>();
 
 function parseList(q: Record<string, string | undefined>): ListQuery {
   const status = (LINK_STATUSES as readonly string[]).includes(q.status ?? "")
@@ -30,14 +30,14 @@ function parseList(q: Record<string, string | undefined>): ListQuery {
 }
 
 links.get("/sites/:id/links", async (c) => {
-  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
   return c.json(await listLinks(c.env, site.site.id, parseList(c.req.query())));
 });
 
 // CSV of the current filter (same params as the list; up to 5000 rows)
 links.get("/sites/:id/links.csv", async (c) => {
-  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
   const q = parseList(c.req.query());
   const { links: rows } = await listLinks(c.env, site.site.id, { ...q, page: 1, limit: 5000 });
@@ -71,7 +71,7 @@ links.get("/sites/:id/links.csv", async (c) => {
 });
 
 links.get("/sites/:id/links/:linkId", async (c) => {
-  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
   const detail = await getLink(c.env, site.site.id, c.req.param("linkId"));
   if (!detail) return c.json({ error: "not found" }, 404);
@@ -80,7 +80,7 @@ links.get("/sites/:id/links/:linkId", async (c) => {
 
 // bulk status change: { ids: string[], status: open|resolved|ignored }
 links.patch("/sites/:id/links", async (c) => {
-  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
   if (site.role === "viewer") return c.json({ error: "viewers cannot triage links" }, 403);
   const body = await c.req.json().catch(() => ({}));
@@ -102,7 +102,7 @@ links.patch("/sites/:id/links", async (c) => {
 
 // re-check one URL now (outbound fetch; applies the result like a crawl)
 links.post("/sites/:id/links/:linkId/check", async (c) => {
-  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"));
+  const site = await siteForUser(c.env, c.req.param("id"), c.get("userId"), c.get("bearerTeamId"));
   if ("error" in site) return c.json({ error: site.error }, site.status as 403 | 404);
   if (site.role === "viewer") return c.json({ error: "forbidden" }, 403);
   const result = await recheckLink(c.env, site.site, c.req.param("linkId"));

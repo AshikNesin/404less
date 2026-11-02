@@ -28,15 +28,19 @@ export async function siteForUser(
   env: Env,
   siteId: string | undefined,
   userId: string,
+  teamId?: string,
 ): Promise<
   { site: SiteRow; role: TeamRole; status?: undefined } | { error: string; status: number }
 > {
   if (!siteId) return { error: "not found", status: 404 };
+  const conditions = [eq(websites.id, siteId), eq(teamMembers.user_id, userId)];
+  // Bearer-key requests are confined to the key's team.
+  if (teamId) conditions.push(eq(teamMembers.team_id, teamId));
   const row = await db
     .select({ ...getTableColumns(websites), member_role: teamMembers.role })
     .from(websites)
     .innerJoin(teamMembers, eq(teamMembers.team_id, websites.team_id))
-    .where(and(eq(websites.id, siteId), eq(teamMembers.user_id, userId)))
+    .where(and(...conditions))
     .get();
   if (!row) return { error: "not found", status: 404 };
   const { member_role, ...site } = row;

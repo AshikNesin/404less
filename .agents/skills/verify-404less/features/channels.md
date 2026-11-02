@@ -12,7 +12,7 @@ Team section in the sidebar → "Notifications".
 
 ## Driving it
 
-The fixture doubles as a Slack webhook sink (`/slack-hook` records POSTs — build it from `tests/e2e/fixtures.ts`'s pattern, or point the channel at `http://127.0.0.1:8799/slack-hook`). Create channel via API/UI, trigger visitor hits, then flush the digest: `curl -X POST https://digest/flush` is internal — instead wait out the window or use the UI's test send, and assert on `webhookCalls` / `alerts` rows. See tests/e2e/team-settings.spec.ts and tests/worker/m3.test.ts (digest DO tests drive the DO directly).
+The static busybox fixture has no webhook sink — for a Slack-webhook check, build one from `tests/e2e/fixtures.ts`'s `/slack-hook` handler (that Playwright fixture serves it on a random port) or run the e2e suite. Create channel via API/UI, trigger visitor hits, then flush the digest: `curl -X POST https://digest/flush` is internal — instead wait out the window or use the UI's test send, and assert on `webhookCalls` / `alerts` rows. See tests/e2e/team-settings.spec.ts and tests/worker/m3.test.ts (digest DO tests drive the DO directly).
 
 ## Gotchas
 

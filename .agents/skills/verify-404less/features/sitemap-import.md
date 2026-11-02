@@ -2,13 +2,13 @@
 
 ## Sub-features
 
-- `POST /api/v1/sites/:id/import-sitemap` with `{sitemapUrl}` (or defaults to the site's own `/sitemap.xml`): follows one sitemapindex level, caps at 5000 URLs, drops cross-host URLs, query strings and fragments; reports `{imported, inserted}`.
+- `POST /api/v1/sites/:id/import-sitemap` with `{sitemapUrl}` (or defaults to the site's own `/sitemap.xml`): follows nested `<sitemapindex>` documents (up to 12 fetch rounds, 50 child sitemaps), caps at 5000 URLs, drops cross-host URLs, query strings and fragments; reports `{imported, inserted}`.
 - Known URLs feed suggestions and seed the next crawl. Titles are not in sitemaps; the crawl tick backfills real `<title>`s a few pages per tick (`title_checked_at`), and a title 3+ pages share is dropped by the ranker.
 - `GET /api/v1/sites/:id/known-urls?limit=&q=` lists + searches (URL or title) with stats.
 
 ## How to get to it (user POV)
 
-Site → Crawler tab → "Import sitemap" button (pre-filled with the site's sitemap URL) → toast "Imported N URLs (M new)".
+Site → Crawler tab → "Import sitemap" button (Sitemap URL field starts empty; the placeholder shows the site's own `/sitemap.xml`, which the server uses when left blank) → toast "Imported N URLs (M new)".
 
 ## Driving it with curl
 

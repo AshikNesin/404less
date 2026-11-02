@@ -33,8 +33,13 @@ export type SiteSummary = Omit<SiteRow, "ignore_status_codes" | "exclude_pattern
   last_hit_at: number | null;
 };
 
-/** Sites the user can see, each with the headline numbers the sidebar + overview list need. */
-export async function listSitesForUser(env: Env, userId: string): Promise<SiteSummary[]> {
+/** Sites the user can see, each with the headline numbers the sidebar + overview list need.
+ *  `teamId` confines the list to one team (bearer-key requests). */
+export async function listSitesForUser(
+  env: Env,
+  userId: string,
+  teamId?: string,
+): Promise<SiteSummary[]> {
   const since = Date.now() - 7 * DAY;
   const rows = await db
     .select({
@@ -47,7 +52,11 @@ export async function listSitesForUser(env: Env, userId: string): Promise<SiteSu
     })
     .from(websites)
     .innerJoin(teamMembers, eq(teamMembers.team_id, websites.team_id))
-    .where(eq(teamMembers.user_id, userId))
+    .where(
+      teamId
+        ? and(eq(teamMembers.user_id, userId), eq(teamMembers.team_id, teamId))
+        : eq(teamMembers.user_id, userId),
+    )
     .orderBy(asc(websites.created_at));
   return rows.map((r) => ({
     ...r,

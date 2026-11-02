@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build and serve the customer-site fixture the skill drives: a tiny site with
 # real pages, a sitemap, a deliberately broken link, and a 404 page that loads
-# the real /embed.js inline (data-404). Usage:
+# the real /embed.js inline (data-404). Serves with busybox httpd if available,
+# else python3's http.server (needs no CGI for static files). Usage:
 #   bash .agents/skills/verify-404less/fixtures.sh customer <site_key> [app_port] [fixture_port]
 set -euo pipefail
 KEY=${2:?site key required}
@@ -32,4 +33,8 @@ cat > "$DIR/docs/getting-startd" <<EOF
 <body><h1>Page not found</h1><div id="suggest"></div></body></html>
 EOF
 
-cd "$DIR" && exec busybox httpd -f -p "$PORT" -h .
+cd "$DIR"
+if command -v busybox >/dev/null 2>&1; then
+  exec busybox httpd -f -p "$PORT" -h .
+fi
+exec python3 -m http.server "$PORT" --bind 127.0.0.1

@@ -76,13 +76,13 @@ curl -s "http://127.0.0.1:3777/api/v1/sites/$SITE_ID/links?status=open" -H "$COO
 
 **Triage:** `PATCH .../api/v1/sites/$SITE_ID/links -d '{"ids":["<id>"],"status":"ignored|resolved|open"}'` → counts move; a fresh visitor hit on a resolved URL reopens it.
 
-**MCP / API keys:** create a key `POST /api/v1/teams/$TEAM/keys`, then `POST /mcp` with `Authorization: Bearer 404l_…` (initialize → tools/list → tools/call). The same bearer now works on `/api/v1/*` (acts as the key's team owner).
+**MCP / API keys:** take the team id from `GET /api/v1/me` (its `teams[0].id`, exported as `TEAM` in Helpers), create a key `POST /api/v1/teams/$TEAM/keys` — the one-time secret is the **top-level** `secret` field (the `key` object only has `id`/`prefix`) — then `POST /mcp` with `Authorization: Bearer 404l_…` (initialize → tools/list → tools/call). The same bearer works on `/api/v1/*`, confined to the key's team (listings show only its sites/teams; cross-team `teamId`s are refused).
 
 **Browser (dashboard UI):** use the browser tool against `http://127.0.0.1:3777`. Stable handles: `getByLabel("Email")` on login, `Send sign-in link` button (dev link is followed automatically by the SPA), sidebar `navigation[name="Main navigation"]` with links Overview / Broken links / Crawler / Site settings, `aria-label="Search URLs or link text"`, `aria-label="Sitemap URL"`, `Crawl now` button, role=toolbar bulk actions Resolve/Ignore. For full reference specs of every journey, read `tests/e2e/*.spec.ts` — they drive the same UI and are the source of truth for selectors.
 
 ## Evidence
 
-Proofs go in `.verify/evidence/` (git-ignored, survives cleanup):
+Proofs go in `.verify/evidence/` (git-ignored via the repo `.gitignore`, survives cleanup):
 
 - curl transcripts: pipe through `python3 -m json.tool`, save the request+response pair.
 - DB state: `sqlite3 .verify/verify.db 'SELECT url,status,source,hits FROM broken_links'`.
@@ -95,8 +95,8 @@ Never mock inside the app's own boundaries: the fixture HTTP server is the custo
 
 ```bash
 tmux kill-session -t v404 2>/dev/null
-pkill -f 'busybox httpd -f -p 8799' 2>/dev/null    # only the fixture you started (check the port)
-rm -rf .verify/verify.db .verify/customer .verify/cookies.txt .verify/verify.env .verify/ids.env
+pkill -f "busybox httpd -f -p 8799" 2>/dev/null; pkill -f "http.server 8799" 2>/dev/null   # only the fixture you started (check the port)
+rm -rf .verify/verify.db .verify/verify.db-shm .verify/verify.db-wal .verify/customer .verify/cookies.txt .verify/verify.env .verify/ids.env
 # keep .verify/evidence — it is the proof
 ```
 
@@ -115,4 +115,4 @@ Kill only what you started: the tmux session `v404` and the 8799 fixture. Never 
 - `?limit=` params are clamped on some routes but not all (NaN → 500 on known-urls); if you fuzz query params, check `sites.routes.ts` first.
 - Magic-link `devLink` echoes the request origin — on wrangler dev with custom-domain routes configured, it can come back as `http://404less.com/...` (production!). Rewrite the origin to your instance before curling it. The Node instance echoes 127.0.0.1 correctly.
 - The crawl tick on Node re-ticks every 30 s with a small budget; a "Crawl now" runs the first slice inline, but a large site's full run needs polling (each poll triggers a tick via waitUntil).
-- Deleting a website row directly violates FK from broken_links/not_found_events etc. — delete via `DELETE /api/v1/sites/:id` or the whole graph in SQL.
+- Deleting a website row directly violates FK from broken_links/not_found_events etc. — delete via `DELETE /api/v1/sites/:id` (service-layer cascade), never hand-delete the graph in SQL.

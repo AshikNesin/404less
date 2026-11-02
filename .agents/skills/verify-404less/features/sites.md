@@ -14,7 +14,7 @@ First sign-in lands on "Add your first site"; afterwards "+ Add a site" in the s
 
 ## Driving it with curl
 
-`POST /api/v1/sites {"name","domain"}` → 201 with `site.id` + `site.site_key` (save both). Duplicate → 409. Unknown-team `teamId` → 403/404. With a bearer key and no teamId, the site lands in the key's team.
+`POST /api/v1/sites {"name","domain"}` → 201 with `site.id` + `site.site_key` (save both). Duplicate → 409. `teamId` of a team you don't belong to → 403 "not a team member". With a bearer key, every path is confined to the key's team.
 
 ## Driving it in the browser
 

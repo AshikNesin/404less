@@ -13,7 +13,7 @@ Dashboard at `/app` → redirected to `/app/login` → enter email → "Send sig
 
 ## Driving it with curl
 
-Follow SKILL.md "Sign in": POST /api/v1/auth/magic with a fresh email, extract `devLink`, curl it with `-c cookies.txt`, reuse `f404_session` as the Cookie header. Negative: a second visit to the same devLink must 302 to `?error=expired`; `POST /api/v1/auth/logout` then `/api/v1/me` → 401.
+Follow SKILL.md "Sign in": POST /api/v1/auth/magic with a fresh email, extract `devLink`, curl it with `-c cookies.txt`, reuse `f404_session` as the Cookie header. Negative: a second visit to the same devLink must 302 to `?error=expired`. `POST /api/v1/auth/logout` only clears the browser cookie — the session is a stateless HMAC token valid for 30 days, so replaying the old cookie still returns 200; to verify logout, drop `f404_session` from the jar and expect `/api/v1/me` → 401.
 
 ## Gotchas
 
