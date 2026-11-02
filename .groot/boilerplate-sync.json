@@ -19,6 +19,7 @@
     "tests/server/api/passkey.test.ts",
     "tests/server/api/settings.test.ts",
     "tests/server/api/storage.test.ts",
-    "tests/server/api/todos.test.ts"
+    "tests/server/api/todos.test.ts",
+    ".agents/skills/verify-404less/**"
   ]
 }

@@ -2,7 +2,7 @@
 # Build and serve the customer-site fixture the skill drives: a tiny site with
 # real pages, a sitemap, a deliberately broken link, and a 404 page that loads
 # the real /embed.js inline (data-404). Usage:
-#   bash .cursor/skills/verify-404less/fixtures.sh customer <site_key> [app_port] [fixture_port]
+#   bash .agents/skills/verify-404less/fixtures.sh customer <site_key> [app_port] [fixture_port]
 set -euo pipefail
 KEY=${2:?site key required}
 APP_PORT=${3:-3777}

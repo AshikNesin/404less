@@ -1,0 +1,5 @@
+interface:
+  display_name: "Verify 404less"
+  short_description: "Drive the real app end to end and capture proof"
+policy:
+  allow_implicit_invocation: false

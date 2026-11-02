@@ -13,7 +13,7 @@ The visitor never sees the dashboard: they hit a 404 page on the customer's site
 
 ## Driving it
 
-1. Build the fixture: `bash .cursor/skills/verify-404less/fixtures.sh customer <site_key>` (serves 127.0.0.1:8799).
+1. Build the fixture: `bash .agents/skills/verify-404less/fixtures.sh customer <site_key>` (serves 127.0.0.1:8799).
 2. Import its sitemap first (see sitemap-import.md) — suggestions need known URLs, and toast mode renders nothing when the list is empty.
 3. Browser → `http://127.0.0.1:8799/docs/getting-startd`; assert `.f404less` exists, its shadow root shows "Looking for something?" and a link to `/docs/getting-started`.
 4. Side effect: `GET /api/v1/sites/$SITE_ID/events` shows the URL; the links list shows it open with source visitor (or "both" once the crawler also found it).

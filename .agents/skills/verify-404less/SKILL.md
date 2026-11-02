@@ -70,7 +70,7 @@ curl -s -X POST http://127.0.0.1:3777/api/track -H 'Content-Type: application/js
 curl -s "http://127.0.0.1:3777/api/v1/sites/$SITE_ID/links?status=open" -H "$COOKIE"   # the hit, open, source visitor
 ```
 
-**Customer-site fixture** (`busybox httpd` on :8799, pages + sitemap + a 404 page that loads the real embed inline): see `Helpers` below — `.verify/fixtures.sh` builds it. The 404 page must set `data-404` (or a "not found" title) and live at the _typo_ URL whose suggestions you're checking (the widget hides in toast mode when nothing scores ≥ 0.2; a page called `404-page.html` scores 0 against `/docs/...`).
+**Customer-site fixture** (`busybox httpd` on :8799, pages + sitemap + a 404 page that loads the real embed inline): see `Helpers` below — `fixtures.sh` builds it. The 404 page must set `data-404` (or a "not found" title) and live at the _typo_ URL whose suggestions you're checking (the widget hides in toast mode when nothing scores ≥ 0.2; a page called `404-page.html` scores 0 against `/docs/...`).
 
 **Crawl:** `curl -X POST .../api/v1/sites/$SITE_ID/crawl -H "$COOKIE"` then poll `.../crawl-report` — the first tick runs inline in the request's `waitUntil`, results land in seconds (Node's timer re-ticks every 30 s). Assertions: broken rows carry `found_on` (the page linking them) + anchor text; working pages 200; known_urls grows (crawl source).
 
@@ -104,7 +104,7 @@ Kill only what you started: the tmux session `v404` and the 8799 fixture. Never 
 
 ## Helpers
 
-- `.verify/fixtures.sh customer <site_key>` — builds `.verify/customer/` (index, docs/getting-started, sitemap.xml, a `docs/getting-startd` typo page carrying the inline embed pointing at :3777) and serves it on 127.0.0.1:8799. Substitution site key + port happen at build time; re-run after recreating a site.
+- `fixtures.sh customer <site_key>` — builds `.verify/customer/` (index, docs/getting-started, sitemap.xml, a `docs/getting-startd` typo page carrying the inline embed pointing at :3777) and serves it on 127.0.0.1:8799. Substitution site key + port happen at build time; re-run after recreating a site.
 - Worker tests (no launch needed): `pnpm test:worker` — 125+ integration tests in workerd via `SELF.fetch()`, the fastest full-stack signal.
 - Headless E2E (no X server needed — the base config is headed for macOS): `pnpm exec playwright test --config playwright.headless.config.ts`. It manages its own server on :3000 with `data/e2e.db`; never run it while your :3777 fixture uses :8799 — it starts its own customer-site servers on random ports, but the app port must be free.
 
