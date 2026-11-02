@@ -22,5 +22,5 @@ Row checkbox (`aria-label="Select <url>"`), toolbar `[role=toolbar]` buttons Res
 
 ## Gotchas
 
-- `changed` counts rows actually updated; ids must belong to the site (0 changed otherwise, not an error).
+- `changed` counts rows matched by the site-scoped UPDATE — re-applying a status a row already has still counts it; ids from other sites give 0, not an error.
 - CSV export needs the session cookie (browser link) — with a bearer key use `/api/v1/sites/:id/links.csv`.
