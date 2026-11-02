@@ -14,7 +14,7 @@ First sign-in lands on "Add your first site"; afterwards "+ Add a site" in the s
 
 ## Driving it with curl
 
-`POST /api/v1/sites {"name","domain"}` → 201 with `site.id` + `site.site_key` (save both). Duplicate → 409. `teamId` of a team you don't belong to → 403 "not a team member". With a bearer key, every path is confined to the key's team.
+`POST /api/v1/sites {"name","domain"}` → 201 with `site.id` + `site.site_key" (save both). Duplicate → 409. `teamId` of a team you don't belong to → 403 "not a team member". With a bearer key, every path is confined to the key's team. **The domain must match the fixture's origin** (`127.0.0.1:8799`): the sitemap import and suggestions rank URLs per host, so a site created as `docu.test` can't import the fixture's sitemap (cross-host URLs are dropped, the import returns "none of the N URLs are on <domain>") and its suggestions stay empty.
 
 ## Driving it in the browser
 

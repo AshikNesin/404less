@@ -59,7 +59,7 @@ COOKIE="Cookie: $(grep f404_session .verify/cookies.txt | awk '{print "f404_sess
 curl -s http://127.0.0.1:3777/api/v1/me -H "$COOKIE"       # user + teams
 ```
 
-**Create a site + fire a visitor 404 (the core loop):**
+**Create a site + fire a visitor 404 (the core loop):** the domain must be the fixture's origin `127.0.0.1:8799` (not a pretty name like `docu.test`) — sitemap import drops cross-host URLs and suggestions rank per host, so a mismatched domain breaks both silently.
 
 ```bash
 SITE=$(curl -s -X POST http://127.0.0.1:3777/api/v1/sites -H "$COOKIE" -H 'Content-Type: application/json' \
