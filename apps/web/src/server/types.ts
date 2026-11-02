@@ -32,4 +32,7 @@ export type Env = {
 };
 
 /** Hono env for 404less routers: bindings + the signed-in user (set by the session middleware). */
-export type AppBindings = { Bindings: Env; Variables: { userId: string } };
+export type AppBindings = {
+  Bindings: Env;
+  Variables: { userId: string; bearerTeamId?: string };
+};

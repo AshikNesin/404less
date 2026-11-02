@@ -79,9 +79,14 @@ sites.post("/sites", async (c) => {
   if (!name || !domain) return c.json({ error: "name and domain required" }, 400);
   const userId = c.get("userId");
 
-  // team: explicit, else the user's first team (created at first sign-in)
+  // team: explicit, else the bearer key's team, else the user's first team (created at first sign-in)
   const teams = await teamsForUser(c.env, userId);
-  const team = body?.teamId ? teams.find((t) => t.id === body.teamId) : teams[0];
+  const bearerTeam = c.get("bearerTeamId");
+  const team = body?.teamId
+    ? teams.find((t) => t.id === body.teamId)
+    : bearerTeam
+      ? (teams.find((t) => t.id === bearerTeam) ?? teams[0])
+      : teams[0];
   if (!team) return c.json({ error: "not a team member" }, 403);
   if (team.role === "viewer") return c.json({ error: "viewers cannot create sites" }, 403);
 

@@ -221,3 +221,24 @@ test("mcp: cross-team isolation (key from other team sees no docu.test)", async 
   const inner = JSON.parse(body.result.content[0].text);
   expect(inner.sites.map((s: any) => s.domain)).not.toContain("docu.test");
 });
+
+test("api key bearer works on the /api/v1 JSON endpoints, scoped to its team", async () => {
+  // /agent documents the same bearer key for the REST API as for /mcp; the
+  // dashboard API must accept it (acting as the key's team owner).
+  const bearer = { Authorization: `Bearer ${apiKey}` };
+  const sites = (await (
+    await SELF.fetch("http://localhost/api/v1/sites", { headers: bearer })
+  ).json()) as any;
+  expect(Array.isArray(sites.sites)).toBe(true);
+  expect(sites.sites.map((s: any) => s.domain)).toContain("docu.test");
+
+  const events = await SELF.fetch(`http://localhost/api/v1/sites/${siteId}/events?limit=5`, {
+    headers: bearer,
+  });
+  expect(events.status).toBe(200);
+
+  const badKey = await SELF.fetch("http://localhost/api/v1/sites", {
+    headers: { Authorization: "Bearer nope" },
+  });
+  expect(badKey.status).toBe(401);
+});
