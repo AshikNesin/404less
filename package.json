@@ -56,6 +56,7 @@
     "db:studio": "drizzle-kit studio",
     "test:worker": "vitest run --config vitest.config.worker.ts",
     "build:site": "node site/build.mjs",
+    "typecheck:site": "tsc --noEmit -p site/demos",
     "build:og": "node site/og/render.mjs",
     "build:cf": "pnpm build:client",
     "deploy": "pnpm deploy:worker"

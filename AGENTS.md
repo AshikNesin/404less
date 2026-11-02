@@ -90,6 +90,9 @@ the real Worker locally.
   `worker/static-assets.ts` maps `/` and `/<page>` to `<page>.html`, `/app/*`
   to `app.html`, everything else to `404.html` with a 404 status
   (`html_handling: none`).
+- The site's product shots are React islands on the Stageshow kit
+  (`site/demos/`, see its README; the `stageshow` skill has the rules). Keep
+  them faithful to the dashboard: its words, its tokens (`look.css`).
 - Keep free-tier ceilings in mind: batch D1 writes, cap per-site data, prune
   old events, stay inside the per-request CPU budget.
 
@@ -117,7 +120,7 @@ the real Worker locally.
 - `pnpm build:og`: re-render Open Graph images (Playwright; committed output)
 - `pnpm test:worker`: 404less integration suites in workerd (the main safety net)
 - `pnpm test` / `pnpm test:client`: groot's Node and client suites
-- `pnpm typecheck` · `pnpm check` · `pnpm check:tokens` · `pnpm check:worker`
+- `pnpm typecheck` · `pnpm typecheck:site` · `pnpm check` · `pnpm check:tokens` · `pnpm check:worker`
 - `pnpm db:generate`: after a schema change
 - `pnpm deploy:worker`: build + `wrangler deploy` (migrations apply on first request)
 - `pnpm groot:check` / `pnpm groot:sync`: boilerplate updates

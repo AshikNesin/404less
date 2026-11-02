@@ -330,6 +330,30 @@ h1 .hl {
 }
 
 /* The trace: caught → suggested → fixed, as the dashboard would show it. */
+/* Illustrations (site/demos): React islands that replace their static
+   fallback once the bundle runs. The slot keeps the stage's shape meanwhile,
+   so the page doesn't jump when it mounts. */
+.demo-slot {
+  min-width: 0;
+}
+.demo-slot:not([data-ready]) {
+  display: grid;
+  align-items: center;
+}
+.demo-hero:not([data-ready]) {
+  aspect-ratio: 520 / 470;
+}
+.demo-widget:not([data-ready]) {
+  aspect-ratio: 508 / 440;
+}
+@media (max-width: 440px) {
+  .demo-hero:not([data-ready]) {
+    aspect-ratio: 342 / 340;
+  }
+  .demo-widget:not([data-ready]) {
+    aspect-ratio: 342 / 420;
+  }
+}
 .trace {
   margin: 0;
   border: 1px solid var(--line);

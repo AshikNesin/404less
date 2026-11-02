@@ -9,6 +9,7 @@
     "date": "2026-10-31T13:05:33.718Z"
   },
   "additional_exclusions": [
+    ".agents/skills/stageshow/**",
     "vitest.config.worker.ts",
     ".github/workflows/worker-tests.yml",
     ".github/workflows/release.yml",

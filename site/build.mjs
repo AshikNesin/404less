@@ -6,6 +6,7 @@
 // Pages start with a <!--meta {json} --> block (path, title, description, og, nav).
 import fs from "node:fs";
 import path from "node:path";
+import { build } from "esbuild";
 
 const ROOT = path.resolve(new URL(".", import.meta.url).pathname);
 const OUT = path.resolve(ROOT, "..", "dist", "client");
@@ -24,6 +25,24 @@ if (fs.existsSync(spaIndex) && fs.readFileSync(spaIndex, "utf8").includes('<div 
 
 // assets (css, images, og) → dist/client/
 fs.cpSync(path.join(ROOT, "assets"), OUT, { recursive: true });
+
+// the illustrations (site/demos: React islands on the Stageshow kit) → /demos.js + /demos.css.
+// DEMOS_DEV=1 keeps the kit's development warnings and readable output, for filming them.
+const dev = process.env.DEMOS_DEV === "1";
+await build({
+  entryPoints: { demos: path.join(ROOT, "demos", "main.tsx") },
+  outdir: OUT,
+  bundle: true,
+  format: "esm",
+  target: "es2020",
+  jsx: "automatic",
+  minify: !dev,
+  legalComments: "none",
+  define: { "process.env.NODE_ENV": JSON.stringify(dev ? "development" : "production") },
+  logLevel: "warning",
+});
+// MIT notice for the kit the bundle carries
+fs.copyFileSync(path.join(ROOT, "demos", "kit", "LICENSE"), path.join(OUT, "demos.LICENSE.txt"));
 
 // the product demo (rendered by docs/demo, committed there) → dist/client/demo/
 const DEMO = path.resolve(ROOT, "..", "docs", "demo", "404less-demo.mp4");
@@ -93,6 +112,11 @@ for (const file of fs
       '<meta name="theme-color"',
       (meta.noindex ? '<meta name="robots" content="noindex">\n  ' : "") +
         '<meta name="theme-color"',
+    )
+    .replace('<link rel="stylesheet" href="/site.css" />', (m) =>
+      content.includes("data-demo=")
+        ? `${m}\n    <link rel="stylesheet" href="/demos.css" />\n    <script type="module" src="/demos.js"></script>`
+        : m,
     )
     .replace("{{content}}", () => content);
   const outName = meta.path === "/" ? "index.html" : `${meta.path.replace(/^\//, "")}.html`;

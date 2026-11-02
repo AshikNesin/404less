@@ -1,0 +1,254 @@
+/* The 404 page with the 404less card in it. Corner bleed, the same well,
+   gutter and window shadow as the hero: in from the top and left, off the
+   right and bottom, the page laid out to the width in view. */
+.l4-widget {
+  & .ss-stage {
+    --gutter: 28px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: var(--ss-well);
+  }
+  & .ss-stage[data-layout="compact"] {
+    --gutter: 16px;
+  }
+
+  .l4-widget__window {
+    position: absolute;
+    top: var(--gutter);
+    left: var(--gutter);
+    width: 580px;
+    height: 520px;
+    box-shadow: var(--ss-shadow-hero);
+  }
+  .l4-widget__window .ss-window__body {
+    background: var(--ss-surface);
+  }
+
+  .l4-widget__url {
+    display: inline-flex;
+    white-space: nowrap;
+  }
+
+  .l4-widget__site {
+    width: 452px;
+  }
+  [data-layout="compact"] .l4-widget__site {
+    width: 310px;
+  }
+
+  .l4-widget__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 46px;
+    padding: 0 0 0 24px;
+    border-bottom: 1px solid var(--ss-line-faint);
+  }
+  [data-layout="compact"] .l4-widget__header {
+    padding-left: 16px;
+  }
+  .l4-widget__brand {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ss-text-strong);
+  }
+  .l4-widget__nav {
+    display: flex;
+    gap: 16px;
+  }
+
+  /* the two pages share one cell; a navigation crossfades the body with a
+     short rise, the chrome and header stay */
+  .l4-widget__pages {
+    display: grid;
+  }
+  .l4-widget__page {
+    grid-area: 1 / 1;
+    padding: 22px 0 0 24px;
+    opacity: 0;
+    transform: translateY(8px);
+    will-change: transform;
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+  [data-layout="compact"] .l4-widget__page {
+    padding-left: 16px;
+  }
+  .l4-widget__page[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .l4-widget__big {
+    font-size: 44px;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    color: #dcdce1;
+  }
+  /* the phone crop keeps the heading and the card: the big number goes */
+  [data-layout="compact"] .l4-widget__big {
+    display: none;
+  }
+  .l4-widget__h {
+    margin-top: 6px;
+    font-size: 17px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--ss-text-strong);
+  }
+
+  /* the widget card, as embed.js draws it */
+  .l4-widget__card {
+    margin-top: 16px;
+    padding: 14px 12px 4px;
+    border: 1px solid var(--ss-line);
+    border-radius: 12px;
+    background: var(--ss-surface);
+    box-shadow: 0 12px 30px -16px rgba(20, 20, 30, 0.25);
+  }
+  /* the search tile and the row numbers share one 32px column, so the
+     heading and the titles start on one edge */
+  .l4-widget__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0 8px 10px;
+  }
+  .l4-widget__tile {
+    display: grid;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border-radius: 8px;
+    background: #f0f0f2;
+    color: var(--ss-text-strong);
+  }
+  .l4-widget__headtext {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .l4-widget__title {
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 600;
+    color: var(--ss-text-strong);
+  }
+  /* too long for the phone crop's card: the title says it */
+  [data-layout="compact"] .l4-widget__sub {
+    display: none;
+  }
+  [data-layout="compact"] .l4-widget__head {
+    align-items: center;
+  }
+  .l4-widget__sub {
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--ss-text);
+  }
+
+  .l4-widget__row {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) 16px;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+  .l4-widget__row[data-hover] {
+    background: #f4f4f5;
+  }
+  .l4-widget__n {
+    display: grid;
+    justify-self: center;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border-radius: 6px;
+    background: #f4f4f5;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ss-text);
+  }
+  .l4-widget__n[data-first] {
+    background: #e6e6ea;
+    color: var(--ss-text-strong);
+  }
+  .l4-widget__rowtext {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .l4-widget__rowtext .ss-bar + .ss-bar {
+    margin-top: 8px;
+  }
+  .l4-widget__rowtitle {
+    font-size: 13.5px;
+    line-height: 18px;
+    font-weight: 500;
+    color: var(--ss-text-strong);
+  }
+  .l4-widget__path {
+    font-family: var(--ss-mono);
+    font-size: 11.5px;
+    line-height: 16px;
+    color: var(--ss-text);
+    font-variant-ligatures: none;
+  }
+  .l4-widget__arrow {
+    color: var(--ss-icon-faint);
+    transition: color 0.15s ease;
+  }
+  .l4-widget__row[data-hover] .l4-widget__arrow {
+    color: var(--ss-text-strong);
+  }
+
+  .l4-widget__crumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .l4-widget__doctitle {
+    margin-top: 14px;
+    font-size: 22px;
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ss-text-strong);
+  }
+  .l4-widget__para {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 18px;
+    padding-right: 24px;
+  }
+  .l4-widget__codebars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 18px;
+    margin-right: 24px;
+    padding: 14px;
+    border-radius: 8px;
+    background: #f6f6f7;
+  }
+
+  .l4-widget__rest {
+    position: absolute;
+    left: 420px;
+    top: 150px;
+  }
+  [data-layout="compact"] .l4-widget__rest {
+    left: 270px;
+    top: 118px;
+  }
+}
