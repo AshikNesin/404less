@@ -3,6 +3,10 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { ApiError } from "./lib/api";
+// Inter loads from JS, not from the shell CSS: an @import there is inlined by
+// Tailwind before Vite sees it, so the fonts' relative url()s were never
+// emitted and production served index.html in their place.
+import "@fontsource-variable/inter";
 import "./styles.css";
 
 // Light only: the shell's theme (initTheme) is not used, so `.dark` is never applied.
