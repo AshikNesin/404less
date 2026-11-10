@@ -34,6 +34,15 @@ if (fs.existsSync(DEMO)) {
   console.warn("site: docs/demo/404less-demo.mp4 missing; the hero player will have no video");
 }
 
+// <!--waitlist:source--> in a page becomes site/partials/waitlist.html.
+// source is [a-z0-9-]{1,32} and is stored with the signup (homepage, self-host, …).
+const waitlistTpl = fs.readFileSync(path.join(ROOT, "partials", "waitlist.html"), "utf8");
+function applyWaitlist(content) {
+  return content.replace(/<!--waitlist:([a-z0-9-]{1,32})-->/g, (_match, source) =>
+    waitlistTpl.replaceAll("{{source}}", source),
+  );
+}
+
 const urls = [];
 for (const file of fs
   .readdirSync(path.join(ROOT, "pages"))
@@ -43,7 +52,7 @@ for (const file of fs
   const m = src.match(/^<!--meta\s*([\s\S]*?)-->/);
   if (!m) throw new Error(`${file}: missing <!--meta--> block`);
   const meta = JSON.parse(m[1]);
-  const content = src.slice(m[0].length).trim();
+  const content = applyWaitlist(src.slice(m[0].length).trim());
   const canonical = SITE_URL + (meta.path === "/" ? "/" : meta.path);
   const jsonld = JSON.stringify(
     meta.path === "/"
@@ -99,6 +108,13 @@ for (const file of fs
   fs.writeFileSync(path.join(OUT, outName), html);
   if (!meta.noindex) urls.push(canonical);
   console.log("site:", meta.path, "→", outName);
+}
+
+const llms = path.join(ROOT, "llms.txt");
+if (fs.existsSync(llms)) {
+  fs.copyFileSync(llms, path.join(OUT, "llms.txt"));
+  urls.push(`${SITE_URL}/llms.txt`);
+  console.log("site: /llms.txt");
 }
 
 fs.writeFileSync(

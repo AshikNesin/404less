@@ -5,6 +5,7 @@ import { auth } from "./api/auth/auth.routes";
 import { channels } from "./api/channels/channels.routes";
 import { embed } from "./api/embed/embed.routes";
 import { ingest } from "./api/ingest/ingest.routes";
+import { waitlist } from "./api/waitlist/waitlist.routes";
 import { keys } from "./api/keys/keys.routes";
 import { links } from "./api/links/links.routes";
 import { mcp } from "./api/mcp/mcp.routes";
@@ -43,6 +44,7 @@ export function createWebApp(options: Omit<CreateAppOptions, "routes" | "openCor
       // Public: paths are external contracts; never move them.
       app.route("/", embed); // GET /embed.js
       app.route("/api", ingest); // POST /api/track, GET /api/suggestions
+      app.route("/api/waitlist", waitlist); // POST cloud-version waitlist
       app.route("/", mcp); // /mcp (MCP streamable HTTP, bearer API key)
       app.route("/api/v1/auth", auth); // POST magic, GET verify, POST logout
       // Sign-in links emailed before the move to /api/v1 (15-minute TTL).

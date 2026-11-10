@@ -29,6 +29,22 @@ export type Env = {
   MAIL_FROM?: string;
   /** Static assets (dist/client): marketing site + SPA shell. Absent in unit tests and on Node. */
   ASSETS?: Fetcher;
+  /**
+   * Marketing-site analytics. Unset = off. Injected into HTML at request time
+   * (worker/site-html.ts); never commit a real id.
+   */
+  UMAMI_WEBSITE_ID?: string;
+  /** Script URL. Default https://hi.nesin.io/script.js */
+  UMAMI_SRC?: string;
+  /** PostHog project key. Unset = off. */
+  POSTHOG_KEY?: string;
+  /** PostHog host. Default https://us.i.posthog.com */
+  POSTHOG_HOST?: string;
+  /**
+   * Site key for the marketing 404 embed. Unset keeps the built-in demo key
+   * (`404less-site`), which suggests this site's own pages without a database row.
+   */
+  MARKETING_SITE_KEY?: string;
 };
 
 /** Hono env for 404less routers: bindings + the signed-in user (set by the session middleware). */

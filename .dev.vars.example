@@ -7,3 +7,12 @@
 # RESEND_API_KEY=
 # MAIL_FROM=404less <no-reply@example.com>
 # MAX_SITES_PER_TEAM=5
+#
+# Marketing site (served by the Worker). Leave commented to keep analytics off.
+# UMAMI_WEBSITE_ID=YOUR_UMAMI_WEBSITE_ID
+# UMAMI_SRC=https://hi.nesin.io/script.js
+# POSTHOG_KEY=YOUR_POSTHOG_PROJECT_KEY
+# POSTHOG_HOST=https://us.i.posthog.com
+# Real site key for the 404 demo. Unset uses 404less-site (suggestions from this
+# site's pages, hits stored in the kv table). See README.
+# MARKETING_SITE_KEY=

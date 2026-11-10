@@ -2,13 +2,20 @@
   "name": "404less",
   "version": "0.1.0",
   "private": true,
-  "description": "Self-hostable broken-link monitoring on Cloudflare free tier",
-  "keywords": [],
-  "homepage": "https://github.com/AshikNesin/404less#readme",
+  "description": "Self-hosted 404 tracking and broken-link monitoring on Cloudflare's free tier. Visitor hits, a crawler, suggested fixes, redirect rules, and a read-only MCP server.",
+  "keywords": [
+    "404",
+    "broken-links",
+    "cloudflare-workers",
+    "link-checker",
+    "mcp",
+    "self-hosted"
+  ],
+  "homepage": "https://404less.com",
   "bugs": {
     "url": "https://github.com/AshikNesin/404less/issues"
   },
-  "author": "",
+  "author": "Ashik Nesin / Nesin Technologies",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AshikNesin/404less.git"
