@@ -33,11 +33,13 @@
     <script type="application/ld+json">
       {{jsonld}}
     </script>
-    <script
-      defer
-      src="https://hi.nesin.io/script.js"
-      data-website-id="5d4fd4de-654c-46fa-8d62-07c7f29e2e4d"
-    ></script>
+    <!--
+      Analytics is off until a Worker var is set (do not commit the value):
+      UMAMI_WEBSITE_ID (script host UMAMI_SRC, default https://hi.nesin.io/script.js)
+      or POSTHOG_KEY (host POSTHOG_HOST, default https://us.i.posthog.com).
+      The Worker replaces the marker below when one of those is set. See README.
+    -->
+    <!--analytics-->
   </head>
   <body data-nav="{{nav}}">
     <header class="nav" id="nav">
@@ -134,7 +136,8 @@
         <div class="cols">
           <div class="col">
             <b>Product</b><a href="/#how">How it works</a><a href="/#features">Features</a
-            ><a href="/embed">Embed</a><a href="/agent">Agents &amp; MCP</a>
+            ><a href="/embed">Embed</a><a href="/agent">Agents &amp; MCP</a
+            ><a href="/llms.txt">llms.txt</a>
           </div>
           <div class="col">
             <b>Self-host</b><a href="/self-host">Deploy guide</a
@@ -153,5 +156,6 @@
         </div>
       </div>
     </footer>
+    <script src="/site.js" defer></script>
   </body>
 </html>

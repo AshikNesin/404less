@@ -27,17 +27,10 @@
     "html_handling": "none",
     "not_found_handling": "none",
     // /__scheduled lets `wrangler dev --test-scheduled` fire the cron handler.
-    "run_worker_first": [
-      "/api/*",
-      "/auth/*",
-      "/embed.js",
-      "/mcp",
-      "/app",
-      "/app/*",
-      "/health",
-      "/ready",
-      "/__scheduled",
-    ],
+    // Every request hits the Worker first so entry.worker.ts can 301 http→https
+    // and www.404less.com→404less.com before the asset cache answers. The Worker
+    // then serves the file from this binding (worker/static-assets.ts).
+    "run_worker_first": true,
   },
   "workers_dev": true,
   "routes": [
@@ -65,6 +58,11 @@
   // worker/boot.ts), so a fresh deploy needs no secrets. Optional vars:
   // MAX_SITES_PER_TEAM, CRAWL_INTERVAL_HOURS (default 24), EVENT_RETENTION_DAYS,
   // MAIL_FROM; secret RESEND_API_KEY.
+  // Optional marketing-site config. Leave unset to keep analytics off and the
+  // 404 demo on the built-in site key. Do not commit real ids. See README.
+  //   UMAMI_WEBSITE_ID   Umami website id (script: UMAMI_SRC, default https://hi.nesin.io/script.js)
+  //   POSTHOG_KEY        PostHog project key (host: POSTHOG_HOST, default https://us.i.posthog.com)
+  //   MARKETING_SITE_KEY real site key for the marketing 404 embed
   "vars": {
     "NODE_ENV": "production",
   },

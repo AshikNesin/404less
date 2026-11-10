@@ -6,6 +6,7 @@ import { siteOrigin } from "../crawl/crawl.service";
 import { urlMatchesPattern } from "../../lib/suggest";
 import { isAlwaysIgnored } from "../../lib/ignored-urls";
 import type { Env } from "../../types";
+import { MARKETING_SITE_KEY, marketingSuggestions, recordMarketingHit } from "./marketing-site";
 import { eq } from "drizzle-orm";
 import { db, notFoundEvents, websites } from "../../db";
 import { waitUntil } from "../../lib/background";
@@ -30,7 +31,24 @@ ingest.post("/track", async (c) => {
     .from(websites)
     .where(eq(websites.site_key, String(body.siteKey)))
     .get();
-  if (!site) return c.json({ error: "unknown site" }, 404);
+  if (!site) {
+    // The marketing site's own 404. A real row with this key uses the normal path.
+    if (String(body.siteKey) === MARKETING_SITE_KEY) {
+      let parsed: URL;
+      try {
+        parsed = new URL(body.url);
+      } catch {
+        return c.json({ error: "bad url" }, 400);
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+        return c.json({ error: "bad url" }, 400);
+      parsed.hash = "";
+      const referrer =
+        typeof body.referrer === "string" && body.referrer ? body.referrer.slice(0, 2000) : null;
+      return c.json(await recordMarketingHit(c.env, parsed.toString().slice(0, 2000), referrer));
+    }
+    return c.json({ error: "unknown site" }, 404);
+  }
 
   // URL must be absolute http(s); strip fragments (never sent to servers, never a distinct page)
   let parsed: URL;
@@ -99,7 +117,14 @@ ingest.get("/suggestions", async (c) => {
     .from(websites)
     .where(eq(websites.site_key, siteKey))
     .get();
-  if (!site) return c.json({ error: "unknown site" }, 404);
+  if (!site) {
+    if (siteKey === MARKETING_SITE_KEY) {
+      const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 3) || 3, 1), 5);
+      c.header("Cache-Control", "public, max-age=300");
+      return c.json(marketingSuggestions(url, limit));
+    }
+    return c.json({ error: "unknown site" }, 404);
+  }
   const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 3) || 3, 1), 5);
   const suggestions = await suggestFor(c.env, site.id, url, limit);
   c.header("Cache-Control", "public, max-age=300");

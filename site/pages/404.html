@@ -62,4 +62,27 @@
     // show the path the visitor actually asked for (text only, never HTML)
     document.getElementById("nf-path").textContent = location.pathname;
   </script>
+
+  <section class="nf-live">
+    <div class="container">
+      <span class="eyebrow"><span class="dot"></span> Live demo</span>
+      <h2>This 404 is running 404less.</h2>
+      <p class="lead">
+        The card is the real snippet. It logged this visit and ranked the closest pages on this
+        site.
+      </p>
+      <div id="f404-suggest"></div>
+    </div>
+  </section>
+  <script
+    src="/embed.js"
+    data-site="404less-site"
+    data-404="true"
+    data-mode="inline"
+    data-target="#f404-suggest"
+    data-theme="light"
+    data-max="4"
+    data-title="Looking for something?"
+    data-text="This card is the real 404less snippet: it logged this visit and ranked the closest pages."
+  ></script>
 </main>

@@ -162,6 +162,28 @@ claude mcp add --transport http 404less https://your-404less.example/mcp \
 The key authenticates MCP; the dashboard API under `/api/v1` uses the signed-in
 session cookie (see `apps/web/src/server/api/*/*.routes.ts`).
 
+### MCP over stdio (directory listings)
+
+Glama and similar directories build the root `Dockerfile` and expect a process
+that speaks MCP on stdin/stdout. The image runs `apps/web/src/server/mcp-stdio.ts`
+(no npm install: Node strips the types). It answers `initialize` and `tools/list`
+with the same four read-only tools as `POST /mcp`. It has no database.
+`tools/call` forwards to your instance only when both are set:
+
+```bash
+docker build -t 404less-mcp .
+docker run --rm -i \
+  -e F404_MCP_URL=https://your-404less.example/mcp \
+  -e F404_API_KEY=404l_… \
+  404less-mcp
+```
+
+Without those variables, `tools/call` returns an error telling the caller to set
+them. `glama.json` names the GitHub maintainer so the listing can be claimed.
+On Glama’s Dockerfile admin page, if it asks for build steps rather than using
+this Dockerfile, leave the build steps empty and set the command to
+`node --experimental-strip-types apps/web/src/server/mcp-stdio.ts`.
+
 ## Layout
 
 ```
@@ -180,8 +202,92 @@ apps/web/
 packages/                  groot boilerplate (core, ui, shell, jobs, ai), synced with `pnpm groot:sync`
 site/
   pages/*.html             marketing pages (index, embed, self-host, agent, 404) + layout.html
+  partials/waitlist.html   cloud-version form, inserted by <!--waitlist:source-->
+  llms.txt                 /llms.txt (copied into the build and listed in sitemap.xml)
   build.mjs                renders pages into dist/client, copies the demo video, writes sitemap.xml + robots.txt
   og/                      Open Graph image template + renderer → site/assets/og/*.png
 tests/worker/              404less's integration suites, inside workerd via SELF.fetch()
 tests/server/              groot's Node suites (synced) + tests/server/app (404less on Node)
 ```
+
+## Marketing site
+
+`pnpm build:client` (and `pnpm dev:worker`) renders `site/pages/*.html` through
+`site/layout.html` into `dist/client`. The Worker (`worker/static-assets.ts`,
+`run_worker_first`) serves `/` and `/embed` as those files, `/app/*` as the SPA,
+and anything else as `404.html` with status 404 and `noindex`.
+
+The 404 page loads `/embed.js` with the site key `404less-site`. That key needs
+no database row: suggestions are the real ranker over `/`, `/embed`, `/self-host`
+and `/agent`, and the hit is appended to the `kv` row `marketing-404:hits` (last
+100). Set the Worker var `MARKETING_SITE_KEY` to a real site key to log into
+that site’s dashboard instead. Read the demo log with:
+
+```bash
+pnpm exec wrangler d1 execute 404less --remote \
+  --command "SELECT value FROM kv WHERE key = 'marketing-404:hits'"
+```
+
+### Cloud waitlist
+
+The homepage and the self-host page include `site/partials/waitlist.html`
+(`<!--waitlist:homepage-->`, `<!--waitlist:self-host-->`). A future tool page
+uses the same marker with its own source (`<!--waitlist:redirects-->`, matching
+`[a-z0-9-]{1,32}`). The form POSTs to `/api/waitlist`. Signups are rows in `kv`
+(`waitlist:<email>` → `{ source, created_at }`). Duplicate emails stay listed
+once. A hidden company field and a cross-origin POST are answered `ok` and not
+stored. Five signups per IP per hour, then 429. Read them with:
+
+```bash
+pnpm exec wrangler d1 execute 404less --remote \
+  --command "SELECT key, value FROM kv WHERE substr(key, 1, 9) = 'waitlist:'"
+```
+
+D1 is already provisioned by the Deploy button, so the waitlist does not add a
+KV namespace or a third-party form host.
+
+### Analytics
+
+Off until you set a Worker var (`.dev.vars` locally, `wrangler secret put` or
+`[vars]` for a deploy). Do not commit the value.
+
+- `UMAMI_WEBSITE_ID` — Umami website id. Script defaults to `https://hi.nesin.io/script.js` (`UMAMI_SRC` overrides it).
+- `POSTHOG_KEY` — PostHog project key. Host defaults to `https://us.i.posthog.com` (`POSTHOG_HOST` overrides it). Persistence is memory-only (no cookie) and autocapture is off.
+
+`site/assets/site.js` sends events when the matching global exists:
+
+| Event             | When                                                            |
+| ----------------- | --------------------------------------------------------------- |
+| `waitlist_signup` | the waitlist form succeeds (`source` is homepage, self-host, …) |
+| `self_host_click` | a Deploy to Cloudflare link, or a link to `/self-host`          |
+| `github_click`    | a link to `github.com/AshikNesin/404less`                       |
+| `copy_snippet`    | a Copy button on a code block (`label` is the section id)       |
+
+### Canonical host
+
+`entry.worker.ts` answers `http://…` with 301 to https (308 for other methods)
+for any non-local host, and `www.404less.com` with 301 to `https://404less.com`.
+It runs only when Cloudflare set `CF-Ray` (every real edge request). `wrangler dev`
+does not, and it rewrites `request.url` to the custom domain, so a redirect there
+would loop. `localhost` and `127.0.0.1` stay on http even with a ray.
+Because the asset cache can answer before the Worker, also turn on
+**SSL/TLS → Edge Certificates → Always Use HTTPS** in the Cloudflare dashboard
+and purge the cache once after deploy. A checked request on 10 Nov 2026 got
+HTTP 200 (the full page, `CF-Cache-Status: HIT`), not a 500; the redirect is
+what that response was missing.
+
+### GitHub repository listing
+
+Suggested description:
+
+> Self-hosted 404 tracking and broken-link monitoring on Cloudflare's free tier. Visitor hits, a crawler, suggested fixes, redirect rules, and a read-only MCP server.
+
+Homepage URL: `https://404less.com`
+
+Topics: `broken-links`, `404`, `link-checker`, `cloudflare-workers`, `mcp`, `self-hosted`
+
+These are also `description`, `homepage`, `author` and `keywords` in `package.json`. GitHub’s About settings are separate; set them in the repository UI.
+
+## License
+
+MIT. Copyright (c) 2026 Ashik Nesin / Nesin Technologies. See [LICENSE](./LICENSE).

@@ -9,6 +9,7 @@ const FILES: Record<string, string> = {
   "/index.html": "home",
   "/embed.html": "embed",
   "/404.html": "not here",
+  "/site.css": "body{}",
 };
 const etag = (p: string) => `"${p}"`;
 const ASSETS = {
@@ -51,6 +52,60 @@ test("the 404 page keeps its body for a browser that cached it", async () => {
     status: 404,
     body: FILES["/404.html"],
   });
+});
+
+test("a static file is served, and a missing path is a real 404", async () => {
+  expect(await get("/site.css")).toEqual({ status: 200, body: FILES["/site.css"] });
+  const res = await worker.fetch(
+    new Request("http://localhost/missing"),
+    { ...env, ASSETS } as never,
+    createExecutionContext(),
+  );
+  expect(res.status).toBe(404);
+  expect(res.headers.get("x-robots-tag")).toBe("noindex");
+  expect(await res.text()).toBe(FILES["/404.html"]);
+});
+
+test("http and www on the public host redirect to https://404less.com", async () => {
+  const edge = { "cf-ray": "test" };
+  const http = await worker.fetch(
+    new Request("http://404less.com/embed?x=1", { headers: edge }),
+    { ...env, ASSETS } as never,
+    createExecutionContext(),
+  );
+  expect(http.status).toBe(301);
+  expect(http.headers.get("location")).toBe("https://404less.com/embed?x=1");
+
+  const www = await worker.fetch(
+    new Request("https://www.404less.com/self-host", { headers: edge }),
+    { ...env, ASSETS } as never,
+    createExecutionContext(),
+  );
+  expect(www.status).toBe(301);
+  expect(www.headers.get("location")).toBe("https://404less.com/self-host");
+
+  const post = await worker.fetch(
+    new Request("http://www.404less.com/api/waitlist", { method: "POST", headers: edge }),
+    { ...env, ASSETS } as never,
+    createExecutionContext(),
+  );
+  expect(post.status).toBe(308);
+  expect(post.headers.get("location")).toBe("https://404less.com/api/waitlist");
+
+  const local = await worker.fetch(
+    new Request("http://127.0.0.1:8787/", { headers: edge }),
+    { ...env, ASSETS } as never,
+    createExecutionContext(),
+  );
+  expect(local.status).toBe(200);
+
+  // wrangler dev has no CF-Ray; the custom-domain route must not loop
+  const dev = await worker.fetch(
+    new Request("http://404less.com/"),
+    { ...env, ASSETS } as never,
+    createExecutionContext(),
+  );
+  expect(dev.status).toBe(200);
 });
 
 test("a trailing slash on a page redirects to the page", async () => {

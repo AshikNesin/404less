@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import { teamForToken } from "../keys/keys.service";
 import { getLinkDetails, getSuggestions, listBrokenLinks, listSites } from "../mcp/mcp.service";
 import type { Env } from "../../types";
+import { MCP_PROTOCOL_VERSION as PROTOCOL_VERSION, MCP_TOOLS as TOOLS } from "./catalog";
 
 type JsonRpcRequest = {
   jsonrpc?: string;
@@ -15,63 +16,6 @@ type JsonRpcRequest = {
 };
 
 export const mcp = new Hono<{ Bindings: Env }>();
-
-const TOOLS = [
-  {
-    name: "list_sites",
-    description: "List the sites monitored for this team.",
-    inputSchema: { type: "object" as const, properties: {}, additionalProperties: false },
-  },
-  {
-    name: "list_broken_links",
-    description:
-      "Broken URLs for a site (open by default), most-hit first, optionally since an ISO timestamp.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        site: { type: "string", description: "Site id, domain, or name" },
-        status: {
-          type: "string",
-          enum: ["open", "resolved", "ignored", "all"],
-          description: "Triage status (default open)",
-        },
-        since: { type: "string", description: "ISO 8601 timestamp lower bound" },
-        limit: { type: "number", description: "Max URLs to return (default 50, max 200)" },
-      },
-      required: ["site"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "get_suggestions",
-    description: "Suggested replacement URLs for a broken link.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        site: { type: "string", description: "Site id, domain, or name" },
-        url: { type: "string", description: "The broken URL" },
-      },
-      required: ["site", "url"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "get_link_details",
-    description:
-      "Full details for one broken URL: hits, first/last seen, top referrers, suggested fixes.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        site: { type: "string", description: "Site id, domain, or name" },
-        url: { type: "string", description: "The broken URL" },
-      },
-      required: ["site", "url"],
-      additionalProperties: false,
-    },
-  },
-];
-
-const PROTOCOL_VERSION = "2025-03-26";
 
 mcp.on(["POST", "GET", "DELETE"], "/mcp", async (c) => {
   const auth = c.req.header("Authorization");

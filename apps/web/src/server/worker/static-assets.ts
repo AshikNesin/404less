@@ -1,10 +1,14 @@
-// Static assets with explicit routing (html_handling is off in wrangler.jsonc):
+// Static assets with explicit routing (html_handling is off in wrangler.jsonc,
+// and run_worker_first is on so this runs for every path):
 //   /app, /app/*  → the SPA shell (app.html), client-side routed
-//   /foo          → foo.html from the marketing site, else the site's 404 page
+//   /foo          → foo.html from the marketing site
+//   /site.css, /llms.txt, … → that file
+//   anything else → the site's 404 page, status 404, noindex
 // Workers only: reads the ASSETS binding per request; without one (Node) it
 // falls through. Mounted last (app.ts).
 import { Hono } from "hono";
 import type { AppBindings } from "../types";
+import { decorateHtmlResponse } from "./site-html";
 
 export const staticAssets = new Hono<AppBindings>();
 
@@ -39,11 +43,19 @@ staticAssets.get("*", async (c, next) => {
         : null;
   if (page) {
     const res = await fetchAsset(page);
-    if (res.ok || res.status === 304) return res;
+    if (res.ok || res.status === 304) return decorateHtmlResponse(res, c.env);
+  }
+  // css, images, llms.txt, sitemap: the file itself. run_worker_first sends these here
+  // so the canonical redirect in entry.worker.ts sees every host and scheme.
+  if (url.pathname !== "/") {
+    const exact = await fetchAsset(url.pathname);
+    if (exact.ok || exact.status === 304) return exact;
   }
   // no conditional headers: a 304 can't carry the 404 status, and its empty body would replace the page
   const nf = (await assets.fetch(
     new Request(new URL("/404.html", url.origin)) as never,
   )) as unknown as Response;
-  return new Response(nf.body, { status: 404, headers: nf.headers });
+  return decorateHtmlResponse(new Response(nf.body, { status: 404, headers: nf.headers }), c.env, {
+    "X-Robots-Tag": "noindex",
+  });
 });

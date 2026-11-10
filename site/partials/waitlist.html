@@ -1,0 +1,28 @@
+<div class="waitlist-card">
+  <div class="waitlist-copy">
+    <span class="eyebrow">Only if there’s demand</span>
+    <h2>Cloud version — join the waitlist</h2>
+    <p>
+      Self-hosting is the product, and it stays free. A hosted cloud version gets built only if
+      enough people ask for it. Leave your email and we’ll write if it does.
+    </p>
+  </div>
+  <form class="waitlist-form" action="/api/waitlist" method="post" data-waitlist>
+    <input type="hidden" name="source" value="{{source}}" />
+    <div class="hp" aria-hidden="true">
+      <label>Company <input type="text" name="company" tabindex="-1" autocomplete="off" /></label>
+    </div>
+    <label class="sr" for="wl-email-{{source}}">Email</label>
+    <input
+      id="wl-email-{{source}}"
+      type="email"
+      name="email"
+      required
+      maxlength="254"
+      autocomplete="email"
+      placeholder="you@example.com"
+    />
+    <button class="btn btn-primary" type="submit">Join the waitlist</button>
+    <p class="waitlist-note" role="status"></p>
+  </form>
+</div>

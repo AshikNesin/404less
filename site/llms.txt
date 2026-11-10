@@ -1,0 +1,72 @@
+# 404less
+
+> Open-source (MIT) self-hosted 404 tracking and broken-link monitoring. One Cloudflare Worker on the free tier: a snippet on your 404 page, a crawler, suggested fixes with a ready-to-paste redirect rule, digests, and a read-only MCP server.
+
+404less is for people who run static or Jamstack sites (Hugo, Next.js, Astro, Cloudflare Pages, Netlify, Vercel) and would rather host the tool themselves than pay a suite. There is no hosted plan. A cloud version will only be built if the waitlist shows demand.
+
+## Pages
+
+- [Home](https://404less.com/): what it does, and the cloud waitlist
+- [Embed](https://404less.com/embed): the snippet, its options, and what it collects
+- [Self-host](https://404less.com/self-host): deploy onto Cloudflare’s free tier
+- [Agents and MCP](https://404less.com/agent): Claude Code, Cursor, and the HTTP endpoint
+- [llms.txt](https://404less.com/llms.txt): this file
+
+The dashboard is at [/app](https://404less.com/app) (sign-in at /app/login). It is disallowed in robots.txt, along with /api.
+
+## What it does
+
+- One script tag on the 404 page reports the URL and the referrer, and shows the visitor the closest known pages.
+- A scheduled crawler checks links and assets, records redirect chains, and respects robots.txt.
+- Each broken URL gets a suggested replacement and a redirect rule for Netlify `_redirects`, Vercel, Next.js, Nginx, or Apache.
+- Digests go to Slack, email, or Pushover. Ignored links never alert.
+- Read-only MCP tools let an agent open the fix as a pull request. 404less never writes to the repository.
+
+## MCP
+
+Authenticated HTTP endpoint: `POST /mcp` on the instance (production: `https://404less.com/mcp`). Protocol 2025-03-26, streamable HTTP. Header: `Authorization: Bearer 404l_…` (a key from the dashboard, API & MCP).
+
+Tools, all read-only:
+
+- `list_sites` — sites on the key’s team
+- `list_broken_links` — broken URLs for one site (open by default)
+- `get_suggestions` — ranked replacement URLs for one broken link
+- `get_link_details` — hits, referrers, status, and the suggested fix
+
+```bash
+claude mcp add --transport http 404less https://404less.com/mcp \
+  --header "Authorization: Bearer 404l_…"
+```
+
+A dependency-free stdio process for directory listings is `node apps/web/src/server/mcp-stdio.ts` (the root Dockerfile). It answers `initialize` and `tools/list` with the same four tools. `tools/call` forwards to your HTTP endpoint only when `F404_MCP_URL` and `F404_API_KEY` are set.
+
+## Deploy
+
+One click: https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less
+
+Manual, from a checkout:
+
+```bash
+pnpm install
+pnpm exec wrangler d1 create 404less   # paste database_id into wrangler.jsonc
+pnpm deploy:worker                      # migrations apply on the first request
+pnpm exec wrangler secret put RESEND_API_KEY
+```
+
+`RESEND_API_KEY` is what a public instance needs for email sign-in. Without it, a loopback host returns the magic link in the API response. The Workers Free plan covers a personal instance at hobby scale. Optional vars: `MAX_SITES_PER_TEAM` (default 5), `CRAWL_INTERVAL_HOURS` (default 24), `EVENT_RETENTION_DAYS` (default 90).
+
+Install the snippet on your own 404 page:
+
+```html
+<script src="https://your-404less.example/embed.js" data-site="SITE_KEY" defer></script>
+```
+
+## Repository
+
+- [README](https://github.com/AshikNesin/404less/blob/main/README.md) — install, snippet, API
+- [Design doc](https://github.com/AshikNesin/404less/blob/main/docs/DESIGN.md)
+- License: MIT, copyright Ashik Nesin / Nesin Technologies
+
+## Cloud version
+
+Not for sale. The form on the homepage and the self-host page posts to `POST /api/waitlist`. Signups are stored so the project can tell whether a hosted version is worth building.

@@ -6,6 +6,7 @@ import type {
 } from "@cloudflare/workers-types";
 import type { Env } from "./types";
 import { bootWorker } from "./worker/boot";
+import { canonicalRedirect } from "./worker/canonical";
 import { scheduled } from "./worker/cron";
 
 /**
@@ -21,6 +22,14 @@ export { RateLimiterDO } from "./do/rate-limiter";
 
 export default {
   async fetch(request: WorkerRequest, bindings: Env, ctx: ExecutionContext) {
+    const redirect = canonicalRedirect(
+      request.url,
+      request.method,
+      request.headers.get("host"),
+      request.headers.get("cf-ray"),
+    );
+    if (redirect)
+      return Response.redirect(redirect.url, redirect.status) as unknown as WorkerResponse;
     const app = await bootWorker(bindings, new URL(request.url).origin);
     // Hono speaks the standard fetch types; the Workers runtime types are a superset.
     const response = await app.fetch(request as unknown as Request, bindings, ctx);
