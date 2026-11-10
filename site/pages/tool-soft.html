@@ -1,0 +1,197 @@
+<!--meta
+{
+  "path": "/tools/soft-404-checker",
+  "nav": "tools",
+  "title": "Soft 404 checker and 404 page checker · 404less",
+  "ogTitle": "404 and soft 404 checker",
+  "description": "Check whether a URL returns a real 404 or a 200 soft 404. Compares your page with a path that should not exist, and explains the Search Console soft-404 warning.",
+  "og": "/og/og.png"
+}
+-->
+<main class="doc">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> 404 and soft 404 checker</span>
+        <h1>404 and soft 404 checker</h1>
+        <p class="lead">
+          Enter a URL. We fetch it, then fetch a random path on the same host that should not exist.
+          A real 404 is a 404 or 410. A soft 404 is a missing page that still returns 200, or the
+          same page the rest of the site returns.
+        </p>
+      </div>
+    </div>
+
+    <form class="tool" data-tool="soft404">
+      <label for="soft-url">URL</label>
+      <div class="tool-row">
+        <input
+          id="soft-url"
+          name="url"
+          type="url"
+          required
+          placeholder="https://example.com/docs/missing"
+        />
+        <button class="btn btn-primary" type="submit">Check</button>
+      </div>
+      <label for="soft-missing" style="margin-top: 14px"
+        >Path that should not exist (optional)</label
+      >
+      <input
+        id="soft-missing"
+        name="missingPath"
+        type="text"
+        placeholder="/404less-probe-… is used when this is empty"
+      />
+      <p class="tool-msg" data-msg hidden></p>
+      <div data-out hidden>
+        <div class="flags"><span class="flag" data-verdict></span></div>
+        <p data-summary></p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Status</th>
+                <th>Final URL</th>
+                <th>Title</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody data-rows></tbody>
+          </table>
+        </div>
+      </div>
+    </form>
+
+    <div class="body">
+      <section>
+        <h2>What Search Console means by soft 404</h2>
+        <p>
+          Google requested a URL, got a response that looks like “this page is not really there”,
+          and dropped the URL from the index. The Page indexing report then says
+          <strong>Soft 404</strong>. The usual cause is a missing page that returns
+          <strong>200 OK</strong>. Sometimes it is a 301 to the homepage, or a 200 whose title is
+          “Page not found”. The status is what Google asked for and did not get. A pretty 404
+          template with a 200 status is still a soft 404.
+        </p>
+        <p>Two hosts, same symptom, different bugs:</p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>What you requested</th>
+                <th>Real 404</th>
+                <th>Soft 404</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>/docs/install</code> (the page exists)</td>
+                <td>200</td>
+                <td>200</td>
+              </tr>
+              <tr>
+                <td><code>/docs/instll</code> (it does not)</td>
+                <td>404</td>
+                <td>200, often the homepage or the app shell</td>
+              </tr>
+              <tr>
+                <td>What Google does</td>
+                <td>Keeps the real URL, drops the typo</td>
+                <td>Drops both, and reports a soft 404</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The fix is the status, not the design. Return <strong>404</strong> (or
+          <strong>410</strong>
+          when the page is gone on purpose). The body can still offer search and links. Use a
+          <strong>301</strong> only when there is a real replacement, and point it at that page, not
+          at the homepage.
+        </p>
+      </section>
+      <section>
+        <h2>Where the 200 comes from</h2>
+        <p>
+          Single-page apps do this by default. Cloudflare Pages with “single page application”
+          not-found handling, Netlify’s <code>/* /index.html 200</code>, and an nginx
+          <code>try_files $uri /index.html</code> all serve the app shell with 200 for every path.
+          The app may then render a “not found” view. The HTTP status never changes, so Google sees
+          a 200.
+        </p>
+        <p>
+          Give unknown paths a real 404. On Cloudflare Pages that is a <code>404.html</code> and
+          not-found handling set to “404 page”, not the SPA fallback, for any site that is not
+          actually a client-side app. A 200 rewrite can stay for the routes the app owns; it should
+          not be the catch-all in front of your docs.
+        </p>
+        <p>
+          <code>noindex</code> on a 200 is not a substitute. Google may still call the URL a soft
+          404, and you have spent a crawl on a page you then asked it to ignore. Status 404 already
+          says “don’t index this”.
+        </p>
+      </section>
+      <section>
+        <h2>Questions</h2>
+        <div class="faq">
+          <details>
+            <summary>Why fetch a second, random path?</summary>
+            <div class="a">
+              A 200 on its own does not mean the page is missing. It means the URL returned a page.
+              The second request is a path you did not publish. If it returns the same 200, the same
+              title, or the same body, the host is not telling anyone the page is gone.
+            </div>
+          </details>
+          <details>
+            <summary>
+              My URL is a real page, but the result says the host returns 200 for missing paths.
+            </summary>
+            <div class="a">
+              Then this URL is fine and the catch-all is not. Unknown URLs on that host will show up
+              as soft 404s in Search Console even though the page you checked is real. Fix the
+              fallback, not this page.
+            </div>
+          </details>
+          <details>
+            <summary>Does a 301 to the homepage count?</summary>
+            <div class="a">
+              If the missing path lands on the same final URL as the one you entered, both are the
+              same document. That is the “everything redirects home” soft 404. A 301 to a specific
+              replacement, with missing paths returning 404, is reported as a redirect instead.
+            </div>
+          </details>
+          <details>
+            <summary>Can I choose the missing path?</summary>
+            <div class="a">
+              Yes. Leave the field empty and we request <code>/404less-probe-</code> plus a random
+              id. If you know a path that used to exist, put it there (it has to start with
+              <code>/</code> and stay on the same host).
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<section class="cta">
+  <div class="container">
+    <h2>Show visitors a real 404, and record it.</h2>
+    <p>
+      The 404less embed sits on a page that returns 404. It reports the hit and offers the closest
+      real pages. A 200 with a “not found” message never reaches it. Self-host it on Cloudflare’s
+      free tier.
+    </p>
+    <div class="ctas">
+      <a
+        class="btn btn-primary"
+        href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less"
+        rel="noopener"
+        >Deploy to Cloudflare</a
+      >
+      <a class="btn btn-secondary" href="/tools/waitlist">Cloud version waitlist</a>
+    </div>
+  </div>
+</section>
+<script src="/tools.js" defer></script>

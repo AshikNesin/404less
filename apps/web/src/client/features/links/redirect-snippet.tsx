@@ -6,8 +6,9 @@ import { CodeBlock } from "../../components/copy-button";
 import type { Language } from "../../lib/highlight";
 import { SegmentedTabs } from "../../components/ui/tabs";
 import { pathOf } from "../../lib/format";
+import { productRule, type ProductPlatform } from "../../../shared/redirect-rules";
 
-type Platform = "agent" | "redirects" | "vercel" | "nginx" | "apache" | "nextjs";
+type Platform = "agent" | ProductPlatform;
 
 function agentPrompt(from: string, to: string, fromUrl: string, toUrl: string): string {
   return [
@@ -30,24 +31,8 @@ function rule(
   fromUrl: string,
   toUrl: string,
 ): string {
-  switch (platform) {
-    case "agent":
-      return agentPrompt(from, to, fromUrl, toUrl);
-    case "redirects":
-      return `# _redirects (Cloudflare Pages / Netlify)\n${from}  ${to}  301`;
-    case "vercel":
-      return JSON.stringify(
-        { redirects: [{ source: from, destination: to, permanent: true }] },
-        null,
-        2,
-      );
-    case "nginx":
-      return `location = ${from} {\n  return 301 ${to};\n}`;
-    case "apache":
-      return `# .htaccess\nRedirect 301 ${from} ${to}`;
-    case "nextjs":
-      return `// next.config.js\nmodule.exports = {\n  async redirects() {\n    return [{ source: ${JSON.stringify(from)}, destination: ${JSON.stringify(to)}, permanent: true }];\n  },\n};\n`;
-  }
+  if (platform === "agent") return agentPrompt(from, to, fromUrl, toUrl);
+  return productRule(platform, from, to);
 }
 
 const language: Record<Platform, Language> = {

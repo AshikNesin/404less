@@ -1,0 +1,163 @@
+<!--meta
+{
+  "path": "/tools/redirect-chain-checker",
+  "nav": "tools",
+  "title": "Redirect chain checker · 404less",
+  "ogTitle": "Redirect chain checker",
+  "description": "Follow a URL hop by hop. See each status code and catch redirect chains, loops, and a switch between http and https. One redirect is enough; two is a chain.",
+  "og": "/og/og.png"
+}
+-->
+<main class="doc">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Redirect chain checker</span>
+        <h1>Redirect chain checker</h1>
+        <p class="lead">
+          Enter a URL. We request it from the server, follow each <code>Location</code> ourselves,
+          and list the hop, the status, and whether the chain loops, runs long, or switches between
+          http and https.
+        </p>
+      </div>
+    </div>
+
+    <form class="tool" data-tool="chain">
+      <label for="chain-url">URL</label>
+      <div class="tool-row">
+        <input
+          id="chain-url"
+          name="url"
+          type="url"
+          required
+          placeholder="https://example.com/old-page"
+        />
+        <button class="btn btn-primary" type="submit">Check chain</button>
+      </div>
+      <p class="tool-msg" data-msg hidden></p>
+      <div data-out hidden>
+        <div class="flags" data-flags></div>
+        <p data-summary></p>
+        <ol class="hop-list" data-hops></ol>
+      </div>
+    </form>
+
+    <div class="body">
+      <section>
+        <h2>What a chain looks like</h2>
+        <p>One redirect is normal. This is a chain, and it also changes scheme in the middle:</p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Hop</th>
+                <th>Status</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>301</td>
+                <td><code>http://docs.example.com/v1/install</code></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>301</td>
+                <td><code>https://docs.example.com/v1/install</code></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>200</td>
+                <td><code>https://docs.example.com/install</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The first hop only adds HTTPS. The second hop is the real move, from
+          <code>/v1/install</code> to <code>/install</code>. Browsers will follow it. Crawlers spend
+          two round trips, and any tool that stops after one hop records the wrong URL. Fold it into
+          a single 301 from the http URL straight to <code>https://docs.example.com/install</code>.
+        </p>
+        <p>
+          A loop is the same URL twice: <code>/a</code> → <code>/b</code> → <code>/a</code>. We stop
+          when a URL repeats, instead of following it until the browser gives up. “Too long” means
+          the chain was still a redirect at the eighth hop.
+        </p>
+      </section>
+      <section>
+        <h2>http to https in the middle</h2>
+        <p>
+          HTTPS belongs on the first hop, at the edge (Cloudflare “Always Use HTTPS”, the host’s
+          canonical redirect, or an HSTS header). If a later rule sends the visitor back to http,
+          the chain mixes schemes and the lock in the browser flickers. The checker flags any chain
+          that contains both.
+        </p>
+        <p>
+          A single hop from <code>http://</code> to the same path on <code>https://</code> is not
+          marked as a chain. It is the hop you want. It is marked as mixed-scheme so you can see it.
+        </p>
+      </section>
+      <section>
+        <h2>Questions</h2>
+        <div class="faq">
+          <details>
+            <summary>Why not let the browser follow the redirect?</summary>
+            <div class="a">
+              The browser collapses the chain. You see the final page and, at most, that “something
+              redirected”. The status of each hop is the part that tells you whether a 302 temporary
+              redirect is sitting in front of a 301.
+            </div>
+          </details>
+          <details>
+            <summary>Which statuses count as a redirect?</summary>
+            <div class="a">
+              301, 302, 303, 307 and 308, anything from 300 to 399 with a
+              <code>Location</code> header. A 200 that says “you are being redirected” in the HTML
+              is not a redirect. It is a page, and a soft 404 checker is the tool for that.
+            </div>
+          </details>
+          <details>
+            <summary>Will this request private or internal addresses?</summary>
+            <div class="a">
+              No. Loopback, link-local, private ranges, and hostnames that resolve to them are
+              refused before the request. So are userinfo URLs (<code>https://user:pass@host</code>)
+              and ports other than 80, 443, 8080 and 8443. Each redirect is checked again, so a
+              public URL cannot bounce the checker onto <code>127.0.0.1</code> or the cloud metadata
+              address.
+            </div>
+          </details>
+          <details>
+            <summary>How many checks can I run?</summary>
+            <div class="a">
+              20 an hour from one network. The point is to debug a URL you are looking at, not to
+              crawl the web. For a whole site, use the
+              <a class="link" href="/tools/broken-link-checker">broken link checker</a>, or
+              self-host 404less and let the crawler do it on a schedule.
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<section class="cta">
+  <div class="container">
+    <h2>Record the chain next to the broken link.</h2>
+    <p>
+      The 404less crawler stores the redirect chain on every link it checks, so a 301 that lands on
+      a 404 is still a 404, and you can see the hops. Self-host it on Cloudflare’s free tier.
+    </p>
+    <div class="ctas">
+      <a
+        class="btn btn-primary"
+        href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less"
+        rel="noopener"
+        >Deploy to Cloudflare</a
+      >
+      <a class="btn btn-secondary" href="/tools/waitlist">Cloud version waitlist</a>
+    </div>
+  </div>
+</section>
+<script src="/tools.js" defer></script>

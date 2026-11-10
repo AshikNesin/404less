@@ -1,0 +1,42 @@
+# Fail the job when a self-hosted 404less crawler still has open broken links.
+# The crawler is the one already running on your Worker (Crawl now, or the daily
+# schedule). This job only reads what it recorded.
+#
+# Secrets:
+#   FOURLESS_URL      https://your-worker.example  (no trailing slash)
+#   FOURLESS_KEY      a team API key (starts with 404l_)
+#   FOURLESS_SITE_ID  the site id from the dashboard URL
+name: Broken links
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+jobs:
+  broken-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if the crawler has open broken links
+        env:
+          FOURLESS_URL: ${{ secrets.FOURLESS_URL }}
+          FOURLESS_KEY: ${{ secrets.FOURLESS_KEY }}
+          FOURLESS_SITE_ID: ${{ secrets.FOURLESS_SITE_ID }}
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Authorization: Bearer $FOURLESS_KEY" \
+            "$FOURLESS_URL/api/v1/sites/$FOURLESS_SITE_ID/links?status=open&limit=100" \
+            -o links.json
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const data = JSON.parse(readFileSync("links.json", "utf8"));
+            const links = data.links ?? [];
+            if (!links.length) {
+              console.log("No open broken links.");
+              process.exit(0);
+            }
+            console.error(links.length + " open broken link(s) the crawler is still tracking:");
+            for (const link of links) {
+              console.error("- " + link.hits + " hit(s)\t" + link.url);
+            }
+            process.exit(1);
+          '

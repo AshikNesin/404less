@@ -96,7 +96,9 @@ for (const file of fs
     )
     .replace("{{content}}", () => content);
   const outName = meta.path === "/" ? "index.html" : `${meta.path.replace(/^\//, "")}.html`;
-  fs.writeFileSync(path.join(OUT, outName), html);
+  const outPath = path.join(OUT, outName);
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, html);
   if (!meta.noindex) urls.push(canonical);
   console.log("site:", meta.path, "→", outName);
 }

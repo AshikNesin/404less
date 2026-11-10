@@ -13,13 +13,15 @@ export type CheckResult = {
 const UA = "404less-bot/0.1 (+https://404less.com)";
 const MAX_REDIRECTS = 6;
 
-function get(url: string): Promise<Response> {
+export type UrlFetcher = (url: string, init?: RequestInit) => Promise<Response>;
+
+function get(url: string, fetchImpl: UrlFetcher, timeoutMs: number): Promise<Response> {
   const attempt = () =>
-    crawlerFetch(url, {
+    fetchImpl(url, {
       method: "GET",
       redirect: "manual",
       headers: { "User-Agent": UA },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   // a dropped connection ("Network connection lost") is worth one fresh attempt; a timeout is not
   return attempt().catch((e: unknown) => {
@@ -44,6 +46,8 @@ async function drain(res: Response): Promise<void> {
 export async function checkUrl(
   rawUrl: string,
   site: Pick<SiteRow, "ignore_status_codes">,
+  fetchImpl: UrlFetcher = crawlerFetch,
+  timeoutMs = 10_000,
 ): Promise<CheckResult> {
   let url = rawUrl;
   const chain: { url: string; status: number }[] = [];
@@ -52,9 +56,12 @@ export async function checkUrl(
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     let res: Response;
     try {
-      res = await get(url);
+      res = await get(url, fetchImpl, timeoutMs);
     } catch (e) {
       rethrowIfBudgetSpent(e); // not a broken link: the tick ran out of fetches
+      // public checkers refuse private hosts; recording that as a broken link would hide the refusal
+      if (e instanceof Error && (e.name === "UnsafeUrlError" || e.name === "FetchBudgetSpent"))
+        throw e;
       return {
         status: 0,
         ok: false,

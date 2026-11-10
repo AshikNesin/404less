@@ -26,15 +26,16 @@ staticAssets.get("*", async (c, next) => {
     if (res.status === 304) return res;
     return new Response(res.body, { status: 200, headers: res.headers });
   }
-  // trailing slash on a marketing page (/embed/ → /embed)
-  if (/^\/[a-z0-9-]+\/$/.test(url.pathname)) {
-    return c.redirect(url.pathname.slice(0, -1) + url.search, 301);
+  // trailing slash on a marketing page (/embed/ → /embed, /tools/foo/ → /tools/foo)
+  if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
+    const stripped = url.pathname.slice(0, -1);
+    if (isMarketingPath(stripped)) return c.redirect(stripped + url.search, 301);
   }
-  // marketing pages: / → index.html, /embed → embed.html, …; anything else → 404.html
+  // marketing pages: / → index.html, /embed → embed.html, /tools/foo → tools/foo.html
   const page =
     url.pathname === "/"
       ? "/index.html"
-      : /^\/[a-z0-9-]+$/.test(url.pathname)
+      : isMarketingPath(url.pathname)
         ? `${url.pathname}.html`
         : null;
   if (page) {
@@ -47,3 +48,7 @@ staticAssets.get("*", async (c, next) => {
   )) as unknown as Response;
   return new Response(nf.body, { status: 404, headers: nf.headers });
 });
+
+function isMarketingPath(pathname: string): boolean {
+  return /^\/[a-z0-9-]+(?:\/[a-z0-9-]+)*$/.test(pathname);
+}

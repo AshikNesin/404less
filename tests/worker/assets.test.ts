@@ -8,6 +8,7 @@ const FILES: Record<string, string> = {
   "/app.html": '<div id="root"></div>',
   "/index.html": "home",
   "/embed.html": "embed",
+  "/tools/301-redirect-generator.html": "redirect tool",
   "/404.html": "not here",
 };
 const etag = (p: string) => `"${p}"`;
@@ -53,6 +54,13 @@ test("the 404 page keeps its body for a browser that cached it", async () => {
   });
 });
 
+test("a nested marketing page is served from its html file", async () => {
+  expect(await get("/tools/301-redirect-generator")).toEqual({
+    status: 200,
+    body: FILES["/tools/301-redirect-generator.html"],
+  });
+});
+
 test("a trailing slash on a page redirects to the page", async () => {
   const res = await worker.fetch(
     new Request("http://localhost/embed/"),
@@ -61,4 +69,14 @@ test("a trailing slash on a page redirects to the page", async () => {
   );
   expect(res.status).toBe(301);
   expect(res.headers.get("Location")).toBe("/embed");
+});
+
+test("a trailing slash on a nested page redirects to the page", async () => {
+  const res = await worker.fetch(
+    new Request("http://localhost/tools/301-redirect-generator/"),
+    { ...env, ASSETS } as never,
+    createExecutionContext(),
+  );
+  expect(res.status).toBe(301);
+  expect(res.headers.get("Location")).toBe("/tools/301-redirect-generator");
 });
