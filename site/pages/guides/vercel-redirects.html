@@ -1,0 +1,324 @@
+<!--meta
+{
+  "path": "/guides/vercel-redirects",
+  "nav": "guides",
+  "draft": true,
+  "title": "Vercel redirects: 301 vs 308, bulk redirects, vercel.json vs middleware · 404less",
+  "ogTitle": "Vercel redirects: 301 vs 308, bulk redirects, vercel.json",
+  "description": "On Vercel, permanent: true sends a 308. Ask for a 301 with statusCode. Bulk redirects default to 307, start at 1,000 on Pro, and skip wildcards. Next.js projects should use next.config.js.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://vercel.com/docs/project-configuration/vercel-json
+https://vercel.com/docs/routing/redirects
+https://vercel.com/docs/routing/redirects/configuration-redirects
+https://vercel.com/docs/routing/redirects/bulk-redirects
+https://vercel.com/docs/routing/redirects/bulk-redirects/getting-started
+https://nextjs.org/docs/app/api-reference/config/next-config-js/redirects
+https://developers.google.com/search/docs/crawling-indexing/http-network-errors
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Guide · draft</span>
+        <h1>Vercel redirects: 301 vs 308, bulk redirects, vercel.json vs middleware.</h1>
+        <p class="lead">
+          <code>permanent: true</code> is a 308. A 301 is a different field. Bulk redirects are a
+          second system, with the opposite default, and they are a Pro and Enterprise feature.
+        </p>
+        <div class="toc">
+          <a href="#status">301 vs 308</a>
+          <a href="#where">vercel.json vs next.config.js</a>
+          <a href="#bulk">Bulk redirects</a>
+          <a href="#middleware">Middleware</a>
+          <a href="#snippet">What 404less copies</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="permanent true is 308; statusCode 301 is 301">
+        <div class="trace-head">
+          <span class="trace-site">vercel.json</span>
+          <span class="trace-path">/docs/old</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">308</span>
+            <div>
+              <div class="trace-title"><code>"permanent": true</code></div>
+              <div class="trace-meta">Method and body stay. Google treats 308 like 301</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">307</span>
+            <div>
+              <div class="trace-title"><code>"permanent": false</code></div>
+              <div class="trace-meta">Temporary. Also the bulk-redirect default</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">301</span>
+            <div>
+              <div class="trace-title"><code>"statusCode": 301</code></div>
+              <div class="trace-meta">Use this when you need a 301. Leave <code>permanent</code> off</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="status">
+        <h2>301 vs 308</h2>
+        <p>
+          Vercel’s <code>vercel.json</code> reference, checked 10 Nov 2026, defines
+          <code>permanent</code> like this: when it is <code>true</code> the status is 308, when
+          it is <code>false</code> the status is 307. The default of <code>permanent</code> on a
+          configuration redirect is <code>true</code>. So a rule that only sets
+          <code>source</code> and <code>destination</code> is a 308.
+        </p>
+        <p>
+          <code>statusCode</code> is how you ask for something else. Vercel’s example of a 301
+          uses <code>statusCode: 301</code> and does not set <code>permanent</code>. The reference
+          says the two properties cannot be used together. Allowed override codes on bulk
+          redirects are 301, 302, 303, 307, and 308. The configuration reference shows 301 in the
+          same role.
+        </p>
+        <p>Next.js documents the same pair, and says why they picked it:</p>
+        <ul>
+          <li><code>permanent: true</code> → 308, which clients and search engines may cache</li>
+          <li><code>permanent: false</code> → 307, temporary, not cached as a permanent move</li>
+        </ul>
+        <p>
+          A 301 or a 302 may be turned into a GET by the client. A 307 or a 308 keeps the method
+          and the body. That matters for a public API. For a browser following a link, the
+          request was a GET either way.
+        </p>
+        <p>
+          Google’s status-code doc says their crawlers treat 308 as equivalent to 301, and 307 as
+          equivalent to 302. They also say the codes are semantically different and you should
+          send the one you mean, because other clients are not Googlebot. A 308 is a fine
+          permanent signal for Google. Send 301 when a client you care about mishandles 308, or
+          when a written policy says “301”.
+        </p>
+        <p>
+          Vercel’s CDN also emits its own 308s before your rules run: consecutive slashes are
+          collapsed (<code>/blog//post</code> → <code>/blog/post</code>). Paths are
+          case-sensitive at the CDN. A project-level redirect matches case-insensitively unless
+          the project turns case sensitivity on, or the deployment’s <code>vercel.json</code>
+          contains <code>rewrites</code>, <code>redirects</code>, or <code>headers</code>, which
+          makes those rules case-sensitive.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — <code>curl -sI</code> of a
+          <code>permanent: true</code> rule and a <code>statusCode: 301</code> rule on a project
+          you deploy. The docs are clear; a response line from your account is the thing a reader
+          trusts.]
+        </p>
+      </section>
+
+      <section id="where">
+        <h2>vercel.json vs next.config.js</h2>
+        <p>
+          Vercel’s configuration-redirects doc says a Next.js project should use
+          <code>next.config.js</code> and does not need <code>vercel.json</code> for these rules.
+          Both accept <code>source</code>, <code>destination</code>, and <code>permanent</code>.
+          Next.js also supports <code>:slug</code>, <code>:slug*</code>, and a regex in
+          parentheses. Redirects are checked before files in <code>public/</code> and before
+          pages. Query strings on the request are passed through to the destination.
+        </p>
+        <p>
+          On the Pages Router, these redirects do not apply to client-side <code>Link</code>
+          navigation unless a proxy (what older docs called middleware) also matches. A full page
+          load still hits them.
+        </p>
+        <p>
+          Wildcards, header matches, and country matches (<code>x-vercel-ip-country</code>)
+          belong in this configuration layer. Bulk redirects, below, do not do wildcards.
+        </p>
+      </section>
+
+      <section id="bulk">
+        <h2>Bulk redirects</h2>
+        <p>
+          Vercel’s bulk-redirects doc says they are for thousands of simple path-to-path rules,
+          with no wildcard and no header match. They run before any other route in the
+          deployment. You can ship them at build time with <code>bulkRedirectsPath</code> in
+          <code>vercel.json</code> (one file, or a folder of up to 100 CSV, JSON, or JSONL
+          files), or change them later from the dashboard, the API, or the CLI without a
+          redeploy. The CLI examples require Vercel CLI 50.1.0 or newer for the full set,
+          including <code>vercel redirects import</code>.
+        </p>
+        <p>The field defaults are not the configuration-redirect defaults:</p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Default</th>
+                <th>What you get</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>permanent</code></td>
+                <td><code>false</code></td>
+                <td>307. Set <code>true</code> for 308</td>
+              </tr>
+              <tr>
+                <td><code>statusCode</code></td>
+                <td>307, unless <code>permanent</code> says otherwise</td>
+                <td>301, 302, 303, 307, or 308. Overrides <code>permanent</code></td>
+              </tr>
+              <tr>
+                <td><code>caseSensitive</code></td>
+                <td><code>false</code></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td><code>preserveQueryParams</code></td>
+                <td><code>false</code></td>
+                <td>The query string is dropped unless you set this</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          A CSV may use <code>t</code> and <code>f</code> for the booleans. <code>source</code>
+          ignores any query string you put in it. Each of <code>source</code> and
+          <code>destination</code> is capped at 2,048 characters.
+        </p>
+        <p>
+          Availability, from that same page: Pro and Enterprise. Hobby does not include them.
+          Pro includes 1,000 bulk redirects, Enterprise includes 10,000, extra capacity is sold
+          in groups of 25,000 at $0.002 per month per group, and a project can hold at most
+          1,000,000. Requests served by a bulk redirect are billed like any other request.
+        </p>
+        <p>
+          For a docs rename of twenty URLs, a <code>redirects</code> array is the simpler file
+          and it works on Hobby. Bulk is the one that stays fast at migration size and can be
+          edited without a deploy.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — if you have hit the Hobby
+          wall or the 1,000 included cap, say what you did. The numbers above are Vercel’s
+          pricing table as fetched on 10 Nov 2026, not a bill you paid.]
+        </p>
+      </section>
+
+      <section id="middleware">
+        <h2>Middleware, when the rule is not a static map</h2>
+        <p>
+          Vercel’s redirects overview lists Middleware as the place for dynamic redirects that
+          should change without a redeploy (they pair it with Global Config). Configuration
+          redirects and bulk redirects are the static maps. A function or a route handler is the
+          escape hatch when the decision depends on a cookie, a flag, or a lookup.
+        </p>
+        <p>
+          <code>NextResponse.redirect</code> takes the status as the second argument. This sends
+          a 301 for one path:
+        </p>
+        <pre class="code" data-check="js">import { NextResponse } from "next/server";
+
+export function middleware(request) {
+  if (request.nextUrl.pathname === "/docs/old") {
+    return NextResponse.redirect(new URL("/docs/new", request.url), 301);
+  }
+}</pre>
+        <p class="todo">
+          [ASHIK: confirm the filename for the Next.js version you ship. Vercel’s redirects page
+          still says “Middleware”. Next’s own redirects doc, the same day, talks about a Proxy
+          matching client-side navigations. Recent Next releases have been renaming
+          <code>middleware.js</code>. Put the file name you verified here and delete this note.]
+        </p>
+      </section>
+
+      <section id="snippet">
+        <h2>What the 404less dashboard copies</h2>
+        <p>
+          The Vercel tab stringifies <code>permanent: true</code>. That is a 308, which matches
+          Vercel’s and Next’s default permanent redirect. It is not a 301. If you need a 301,
+          change the object to <code>statusCode: 301</code> and drop <code>permanent</code>.
+        </p>
+        <pre class="code" data-check="json">{
+  "redirects": [
+    {
+      "source": "/docs/old",
+      "destination": "/docs/new",
+      "permanent": true
+    }
+  ]
+}</pre>
+        <p>The Next.js tab is the same rule, in <code>next.config.js</code>:</p>
+        <pre class="code" data-check="js">// next.config.js
+module.exports = {
+  async redirects() {
+    return [{ source: "/docs/old", destination: "/docs/new", permanent: true }];
+  },
+};
+</pre>
+        <p>
+          Both strings are generated by
+          <code>apps/web/src/client/features/links/redirect-snippet.tsx</code>. The trailing
+          newline on the Next.js snippet is part of that generator.
+        </p>
+        <div class="callout">
+          Related tool:
+          <a class="link" href="/tools/redirect-generator">redirect rule generator</a>
+          (Vercel JSON, Next.js, and a Netlify <code>_redirects</code> line from the same pair
+          of paths). That path may 404 until the tools PR lands. Netlify’s failure modes are in
+          <a class="link" href="/guides/netlify-redirects-not-working">Netlify redirects not working</a>.
+        </div>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://vercel.com/docs/project-configuration/vercel-json" rel="noopener"
+              >Vercel: vercel.json</a
+            >
+            — <code>permanent</code> true is 308, false is 307, default true;
+            <code>statusCode</code> cannot be combined with <code>permanent</code>; the 301 example.
+          </li>
+          <li>
+            <a class="link" href="https://vercel.com/docs/routing/redirects" rel="noopener">Vercel: Redirects</a>
+            — 301 / 302 / 307 / 308 definitions, Middleware in the method table, automatic 308 for duplicate slashes.
+          </li>
+          <li>
+            <a class="link" href="https://vercel.com/docs/routing/redirects/configuration-redirects" rel="noopener"
+              >Vercel: Configuration redirects</a
+            >
+            — Next.js should use <code>next.config.js</code>.
+          </li>
+          <li>
+            <a class="link" href="https://vercel.com/docs/routing/redirects/bulk-redirects" rel="noopener"
+              >Vercel: Bulk redirects</a
+            >
+            — Pro and Enterprise, included counts, 307 default, no wildcards, 1,000,000 cap.
+          </li>
+          <li>
+            <a class="link" href="https://vercel.com/docs/routing/redirects/bulk-redirects/getting-started" rel="noopener"
+              >Vercel: Bulk redirects getting started</a
+            >
+            — <code>bulkRedirectsPath</code>, CLI 50.1.0.
+          </li>
+          <li>
+            <a class="link" href="https://nextjs.org/docs/app/api-reference/config/next-config-js/redirects" rel="noopener"
+              >Next.js: redirects</a
+            >
+            — 308 and 307, query passthrough, checked before the filesystem.
+          </li>
+          <li>
+            <a class="link" href="https://developers.google.com/search/docs/crawling-indexing/http-network-errors" rel="noopener"
+              >Google: How HTTP status codes affect crawling</a
+            >
+            — 308 treated like 301, 307 treated like 302.
+          </li>
+          <li>Repo: <code>apps/web/src/client/features/links/redirect-snippet.tsx</code>.</li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

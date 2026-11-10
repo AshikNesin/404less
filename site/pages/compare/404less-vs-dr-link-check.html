@@ -1,0 +1,233 @@
+<!--meta
+{
+  "path": "/compare/404less-vs-dr-link-check",
+  "nav": "compare",
+  "draft": true,
+  "title": "404less vs Dr. Link Check",
+  "ogTitle": "404less vs Dr. Link Check",
+  "description": "Dr. Link Check crawls a site for broken links, blacklists, and soft errors, with published prices from $0 to $159. 404less is self-hosted, logs visitor 404s, and copies a redirect rule.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://www.drlinkcheck.com/
+https://www.drlinkcheck.com/pricing
+Read 10 Nov 2026. The marketing host is drlinkcheck.com; pricing resolved at www.drlinkcheck.com.
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Comparison · draft</span>
+        <h1>404less vs Dr. Link Check.</h1>
+        <p class="lead">
+          Dr. Link Check is a crawler you point at a start URL. It looks for broken links,
+          blacklisted targets, and pages that return 200 while reading like an error. 404less
+          is the 404 log on your own site, plus a crawler, plus a redirect you can paste.
+        </p>
+        <div class="toc">
+          <a href="#prices">Prices they publish</a>
+          <a href="#checks">What the crawl checks</a>
+          <a href="#gap">Soft errors and visitor hits</a>
+          <a href="#pick">Which one fits</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="Dr. Link Check crawls from outside. 404less also records the 404 a visitor received.">
+        <div class="trace-head">
+          <span class="trace-site">compare</span>
+          <span class="trace-path">10 Nov 2026</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">crawl</span>
+            <div>
+              <div class="trace-title">Dr. Link Check</div>
+              <div class="trace-meta">HTML, CSS, images, outbound links, blacklist, soft errors</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">404</span>
+            <div>
+              <div class="trace-title">404less</div>
+              <div class="trace-meta">Visitor hit with referrer, plus a crawl of your pages</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">301</span>
+            <div>
+              <div class="trace-title">A rule you paste</div>
+              <div class="trace-meta">In the format of the host. Their pages read here do not show that export</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="prices">
+        <h2>Prices they publish</h2>
+        <p>
+          From
+          <a class="link" href="https://www.drlinkcheck.com/pricing" rel="noopener"
+            >drlinkcheck.com/pricing</a
+          >
+          on 10 Nov 2026. The page says Paddle includes VAT in the figures for the countries it
+          lists, so the number on the page is the number charged there. The text extract did not
+          include the words “per month” or “per year”.
+        </p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Price shown</th>
+                <th>Heading in the extract</th>
+                <th>Sites</th>
+                <th>Links per site</th>
+                <th>Schedule note that survived the extract</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>$0</td>
+                <td>None captured</td>
+                <td>2</td>
+                <td>1,500</td>
+                <td>Only one-time checks</td>
+              </tr>
+              <tr>
+                <td>$13</td>
+                <td>Standard</td>
+                <td>5</td>
+                <td>10,000</td>
+                <td>Monthly, biweekly. Blacklist note: Google Safe Browsing</td>
+              </tr>
+              <tr>
+                <td>$49</td>
+                <td>None captured</td>
+                <td>10</td>
+                <td>50,000</td>
+                <td>Adds weekly. Blacklist note: PhishTank</td>
+              </tr>
+              <tr>
+                <td>$159</td>
+                <td>Premium</td>
+                <td>15</td>
+                <td>200,000</td>
+                <td>Adds daily. Blacklist note: two more lists</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Their definition of a link, from that page: each unique HTML document, image,
+          stylesheet, script, or other resource counts as one link, even if many pages point at
+          it. They give examples (a local law firm at about 1,000 links, a five-year blog at
+          about 7,500, a multinational IT site at about 1,000,000). Upgrades are prorated
+          immediately. Downgrades apply at the end of the term.
+        </p>
+        <p class="todo">
+          [ASHIK: open the pricing page in a browser and fill in the $0 and $49 plan names, and
+          whether the prices are monthly. The extract lost the checkmarks, so this draft does
+          not say which of “blacklist / soft error / SSL / CSV” are included on the $0 row.
+          Correct the table from the screen and delete this note.]
+        </p>
+        <p>
+          404less has no subscription. MIT, on your Cloudflare account. A crawl counts pages
+          discovered, default 100 per run, not “unique resources” in their sense. See
+          <a class="link" href="/self-host">/self-host</a> for the free-plan arithmetic in the
+          README.
+        </p>
+      </section>
+
+      <section id="checks">
+        <h2>What the crawl checks</h2>
+        <p>
+          The homepage
+          (<a class="link" href="https://www.drlinkcheck.com/" rel="noopener">drlinkcheck.com</a>)
+          says the bot starts at a URL and walks HTML and CSS. It checks internal links,
+          outbound links, images, stylesheets, and other resource files. Each link goes through:
+        </p>
+        <ul>
+          <li>A broken-link check: URL shape, response time, SSL certificate, and an error status such as 404 or 500.</li>
+          <li>A blacklist check for malicious content.</li>
+          <li>A soft-error check: HTTP 200, with page content that indicates something is wrong.</li>
+        </ul>
+        <p>
+          The report goes from a summary down to the location of the link in the code. Results
+          can be sorted, filtered, and exported to CSV. Schedules on that page are monthly,
+          weekly, or daily, with email. You can include or exclude URLs, limit crawl speed, and
+          choose who gets the email.
+        </p>
+        <p>
+          The homepage and pricing page do not describe self-hosting, a script on your 404
+          template, referrers, or a generated <code>_redirects</code> / <code>vercel.json</code>
+          rule.
+        </p>
+        <p class="todo">
+          [ASHIK: if their docs have a redirect export, a visitor log, or a self-hosted agent,
+          link it here. This draft only read the homepage and the pricing page.]
+        </p>
+      </section>
+
+      <section id="gap">
+        <h2>Soft errors and visitor hits</h2>
+        <p>
+          The soft-error check is a real difference, and it is in their favour on the pages
+          read. 404less’s crawler treats every 2xx and 3xx as a working link
+          (<code>isWorking</code> in <code>apps/web/src/server/api/crawl/checker.ts</code>), plus
+          401, 429, and any status you configured to ignore. A 200 that says “page not found”
+          in the body is a success to that function. The way 404less sees that class of URL is
+          the embed, and only when the page is detected as a 404 (title, <code>data-404</code>,
+          or the status metas). A soft 404 that is your homepage served for a missing path does
+          not run the embed. That case is the
+          <a class="link" href="/guides/fix-soft-404-search-console">Search Console guide</a>.
+        </p>
+        <p>
+          The other direction: a URL that nothing links to, which people still request because
+          of an old tweet or a typed path, is invisible to a crawler that only follows links.
+          The embed records it, with the referrer when the browser sent one. Dr. Link Check’s
+          homepage describes a crawler, so that URL is outside the job they document there.
+        </p>
+        <p>
+          They also check blacklists and SSL on the targets. 404less does not. If that is the
+          report you need, their product is the one whose homepage lists it.
+        </p>
+      </section>
+
+      <section id="pick">
+        <h2>A practical split</h2>
+        <p>
+          Dr. Link Check fits a scheduled audit of a site you might not be deploying: outbound
+          links, assets, a blacklist, a soft-error pass, a CSV. The $0 row is two sites and
+          1,500 links, one-time, with the caveats in the table.
+        </p>
+        <p>
+          404less fits the site you can edit. The 404 template gets the script, the dashboard
+          gets the hits, the link detail page gets a rule for the host you use. Setup is
+          <a class="link" href="/self-host">the deploy guide</a> and
+          <a class="link" href="/embed">the embed</a>.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — a Dr. Link Check report you
+          have seen, or an explicit “I have not run it.”]
+        </p>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://www.drlinkcheck.com/" rel="noopener">drlinkcheck.com</a>
+            — crawl scope, the three checks, schedules, CSV.
+          </li>
+          <li>
+            <a class="link" href="https://www.drlinkcheck.com/pricing" rel="noopener">Pricing</a>
+            — the four prices, link counting, VAT note.
+          </li>
+          <li>Repo: <code>apps/web/src/server/api/crawl/checker.ts</code>, <code>apps/web/src/server/api/embed/embed-script.ts</code>.</li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

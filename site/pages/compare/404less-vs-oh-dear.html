@@ -1,0 +1,219 @@
+<!--meta
+{
+  "path": "/compare/404less-vs-oh-dear",
+  "nav": "compare",
+  "draft": true,
+  "title": "404less vs Oh Dear",
+  "ogTitle": "404less vs Oh Dear",
+  "description": "Oh Dear is a hosted monitor for uptime, SSL, DNS, cron, and broken links, from €49/mo for 10 sites. 404less is a self-hosted 404 log and crawler with redirect rules and MCP.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://ohdear.app/
+https://ohdear.app/pricing
+Read 10 Nov 2026.
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Comparison · draft</span>
+        <h1>404less vs Oh Dear.</h1>
+        <p class="lead">
+          Oh Dear watches whether a site is up, certified, resolving, and free of broken links,
+          from outside the site. 404less is the list of 404s and a redirect you can paste, on a
+          Worker you run.
+        </p>
+        <div class="toc">
+          <a href="#prices">Prices they publish</a>
+          <a href="#scope">Scope</a>
+          <a href="#links">Broken links</a>
+          <a href="#pick">Which one fits</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="Oh Dear is a monitor. 404less is a 404 log you host.">
+        <div class="trace-head">
+          <span class="trace-site">compare</span>
+          <span class="trace-path">10 Nov 2026</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">€</span>
+            <div>
+              <div class="trace-title">Oh Dear</div>
+              <div class="trace-meta">Freelance €49/mo, 10 sites. Every feature on every plan</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">$0</span>
+            <div>
+              <div class="trace-title">404less</div>
+              <div class="trace-meta">MIT. Cloudflare bills you only if you leave the free plan</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">≠</span>
+            <div>
+              <div class="trace-title">Different jobs</div>
+              <div class="trace-meta">Uptime and SSL are not in 404less. Visitor 404s are not on Oh Dear’s homepage</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="prices">
+        <h2>Prices they publish</h2>
+        <p>
+          From <a class="link" href="https://ohdear.app/pricing" rel="noopener">ohdear.app/pricing</a>
+          on 10 Nov 2026. The page says prices are in EUR, excluding VAT, with a 30-day
+          money-back guarantee. Yearly billing is described as “get 2 months free.”
+        </p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Plan</th>
+                <th>Sites and servers</th>
+                <th>Monthly price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Freelance</td>
+                <td>Up to 10</td>
+                <td>€49</td>
+              </tr>
+              <tr>
+                <td>Studio</td>
+                <td>Up to 25</td>
+                <td>€99</td>
+              </tr>
+              <tr>
+                <td>Agency</td>
+                <td>Up to 50</td>
+                <td>€149</td>
+              </tr>
+              <tr>
+                <td>Enterprise</td>
+                <td>200+</td>
+                <td>Custom, support@ohdear.app</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The same page says every plan includes the same features, and the only thing that
+          changes is how many sites you watch. The feature list there includes uptime, broken
+          links and mixed content, performance and Lighthouse, sitemap monitoring, SSL, DNS,
+          cron, status pages, SSO, unlimited users, and the API.
+        </p>
+        <p>
+          The homepage, the same day, says “10-day free trial with all features. No payment info
+          required.” The pricing page’s guarantee line is 30 days. Both can be true; they are
+          different sentences.
+        </p>
+        <p class="todo">
+          [ASHIK: the homepage fetch also contained the words “Up to 2 sites &amp; servers”,
+          which is not one of the priced tiers above. Confirm whether a smaller plan or a trial
+          cap exists before you mention a 2-site tier. It is left out of the table on purpose.]
+        </p>
+        <p>
+          404less has no plan table. MIT license, deployed to your Cloudflare account. Defaults
+          on <a class="link" href="/self-host">/self-host</a>: 5 sites per team, 100 pages per
+          crawl unless you raise it (max 500), digests via Slack, Resend, or Pushover.
+        </p>
+      </section>
+
+      <section id="scope">
+        <h2>Scope</h2>
+        <p>
+          Oh Dear’s homepage describes a monitor you do not install: uptime checks every minute
+          from more than one location, broken-link crawls and Lighthouse daily, alerts when a
+          certificate is near expiry, a cron did not run, a link breaks, or a Lighthouse score
+          drops. Alert destinations named there: Slack, email, Teams, PagerDuty, webhook. Status
+          pages can carry your logo and domain. Data is described as hosted in the EU.
+        </p>
+        <p>
+          404less does none of the uptime, certificate, DNS, cron, Lighthouse, or status-page
+          work. It records 404 hits from a script on your 404 page, crawls links and assets on a
+          schedule, suggests a replacement URL, copies a redirect rule, and exposes a read-only
+          MCP server. Digests go to Slack, email, or Pushover.
+        </p>
+        <p>
+          If the question is “page the human when the site is down,” Oh Dear is the product
+          whose homepage is about that. If the question is “which missing URLs did people
+          request, and what redirect do I paste,” that is the 404less list.
+        </p>
+      </section>
+
+      <section id="links">
+        <h2>Broken links, specifically</h2>
+        <p>
+          Oh Dear’s homepage FAQ says broken-link crawls run daily, from the outside, the way a
+          visitor’s browser would, with no agent to install. Application health checks call an
+          endpoint you expose. The pricing page lists “broken links &amp; mixed content” on every
+          plan.
+        </p>
+        <p>
+          Those pages do not describe a log of the 404 responses your own site returned to
+          visitors, a per-platform redirect snippet, or an MCP server. That is an absence on the
+          two pages read for this draft, not a claim that no Oh Dear document anywhere mentions
+          them.
+        </p>
+        <p class="todo">
+          [ASHIK: skim their broken-link feature page and their docs search for “404 log”,
+          “redirect”, and “MCP”. If any of those exist, add the URL here and correct the
+          paragraph above.]
+        </p>
+        <p>
+          404less finds broken links two ways. The crawler fetches pages and checks links. The
+          embed records a visitor who landed on the 404 template, which catches URLs that are no
+          longer linked from anywhere you crawl. Suggestions need a sitemap import or a crawl
+          first. The crawler treats any 2xx or 3xx as working, so a soft 404 (a 200 that looks
+          like an error) is not flagged. Oh Dear’s pages use the phrase “broken links” and do
+          not, on the pages read here, define a soft-404 check. Dr. Link Check does; that
+          comparison is <a class="link" href="/compare/404less-vs-dr-link-check">separate</a>.
+        </p>
+      </section>
+
+      <section id="pick">
+        <h2>A practical split</h2>
+        <p>
+          An agency watching client sites for downtime, certificates, and a daily link crawl,
+          with a status page in the agency’s brand, is who the Oh Dear pricing page is written
+          for. The entry price on that page is €49 a month for 10 sites, before VAT.
+        </p>
+        <p>
+          A person with a Hugo or Next site on Cloudflare Pages, who wants the 404s and a
+          <code>_redirects</code> line, is who
+          <a class="link" href="/guides/track-404s-cloudflare-pages">the Pages guide</a> is
+          written for. The two products do not replace each other.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — an Oh Dear account you have
+          used, or a sentence that you have not used one. Either is more honest than this
+          draft’s silence.]
+        </p>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://ohdear.app/" rel="noopener">ohdear.app</a>
+            — trial line, check intervals, alert destinations, “no install.”
+          </li>
+          <li>
+            <a class="link" href="https://ohdear.app/pricing" rel="noopener">ohdear.app/pricing</a>
+            — Freelance, Studio, Agency, Enterprise, “every feature on every plan,” VAT note.
+          </li>
+          <li>Repo: <a class="link" href="/self-host">/self-host</a>, <code>README.md</code>, <code>apps/web/src/server/api/crawl/checker.ts</code>.</li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

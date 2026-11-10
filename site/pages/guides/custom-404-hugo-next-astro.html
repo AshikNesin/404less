@@ -1,0 +1,272 @@
+<!--meta
+{
+  "path": "/guides/custom-404-hugo-next-astro",
+  "nav": "guides",
+  "draft": true,
+  "title": "Custom 404 page for Hugo, Next.js, and Astro · 404less",
+  "ogTitle": "Custom 404 page for Hugo, Next.js, and Astro",
+  "description": "The 404 template for Hugo, Next.js, and Astro, plus the 404less script that suggests the closest known page. Detection does not trust the layout title, so the snippet sets data-404.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://gohugo.io/templates/404/
+https://nextjs.org/docs/app/api-reference/file-conventions/not-found
+https://docs.astro.build/en/basics/astro-pages/
+https://docs.astro.build/en/guides/client-side-scripts/
+Repo: platform-snippet.tsx, embed-script.ts, suggest.ts
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Guide · draft</span>
+        <h1>A custom 404 page for Hugo, Next.js, and Astro.</h1>
+        <p class="lead">
+          Each framework already has a file for this. The useful part is a real 404 status, a
+          title a human can read, and three links to pages that exist, chosen from the path the
+          visitor typed.
+        </p>
+        <div class="toc">
+          <a href="#snippet">The snippet</a>
+          <a href="#hugo">Hugo</a>
+          <a href="#next">Next.js</a>
+          <a href="#astro">Astro</a>
+          <a href="#suggest">Where the suggestions come from</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="A 404 page offers the three closest known URLs">
+        <div class="trace-head">
+          <span class="trace-site">docs</span>
+          <span class="trace-path is-broken">/docs/getting-startd</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step is-bad">
+            <span class="trace-mark" aria-hidden="true">404</span>
+            <div>
+              <div class="trace-title">Template rendered</div>
+              <div class="trace-meta">Hugo layouts/404.html, Next not-found, Astro 404.astro</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">?</span>
+            <div>
+              <div class="trace-title">Path compared</div>
+              <div class="trace-meta">Token overlap plus edit distance, against known URLs</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">1</span>
+            <div>
+              <div class="trace-title">/docs/getting-started</div>
+              <div class="trace-meta">Shown in the card. The hit is stored with the referrer</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="snippet">
+        <h2>One script, three files</h2>
+        <p>
+          Plain HTML, from <code>snippetFor</code> in
+          <code>apps/web/src/client/features/sites/platform-snippet.tsx</code>, with the origin
+          filled in:
+        </p>
+        <pre
+          class="code"
+        ><span class="m">&lt;</span><span class="k">script</span> <span class="p">src</span><span class="m">=</span><span class="s">"https://your-404less.example/embed.js"</span> <span class="p">data-site</span><span class="m">=</span><span class="s">"SITE_KEY"</span> <span class="p">defer</span><span class="m">&gt;&lt;/</span><span class="k">script</span><span class="m">&gt;</span></pre>
+        <p>
+          The script reports <code>location.href</code> and asks
+          <code>/api/suggestions</code> for up to three URLs. It stays quiet unless the page
+          looks like a 404. The checks are listed in the
+          <a class="link" href="/guides/track-404s-cloudflare-pages">Cloudflare Pages guide</a>
+          and in the comment at the top of <code>embed-script.ts</code>.
+        </p>
+        <p>
+          App Router <code>not-found</code> pages keep the root layout’s title, so a title check
+          is the wrong signal. The dashboard’s Next.js snippet sets
+          <code>data-404="true"</code> for that reason. Use the same attribute on Hugo and Astro
+          when the layout title is the site name. <code>data-404="false"</code> turns detection
+          off.
+        </p>
+      </section>
+
+      <section id="hugo">
+        <h2>Hugo</h2>
+        <p>
+          Hugo’s docs say to put the template at <code>layouts/404.html</code>. Their example is
+          a <code>main</code> block, which assumes a base template that renders that block inside
+          the body:
+        </p>
+        <pre class="code">{{ define "main" }}
+  &lt;h1&gt;404 Not Found&lt;/h1&gt;
+  &lt;p&gt;The page you requested cannot be found.&lt;/p&gt;
+  &lt;p&gt;&lt;a href="{{ site.Home.RelPermalink }}"&gt;Return to the home page&lt;/a&gt;&lt;/p&gt;
+  &lt;script src="https://your-404less.example/embed.js" data-site="SITE_KEY" data-404="true" defer&gt;&lt;/script&gt;
+{{ end }}</pre>
+        <p>
+          The <code>{{ define "main" }}</code> line is Hugo’s, from the custom-404 doc. The
+          script tag is the 404less snippet with <code>data-404="true"</code> added. If your
+          site has no base template, write a full HTML document in <code>layouts/404.html</code>
+          instead of a <code>define</code> block. Multilingual sites use
+          <code>layouts/404.en.html</code> and the other language codes, which is also on that
+          doc.
+        </p>
+        <p>
+          Hugo’s doc is explicit that the production server is what turns a missing path into
+          this template, and that hosts differ. On Cloudflare Pages the published file is
+          <code>public/404.html</code> (or whatever your <code>publishDir</code> is), and Pages
+          uses it as the not-found page. Confirm the status with <code>curl -sI</code>. A 200
+          here is a soft 404, covered in
+          <a class="link" href="/guides/fix-soft-404-search-console">the Search Console guide</a>.
+        </p>
+      </section>
+
+      <section id="next">
+        <h2>Next.js</h2>
+        <p>
+          This is the dashboard snippet, copied from <code>snippetFor(..., "next")</code>. It is
+          the App Router file <code>app/not-found.js</code>. The comment in the source says the
+          Pages Router file is <code>pages/404.js</code>, and the same
+          <code>next/script</code> element works there.
+        </p>
+        <pre class="code">// app/not-found.js (App Router)
+import Script from 'next/script'
+
+export default function NotFound() {
+  return (
+    &lt;&gt;
+      &lt;h1&gt;404&lt;/h1&gt;
+      &lt;Script src="https://your-404less.example/embed.js" data-site="SITE_KEY" data-404="true" strategy="afterInteractive" /&gt;
+    &lt;/&gt;
+  )
+}</pre>
+        <p>
+          Next’s own doc: before streaming starts, this returns status 404. After streaming has
+          started, the status stays 200 and the not-found UI is written into the body. A 200 is
+          the soft-404 case. <code>global-not-found.js</code> is experimental, needs
+          <code>experimental.globalNotFound</code>, and must return a full document because it
+          skips your root layout. Put the script in that file too if you use it, and give the
+          document a title that contains “404” or keep <code>data-404="true"</code>.
+        </p>
+        <p>
+          Redirects for URLs you still want to support belong in <code>next.config.js</code>, not
+          in this component. <code>permanent: true</code> there is a 308. See
+          <a class="link" href="/guides/vercel-redirects">Vercel redirects</a>.
+        </p>
+      </section>
+
+      <section id="astro">
+        <h2>Astro</h2>
+        <p>
+          Astro’s pages doc: create <code>src/pages/404.astro</code> or <code>404.md</code>. The
+          build output is <code>404.html</code>. “Most deploy services will find and use it.”
+        </p>
+        <pre class="code">---
+// src/pages/404.astro
+---
+&lt;html lang="en"&gt;
+  &lt;head&gt;
+    &lt;title&gt;404 Not Found&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;404 Not Found&lt;/h1&gt;
+    &lt;p&gt;That page doesn’t exist.&lt;/p&gt;
+    &lt;script
+      is:inline
+      src="https://your-404less.example/embed.js"
+      data-site="SITE_KEY"
+      data-404="true"
+      defer
+    &gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</pre>
+        <p>
+          Astro processes a <code>&lt;script&gt;</code> that has no attribute other than
+          <code>src</code>: it can bundle it and set <code>type="module"</code>. Any other
+          attribute leaves the tag alone, and <code>is:inline</code> is the documented way to
+          opt out on purpose. The embed is a file on your 404less host. It should be left as a
+          normal script tag. <code>data-site</code> would already opt out; <code>is:inline</code>
+          keeps that obvious the next time someone tidies the tag.
+        </p>
+        <p>
+          <code>src/pages/500.astro</code> is a different page, for errors while rendering
+          on-demand routes, and it is not used for prerendered pages. Do not put the 404 snippet
+          only there and expect missing URLs to report.
+        </p>
+      </section>
+
+      <section id="suggest">
+        <h2>Where the three links come from</h2>
+        <p>
+          Suggestions are known URLs for that site: sitemap import, plus pages the crawler
+          fetched. <code>suggest.ts</code> scores the broken path against each candidate with
+          token overlap and a normalised edit distance, keeps a shortlist of 60, and returns at
+          most three results at or above 0.2. A title shared by three or more known pages is
+          dropped, so a repeated “Home” title does not decorate every suggestion. The card says
+          “Looking for something?” unless you set <code>data-title</code>.
+        </p>
+        <p>
+          Import a sitemap or run a crawl before you judge the card. With an empty
+          <code>known_urls</code> table the widget has no links to draw. The hit is still
+          recorded.
+        </p>
+        <p>
+          Styling stays outside the shadow root:
+          <code>.f404less { --f404-accent: #1f1f23; }</code> and the other variables listed on
+          <a class="link" href="/embed">/embed</a>. <code>data-max</code> is 1–5, default 3.
+          <code>data-track="false"</code> shows suggestions and skips the hit report.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — the widget on a Hugo, Next,
+          or Astro 404 you actually shipped, including a suggestion that was right and one that
+          was wrong.]
+        </p>
+        <div class="callout">
+          Related tools:
+          <a class="link" href="/tools/404-page-checker">404 page checker</a>
+          and, once you know the replacement,
+          <a class="link" href="/tools/redirect-generator">redirect rule generator</a>.
+          Both paths may 404 until the tools PR lands.
+        </div>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026, plus the files named below from this repo.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://gohugo.io/templates/404/" rel="noopener">Hugo: Custom 404 page</a>
+            — <code>layouts/404.html</code>, language variants, host-specific behaviour.
+          </li>
+          <li>
+            <a class="link" href="https://nextjs.org/docs/app/api-reference/file-conventions/not-found" rel="noopener"
+              >Next.js: not-found.js</a
+            >
+            — status 404 before streaming, 200 after; <code>global-not-found.js</code>.
+          </li>
+          <li>
+            <a class="link" href="https://docs.astro.build/en/basics/astro-pages/#custom-404-error-page" rel="noopener"
+              >Astro: custom 404</a
+            >
+            — <code>src/pages/404.astro</code> builds to <code>404.html</code>.
+          </li>
+          <li>
+            <a class="link" href="https://docs.astro.build/en/guides/client-side-scripts/" rel="noopener"
+              >Astro: scripts</a
+            >
+            — a script is processed only when its only attribute is <code>src</code>;
+            <code>is:inline</code> opts out.
+          </li>
+          <li>
+            Repo: <code>apps/web/src/client/features/sites/platform-snippet.tsx</code>,
+            <code>apps/web/src/server/api/embed/embed-script.ts</code>,
+            <code>apps/web/src/server/lib/suggest.ts</code>.
+          </li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

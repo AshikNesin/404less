@@ -1,0 +1,289 @@
+<!--meta
+{
+  "path": "/compare/404less-vs-404tracker",
+  "nav": "compare",
+  "draft": true,
+  "title": "404less vs 404tracker",
+  "ogTitle": "404less vs 404tracker",
+  "description": "404tracker is a hosted crawler with a free 50-page scan and an MCP server on paid plans. 404less is the MIT Worker you run yourself, with visitor 404 hits and a redirect rule per platform.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://404tracker.com/
+https://404tracker.com/pricing
+Repo README, wrangler defaults described on /self-host, mcp.routes.ts
+Read 10 Nov 2026.
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Comparison · draft</span>
+        <h1>404less vs 404tracker.</h1>
+        <p class="lead">
+          Both will tell a coding agent about broken links. 404tracker crawls a site you do not
+          host the checker for. 404less records the 404s your visitors hit, on a Worker in your
+          Cloudflare account.
+        </p>
+        <div class="toc">
+          <a href="#prices">Prices they publish</a>
+          <a href="#jobs">What each job is</a>
+          <a href="#mcp">MCP</a>
+          <a href="#pick">Which one fits</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="404tracker scans a URL you paste. 404less records a visitor 404.">
+        <div class="trace-head">
+          <span class="trace-site">compare</span>
+          <span class="trace-path">10 Nov 2026</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">SaaS</span>
+            <div>
+              <div class="trace-title">404tracker</div>
+              <div class="trace-meta">Free scan, 50 pages, no card. Pro from $5/mo on their pricing page</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">MIT</span>
+            <div>
+              <div class="trace-title">404less</div>
+              <div class="trace-meta">Your Worker. Cloudflare’s free tier at hobby scale. No 404less invoice</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">?</span>
+            <div>
+              <div class="trace-title">Read the rows</div>
+              <div class="trace-meta">Unstated items stay unstated</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <p>
+        Prices and limits below are copied from
+        <a class="link" href="https://404tracker.com/" rel="noopener">404tracker.com</a> and
+        <a class="link" href="https://404tracker.com/pricing" rel="noopener">their pricing page</a>
+        on 10 Nov 2026. 404less numbers are the defaults in this repo
+        (<a class="link" href="/self-host">/self-host</a>).
+      </p>
+
+      <section id="prices">
+        <h2>Prices they publish</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Free</th>
+                <th>Pro</th>
+                <th>Business</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Price</td>
+                <td>$0</td>
+                <td>$5/month</td>
+                <td>$19/month</td>
+              </tr>
+              <tr>
+                <td>On-demand scans</td>
+                <td>10/month</td>
+                <td>Unlimited</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td>Pages per scan</td>
+                <td>50</td>
+                <td>1,000</td>
+                <td>5,000</td>
+              </tr>
+              <tr>
+                <td>Scheduled scans</td>
+                <td>Not on this plan</td>
+                <td>Weekly/monthly</td>
+                <td>Weekly/monthly</td>
+              </tr>
+              <tr>
+                <td>MCP server</td>
+                <td>Marked unavailable</td>
+                <td>Included</td>
+                <td>Included</td>
+              </tr>
+              <tr>
+                <td>REST API</td>
+                <td>Marked unavailable</td>
+                <td>1,000 calls/month</td>
+                <td>10,000 calls/month</td>
+              </tr>
+              <tr>
+                <td>Monitored sites</td>
+                <td>Marked unavailable</td>
+                <td>5</td>
+                <td>25</td>
+              </tr>
+              <tr>
+                <td>Email alerts</td>
+                <td>Marked unavailable</td>
+                <td>Included</td>
+                <td>Included</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Their pricing page also lists a Custom tier (“let’s talk”, hello@404tracker.com) and
+          extra credits: $2 per 1,000 pages, $5 per 10,000 API calls. CSV and PDF export are on
+          every column, including Free. The homepage’s free scan line is “Up to 50 pages · No
+          credit card needed”, which matches the Free column.
+        </p>
+        <p>
+          The homepage also says “Free forever with 10 scans/month. Pro from $5/mo. Business from
+          $19/mo.” That matches the table.
+        </p>
+        <p>
+          404less does not have a price. The software is MIT. You deploy it to your Cloudflare
+          account. The Workers Free plan limits (requests, D1 writes, cron triggers) are
+          Cloudflare’s, described on <a class="link" href="/self-host">/self-host</a>. The app
+          default <code>MAX_SITES_PER_TEAM</code> is 5. Crawl pages per run default to 100, with
+          a per-site cap of 500. Those are variables, not a bill.
+        </p>
+      </section>
+
+      <section id="jobs">
+        <h2>What each one is for</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>404tracker, from the pages above</th>
+                <th>404less, from this repo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>How a broken URL is found</td>
+                <td>A crawl. Homepage: internal links on the free scan; “Pro plans also check external links.”</td>
+                <td>A crawl of your pages, and a script on the 404 page that records the URL a visitor requested, with the referrer.</td>
+              </tr>
+              <tr>
+                <td>Where it runs</td>
+                <td>Their service. “No signup needed for your first check.”</td>
+                <td>Your Cloudflare account. One-click deploy or <code>pnpm deploy:worker</code>.</td>
+              </tr>
+              <tr>
+                <td>Redirects</td>
+                <td>Not described on the homepage or pricing page.</td>
+                <td>
+                  A copy-paste rule for <code>_redirects</code>, <code>vercel.json</code>,
+                  <code>next.config.js</code>, nginx, and Apache.
+                </td>
+              </tr>
+              <tr>
+                <td>Alerts</td>
+                <td>Email and webhooks from Pro up. Weekly automated scans on Pro.</td>
+                <td>Slack, email (Resend), or Pushover. One digest per window. Ignored links stay quiet.</td>
+              </tr>
+              <tr>
+                <td>Signup-free scan</td>
+                <td>Yes, capped at 50 pages.</td>
+                <td>No public scanner in this repo. You run the instance.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="todo">
+          [ASHIK: the homepage says Pro plans also check external links. The pricing page does
+          not repeat that split. Confirm it before you rely on the sentence, and delete this
+          note.]
+        </p>
+        <p>
+          Their homepage says broken links make “SEO rankings drop” and that Google “penalizes
+          sites with broken links” and “lowers your domain authority.” This page does not adopt
+          that claim. Google’s
+          <a
+            class="link"
+            href="https://developers.google.com/search/docs/crawling-indexing/http-network-errors"
+            rel="noopener"
+            >status-code document</a
+          >
+          says a URL that returns 404 is dropped from the index. That is about the URL, and it
+          is a different statement from a sitewide penalty.
+        </p>
+      </section>
+
+      <section id="mcp">
+        <h2>Both have an MCP server. They answer different questions.</h2>
+        <p>
+          404tracker’s homepage card says “MCP Server — Scan sites from Cursor or Claude
+          Desktop — free, no signup.” The pricing table, on the same day, marks MCP unavailable
+          on Free and included from Pro ($5/month) up. Those two sentences disagree. Use the
+          pricing table if you are about to connect a client, and treat the homepage card as
+          something to re-check.
+        </p>
+        <p class="todo">
+          [ASHIK: load their MCP docs (linked from the homepage card) and write what the tools
+          are actually named. This draft only has the homepage sentence and the pricing tick.]
+        </p>
+        <p>
+          404less MCP is four read-only tools against your data:
+          <code>list_sites</code>, <code>list_broken_links</code>, <code>get_suggestions</code>,
+          <code>get_link_details</code>. Setup is the
+          <a class="link" href="/guides/fix-broken-links-with-mcp">Claude Code and Cursor guide</a>.
+          The server does not scan an arbitrary URL you paste. It reads the sites on the team
+          that owns the API key.
+        </p>
+      </section>
+
+      <section id="pick">
+        <h2>A practical split</h2>
+        <p>
+          Use 404tracker’s free scan when you want a 50-page look at a site today and you do not
+          want an account. Use their paid plans when you want them to crawl on a schedule and
+          email you, and you are fine with the page caps in the table.
+        </p>
+        <p>
+          Use 404less when the site is yours to deploy onto, you want the 404s real visitors
+          hit (including URLs nobody links anymore), and you want a redirect rule in the format
+          of the host. You take on Cloudflare’s quotas and the upgrade path in the repo.
+        </p>
+        <p>
+          The two can sit next to each other. A one-off scan does not replace a 404 template,
+          and a self-hosted log does not give you a no-signup scan of someone else’s domain.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — if you have run a 404tracker
+          scan, say what it returned. If you have not, leave that sentence out when you publish.]
+        </p>
+        <p>
+          More of the product:
+          <a class="link" href="/self-host">self-host</a>,
+          <a class="link" href="/embed">the embed</a>,
+          <a class="link" href="/compare/404less-vs-oh-dear">vs Oh Dear</a>.
+        </p>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Public pages read on 10 Nov 2026. Re-read them before you drop <code>draft</code>.</p>
+        <ul class="sources">
+          <li><a class="link" href="https://404tracker.com/" rel="noopener">404tracker.com</a> — free scan, homepage MCP card, the rankings claim, “Pro plans also check external links.”</li>
+          <li><a class="link" href="https://404tracker.com/pricing" rel="noopener">404tracker.com/pricing</a> — the plan table quoted above.</li>
+          <li>
+            <a class="link" href="https://developers.google.com/search/docs/crawling-indexing/http-network-errors" rel="noopener"
+              >Google: HTTP status codes</a
+            >
+          </li>
+          <li>Repo: <code>README.md</code>, <code>/self-host</code>, <code>apps/web/src/server/api/mcp/mcp.routes.ts</code>.</li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

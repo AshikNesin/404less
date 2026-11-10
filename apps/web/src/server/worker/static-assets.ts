@@ -1,6 +1,7 @@
 // Static assets with explicit routing (html_handling is off in wrangler.jsonc):
-//   /app, /app/*  → the SPA shell (app.html), client-side routed
-//   /foo          → foo.html from the marketing site, else the site's 404 page
+//   /app, /app/*           → the SPA shell (app.html), client-side routed
+//   /foo, /guides/bar      → foo.html / guides/bar.html, else the site's 404 page
+// A trailing slash on a marketing path redirects to the path without it.
 // Workers only: reads the ASSETS binding per request; without one (Node) it
 // falls through. Mounted last (app.ts).
 import { Hono } from "hono";
@@ -26,15 +27,18 @@ staticAssets.get("*", async (c, next) => {
     if (res.status === 304) return res;
     return new Response(res.body, { status: 200, headers: res.headers });
   }
-  // trailing slash on a marketing page (/embed/ → /embed)
-  if (/^\/[a-z0-9-]+\/$/.test(url.pathname)) {
-    return c.redirect(url.pathname.slice(0, -1) + url.search, 301);
+  // /embed and /guides/netlify-redirects-not-working. No dots, so assets are not rewritten.
+  const marketingPage = /^\/(?:[a-z0-9-]+\/)*[a-z0-9-]+$/;
+  // trailing slash on a marketing page (/embed/ → /embed, /guides/foo/ → /guides/foo)
+  if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
+    const bare = url.pathname.slice(0, -1);
+    if (marketingPage.test(bare)) return c.redirect(bare + url.search, 301);
   }
-  // marketing pages: / → index.html, /embed → embed.html, …; anything else → 404.html
+  // marketing pages: / → index.html, /embed → embed.html, /guides/foo → /guides/foo.html
   const page =
     url.pathname === "/"
       ? "/index.html"
-      : /^\/[a-z0-9-]+$/.test(url.pathname)
+      : marketingPage.test(url.pathname)
         ? `${url.pathname}.html`
         : null;
   if (page) {

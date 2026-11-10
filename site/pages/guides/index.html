@@ -1,0 +1,97 @@
+<!--meta
+{
+  "path": "/guides",
+  "nav": "guides",
+  "draft": true,
+  "title": "Guides for 404s, redirects, and broken links · 404less",
+  "ogTitle": "Guides for 404s, redirects, and broken links",
+  "description": "Draft guides for tracking 404s on Cloudflare Pages, fixing Netlify and Vercel redirects, soft 404s in Search Console, and handing broken links to Claude Code or Cursor.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources: internal. Each child page lists the docs it was checked against. -->
+<main class="doc guide">
+  <div class="container">
+    <div class="head is-solo">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Guides · draft</span>
+        <h1>Guides for 404s, redirects, and broken links.</h1>
+        <p class="lead">
+          Short pages for problems that show up in deploy logs and Search Console. Each one uses
+          the redirect rules and the embed snippet from this repo. They are drafts until the
+          review notes are gone.
+        </p>
+      </div>
+    </div>
+    <div class="body">
+      <ul class="guide-list">
+        <li>
+          <a class="card" href="/guides/track-404s-cloudflare-pages">
+            <span class="q">track 404 errors on Cloudflare Pages</span>
+            <strong>How to track 404 errors on Cloudflare Pages</strong>
+            <span class="d">A real 404.html, one script tag, and the same idea on any static host.</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="/guides/netlify-redirects-not-working">
+            <span class="q">netlify redirects not working</span>
+            <strong>Netlify redirects not working</strong>
+            <span class="d">Publish directory, rule order, and files that shadow a redirect.</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="/guides/vercel-redirects">
+            <span class="q">vercel redirects · 301 vs 308 · bulk redirects</span>
+            <strong>Vercel redirects: 301 vs 308, bulk redirects, vercel.json</strong>
+            <span class="d">Why <code>permanent: true</code> is a 308, and when the bulk file is the right tool.</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="/guides/fix-soft-404-search-console">
+            <span class="q">soft 404 Google Search Console</span>
+            <strong>Fixing soft 404 errors in Google Search Console</strong>
+            <span class="d">A 200 that looks like an error, and the status code to send instead.</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="/guides/custom-404-hugo-next-astro">
+            <span class="q">custom 404 page Hugo Next.js Astro</span>
+            <strong>A custom 404 page for Hugo, Next.js, and Astro</strong>
+            <span class="d">The template each framework already has, plus suggestions for the closest page.</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="/guides/fix-broken-links-with-mcp">
+            <span class="q">fix broken links with Claude Code or Cursor</span>
+            <strong>Find and fix broken links with Claude Code or Cursor</strong>
+            <span class="d">The read-only MCP server: list the misses, read a suggestion, open a PR.</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="/guides/redirects-after-migration">
+            <span class="q">redirects after a site migration</span>
+            <strong>Redirects after a site migration or URL restructure</strong>
+            <span class="d">A checklist from the old sitemap to one hop and a status you can defend.</span>
+          </a>
+        </li>
+      </ul>
+      <p>
+        Comparisons live on <a class="link" href="/compare">their own index</a>. The
+        <a class="link" href="/self-host">self-host guide</a>, the
+        <a class="link" href="/embed">embed</a>, and
+        <a class="link" href="/agent">MCP setup</a> are the product pages these articles point at.
+      </p>
+      <div class="callout">
+        Tool pages linked from the guides (<code>/tools/redirect-generator</code>,
+        <code>/tools/redirect-chain-checker</code>, <code>/tools/404-page-checker</code>,
+        <code>/tools/broken-link-checker</code>) are planned alongside this section. Those URLs
+        404 until that work lands.
+      </div>
+      <p class="todo">
+        [ASHIK: add your own screenshot/numbers/experience here — a line on which of these you
+        actually hit on a site you run, and which one should be published first.]
+      </p>
+      {{cta}}
+    </div>
+  </div>
+</main>

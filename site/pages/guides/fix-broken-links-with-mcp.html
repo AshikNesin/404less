@@ -1,0 +1,251 @@
+<!--meta
+{
+  "path": "/guides/fix-broken-links-with-mcp",
+  "nav": "guides",
+  "draft": true,
+  "title": "Find and fix broken links with Claude Code or Cursor · 404less",
+  "ogTitle": "Find and fix broken links with Claude Code or Cursor",
+  "description": "Connect Claude Code or Cursor to the read-only 404less MCP server, list the broken URLs, and have the agent open a PR with the redirect and the edited links.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources: apps/web/src/server/api/mcp/mcp.routes.ts, mcp.service.ts, site/pages/agent.html, redirect-snippet.tsx -->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Guide · draft</span>
+        <h1>Find and fix broken links with Claude Code or Cursor.</h1>
+        <p class="lead">
+          The MCP server answers four read-only questions: which sites you have, which URLs are
+          broken, what the closest replacement is, and who linked there. The agent writes the
+          fix in your repo. 404less never receives a git token.
+        </p>
+        <div class="toc">
+          <a href="#connect">Connect</a>
+          <a href="#tools">The four tools</a>
+          <a href="#prompt">A prompt that matches the product</a>
+          <a href="#limits">What the key can also do</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="Claude Code lists broken links and opens a pull request">
+        <div class="trace-head">
+          <span class="trace-site">claude code</span>
+          <span class="trace-path">mcp · 404less</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">1</span>
+            <div>
+              <div class="trace-title"><code>list_broken_links</code></div>
+              <div class="trace-meta">Open URLs, most hits first</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">2</span>
+            <div>
+              <div class="trace-title"><code>get_link_details</code></div>
+              <div class="trace-meta">Referrers, the page that links it, a suggested URL</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">PR</span>
+            <div>
+              <div class="trace-title">Redirect plus edited hrefs</div>
+              <div class="trace-meta">The agent commits. You review</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="connect">
+        <h2>Connect Claude Code or Cursor</h2>
+        <p>
+          Create a key under <em>API &amp; MCP</em>. It is shown once and stored hashed. The
+          server is streamable HTTP, protocol <code>2025-03-26</code>, POST only. GET and DELETE
+          get 405. The header is <code>Authorization: Bearer 404l_…</code>.
+        </p>
+        <p>Claude Code, the same command as on <a class="link" href="/agent">/agent</a>:</p>
+        <pre
+          class="code"
+        ><span class="m">$</span> claude mcp add --transport http 404less https://your-404less.example/mcp \
+    --header <span class="s">"Authorization: Bearer 404l_…"</span></pre>
+        <p>Cursor, Claude Desktop, and anything else that reads an MCP config:</p>
+        <pre class="code" data-check="json">{
+  "mcpServers": {
+    "404less": {
+      "type": "http",
+      "url": "https://your-404less.example/mcp",
+      "headers": { "Authorization": "Bearer 404l_…" }
+    }
+  }
+}</pre>
+        <p>
+          A missing or wrong key is a JSON-RPC error, HTTP 401,
+          <code>unauthorized: provide a valid API key as bearer token</code>. Revoke the key on
+          the same settings page; the next call fails immediately.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — Cursor’s MCP panel showing
+          the four tools, or the Claude Code line after a key you created. No session transcript
+          is included in this draft.]
+        </p>
+      </section>
+
+      <section id="tools">
+        <h2>The four tools</h2>
+        <p>
+          Names and arguments are the <code>TOOLS</code> array in
+          <code>apps/web/src/server/api/mcp/mcp.routes.ts</code>. Every call is scoped to the
+          team that owns the key. <code>site</code> accepts a site id, a domain, or a name,
+          case-insensitive.
+        </p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Arguments</th>
+                <th>What comes back</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>list_sites</code></td>
+                <td>none</td>
+                <td>id, name, domain, and the count of open broken links</td>
+              </tr>
+              <tr>
+                <td><code>list_broken_links</code></td>
+                <td>
+                  <code>site</code> required. <code>status</code> is
+                  <code>open</code> (default), <code>resolved</code>, <code>ignored</code>, or
+                  <code>all</code>. <code>since</code> is an ISO timestamp. <code>limit</code>
+                  defaults to 50 and stops at 200
+                </td>
+                <td>
+                  Most hits first. Each row has the URL, title, status, who detected it
+                  (<code>visitor</code>, <code>crawler</code>, or <code>both</code>), hits, HTTP
+                  status, first and last seen, the stored suggestion, and the page the crawler
+                  found the link on
+                </td>
+              </tr>
+              <tr>
+                <td><code>get_suggestions</code></td>
+                <td><code>site</code>, <code>url</code></td>
+                <td>Up to five ranked replacements from <code>suggestFor</code></td>
+              </tr>
+              <tr>
+                <td><code>get_link_details</code></td>
+                <td><code>site</code>, <code>url</code></td>
+                <td>
+                  Hits, status, last crawler check with the redirect chain, top referrers, pages
+                  that link to it, and suggested fixes
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          An unknown site comes back as <code>{ "error": "unknown site \"…\"" }</code> with
+          <code>isError: true</code>, so the agent can read it. There is no tool that writes a
+          redirect, ignores a link, or edits a file.
+        </p>
+        <p>A raw call, useful when you want to see the JSON before involving an agent:</p>
+        <pre class="code" data-check="json">{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "list_broken_links",
+    "arguments": { "site": "docs.example.com", "limit": 20 }
+  }
+}</pre>
+        <pre
+          class="code"
+        ><span class="m">$</span> curl -s https://your-404less.example/mcp \
+    -H <span class="s">"Authorization: Bearer 404l_…"</span> \
+    -H <span class="s">"Content-Type: application/json"</span> \
+    -d @call.json</pre>
+      </section>
+
+      <section id="prompt">
+        <h2>A prompt that matches the product</h2>
+        <p>
+          The “Ask your agent” tab builds this text in <code>redirect-snippet.tsx</code>. It asks
+          for a 301 in whatever file the repo already uses, an update to the hrefs, and a small
+          PR. Paste it after the MCP server is connected so the agent can call
+          <code>list_broken_links</code> for the rest of the list in the same session.
+        </p>
+        <pre class="code">Fix this broken link.
+
+Broken URL: https://docs.example.com/docs/old
+Replace it with: https://docs.example.com/docs/new
+
+Do three things:
+1. Add a 301 redirect from /docs/old to /docs/new in whatever redirect mechanism this repo uses (look for _redirects, vercel.json, next.config.js, nginx config, or .htaccess).
+2. Find every page that links to https://docs.example.com/docs/old and update the href to https://docs.example.com/docs/new.
+3. Open a PR with both changes; keep it minimal.</pre>
+        <p>
+          For a batch, the prompts on <a class="link" href="/agent">/agent</a> are the ones that
+          have been written against these tools: top links this week as
+          <code>vercel.json</code> rules, every href pointing at one dead URL, a referrer
+          summary. The platform file still has to be the one the repo uses.
+          <code>permanent: true</code> on Vercel is a 308, which the
+          <a class="link" href="/guides/vercel-redirects">Vercel guide</a> explains. The agent
+          prompt says “301” because that is the string in <code>agentPrompt</code>. On Vercel,
+          tell it to use <code>statusCode: 301</code> if you truly want a 301, or leave
+          <code>permanent: true</code> if a 308 is acceptable. Google treats those two as the
+          same permanent signal.
+        </p>
+        <p>
+          After the PR merges, resolve the rows in the dashboard or let the crawler see a
+          successful response and resolve them. Ignored rows stay ignored and do not alert.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — a PR you opened this way,
+          with the repo and the number of URLs. The trace on /agent uses a fictional PR #142.
+          Do not publish that number as if it happened.]
+        </p>
+        <div class="callout">
+          Related tool:
+          <a class="link" href="/tools/broken-link-checker">broken link checker</a>
+          for a one-off scan with no account, and
+          <a class="link" href="/tools/redirect-generator">redirect rule generator</a>
+          when you want the rule without an agent. Both paths may 404 until the tools PR lands.
+        </div>
+      </section>
+
+      <section id="limits">
+        <h2>What the key can also do</h2>
+        <p>
+          MCP is read-only. The same bearer token is accepted by the dashboard API under
+          <code>/api/v1</code>, because <code>session.middleware.ts</code> treats it as the
+          team owner. That API includes reads (<code>GET /api/v1/sites</code>,
+          <code>GET /api/v1/sites/:id/links</code>, the CSV export, link details) and writes
+          (starting a crawl, changing a link’s status, creating a site). Give the key only to
+          an agent you would allow to call those routes. A client that should only list broken
+          links still holds a key that can do more, until a narrower key exists.
+        </p>
+        <p class="todo">
+          [ASHIK: if you later split a read-only key from a key that can crawl, replace this
+          paragraph. As of this draft there is one key type.]
+        </p>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>All of these are files in this repo, not a vendor’s marketing page.</p>
+        <ul class="sources">
+          <li><code>apps/web/src/server/api/mcp/mcp.routes.ts</code> — tool names, arguments, protocol version, 401 text.</li>
+          <li><code>apps/web/src/server/api/mcp/mcp.service.ts</code> — fields returned, limit cap, site lookup.</li>
+          <li><code>apps/web/src/server/middlewares/session.middleware.ts</code> — bearer keys on <code>/api/v1</code>.</li>
+          <li><code>apps/web/src/client/features/links/redirect-snippet.tsx</code> — the agent prompt.</li>
+          <li><a class="link" href="/agent">/agent</a> — the setup already published on the marketing site.</li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

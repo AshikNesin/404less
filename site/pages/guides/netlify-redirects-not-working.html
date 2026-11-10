@@ -1,0 +1,244 @@
+<!--meta
+{
+  "path": "/guides/netlify-redirects-not-working",
+  "nav": "guides",
+  "draft": true,
+  "title": "Netlify redirects not working: causes and fixes · 404less",
+  "ogTitle": "Netlify redirects not working: causes and fixes",
+  "description": "Netlify redirects fail when the file never reaches the publish directory, an earlier rule matches, or an existing file shadows the rule. Here is the order Netlify documents, with a _redirects line you can paste.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://docs.netlify.com/manage/routing/redirects/overview/
+https://docs.netlify.com/manage/routing/redirects/redirect-options/
+https://developers.cloudflare.com/pages/configuration/redirects/
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Guide · draft</span>
+        <h1>Netlify redirects not working: causes and fixes.</h1>
+        <p class="lead">
+          The rule is usually fine. It is in the repo and not in the deploy, or another rule
+          matched first, or a real file is sitting on that path. Netlify’s docs describe all
+          three.
+        </p>
+        <div class="toc">
+          <a href="#order">The order Netlify uses</a>
+          <a href="#missing">File never deployed</a>
+          <a href="#splat">The splat ate it</a>
+          <a href="#shadow">A file shadows the rule</a>
+          <a href="#status">Status codes</a>
+          <a href="#pages">Cloudflare Pages is a different file</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="A Netlify redirect that never runs because a splat matches first">
+        <div class="trace-head">
+          <span class="trace-site">_redirects</span>
+          <span class="trace-path is-broken">/docs/old</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step is-bad">
+            <span class="trace-mark" aria-hidden="true">1</span>
+            <div>
+              <div class="trace-title"><code>/* → /index.html 200</code></div>
+              <div class="trace-meta">First match wins. This line matches every path</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">2</span>
+            <div>
+              <div class="trace-title"><code>/docs/old → /docs/new</code></div>
+              <div class="trace-meta">Never consulted</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">ok</span>
+            <div>
+              <div class="trace-title">Specific rule first</div>
+              <div class="trace-meta">Then the splat, if you still need the SPA fallback</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="order">
+        <h2>The order Netlify uses</h2>
+        <p>
+          Rules can live in a plain <code>_redirects</code> file in the publish directory, or in
+          one or more <code>[[redirects]]</code> tables in <code>netlify.toml</code>. For a
+          request, Netlify uses the first matching rule, top to bottom.
+          <code>_redirects</code> is processed before <code>netlify.toml</code>. Edge functions
+          run before either of them.
+        </p>
+        <p>
+          Paths are case-sensitive. Characters that are special in a path have to be
+          URL-encoded. A line that starts with <code>#</code> is a comment. If you omit the
+          status, the default is <strong>301</strong>.
+        </p>
+        <p>
+          The line 404less copies for Cloudflare Pages and Netlify is the same shape. For
+          <code>/docs/old</code> → <code>/docs/new</code> the dashboard emits:
+        </p>
+        <pre class="code" data-check="redirects"># _redirects (Cloudflare Pages / Netlify)
+/docs/old  /docs/new  301</pre>
+        <p>
+          Fields are separated by whitespace. Netlify’s own examples use wide gaps.
+        </p>
+      </section>
+
+      <section id="missing">
+        <h2>The file never made it into the publish directory</h2>
+        <p>
+          Netlify reads <code>_redirects</code> from the folder you deploy, after the build. A
+          copy that sits next to your source and is gitignored out of <code>dist/</code> or
+          <code>public/</code> does nothing. Generators that skip files beginning with
+          <code>_</code> do the same. Netlify calls out Jekyll: add an <code>include</code> for
+          <code>_redirects</code> in <code>_config.yml</code>, or the file is dropped.
+        </p>
+        <p>
+          After the deploy, open the published-files list (or
+          <code>curl -sI https://yoursite.example/docs/old</code>) before you rewrite the rule.
+          A rule that is not in that deploy cannot fire.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — a deploy log or the
+          “published files” view from a site where <code>_redirects</code> was missing, if you
+          have one.]
+        </p>
+      </section>
+
+      <section id="splat">
+        <h2>A broader rule already matched</h2>
+        <p>
+          This is the usual “netlify redirects not working” file on a single-page app. The
+          catch-all rewrite is first, so the specific 301 under it is dead:
+        </p>
+        <pre class="code" data-check="redirects"># matches every path, including /docs/old
+/*            /index.html  200
+/docs/old     /docs/new    301</pre>
+        <p>Specific rules go above the splat:</p>
+        <pre class="code" data-check="redirects">/docs/old     /docs/new    301
+/*            /index.html  200</pre>
+        <p>
+          The same ordering applies inside <code>netlify.toml</code>, and a rule in
+          <code>_redirects</code> still beats a later rule in the toml file. Role, country,
+          language, and <code>query</code> conditions only match when they match. A rule that
+          requires <code>query = {id = ":id"}</code> will not run for a request that has no
+          <code>id</code>.
+        </p>
+        <p>
+          A <code>200</code> is a rewrite: the address bar stays put and the server sends
+          different HTML. That is what you want for an SPA fallback. It is also how a missing
+          URL becomes a soft 404 if the fallback is your app shell. See
+          <a class="link" href="/guides/fix-soft-404-search-console">fixing soft 404s</a>.
+          Netlify will serve a <code>404.html</code> from the publish directory for paths that
+          do not resolve, with no rule required, as long as no earlier rewrite claimed the path.
+        </p>
+      </section>
+
+      <section id="shadow">
+        <h2>A real file is shadowing the rule</h2>
+        <p>
+          By default a redirect does not replace a file that already exists at that path.
+          Netlify calls this shadowing. Force it with <code>!</code> on the status in
+          <code>_redirects</code>, or <code>force = true</code> in toml:
+        </p>
+        <pre class="code" data-check="redirects">/docs/old   /docs/new   301!</pre>
+        <pre class="code">[[redirects]]
+  from = "/docs/old"
+  to = "/docs/new"
+  status = 301
+  force = true</pre>
+        <p>
+          Force is the right fix when an old <code>index.html</code> is still being built. It is
+          the wrong fix when the splat above is the thing matching: forcing a rule that never
+          runs changes nothing.
+        </p>
+      </section>
+
+      <section id="status">
+        <h2>Status codes that surprise people</h2>
+        <ul>
+          <li><code>301</code> is the default. Permanent. The address bar changes.</li>
+          <li><code>302</code> is the temporary code Netlify tells you to use. Their options doc says <code>307</code> is unsupported.</li>
+          <li><code>200</code> rewrites. The address bar stays.</li>
+          <li><code>404</code> can point a path at a custom error page. The address bar stays. Because of shadowing, that page is returned when no asset exists there.</li>
+        </ul>
+        <p>
+          Pretty URLs and trailing slashes are documented further down the redirect-options page.
+          This draft does not copy that section.
+        </p>
+        <p class="todo">
+          [ASHIK: paste the trailing-slash rule you actually ship, after you re-read
+          https://docs.netlify.com/manage/routing/redirects/redirect-options/ — a
+          <code>/docs/old</code> rule and a <code>/docs/old/</code> request are different paths
+          until a slash rule says otherwise, and the exact Netlify flag for “add the slash” was
+          not copied here.]
+        </p>
+        <p>
+          Past about 10,000 rules Netlify says the serialized redirect blob can fail the deploy,
+          and they recommend splats or Edge Functions. There is no need to pre-empt that on a
+          docs site with a few dozen old URLs.
+        </p>
+        <div class="callout">
+          Related tool:
+          <a class="link" href="/tools/redirect-generator">redirect rule generator</a>
+          and
+          <a class="link" href="/tools/redirect-chain-checker">redirect chain checker</a>.
+          Both paths may 404 until the tools PR lands. A chain is worth checking: Google follows
+          a limited number of hops and indexes the final URL. The
+          <a class="link" href="/guides/redirects-after-migration">migration checklist</a> is the
+          place for a pile of old paths.
+        </div>
+      </section>
+
+      <section id="pages">
+        <h2>Cloudflare Pages speaks a similar file, with different rules</h2>
+        <p>
+          Pages also uses <code>_redirects</code>, and the 404less snippet comments it as
+          “Cloudflare Pages / Netlify”. The defaults differ. Pages uses <strong>302</strong>
+          when you omit the code, so the snippet writes <code>301</code> on purpose. Pages
+          follows the redirect even when a file exists at that path. Pages does not support
+          Netlify’s query conditions or a <code>404</code> status in that file. Caps and the
+          rest are in the
+          <a class="link" href="/guides/track-404s-cloudflare-pages">Cloudflare Pages guide</a>.
+        </p>
+        <p>
+          Vercel does not read this file. <code>permanent: true</code> there is a 308. That is
+          the <a class="link" href="/guides/vercel-redirects">Vercel redirects guide</a>.
+        </p>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://docs.netlify.com/manage/routing/redirects/overview/" rel="noopener"
+              >Netlify: Redirects overview</a
+            >
+            — <code>_redirects</code> vs toml, first match, <code>_redirects</code> processed first, edge functions before redirects.
+          </li>
+          <li>
+            <a class="link" href="https://docs.netlify.com/manage/routing/redirects/redirect-options/" rel="noopener"
+              >Netlify: Redirect options</a
+            >
+            — default 301, 307 unsupported, shadowing and <code>force</code>, <code>404.html</code> without a rule.
+          </li>
+          <li>
+            <a class="link" href="https://developers.cloudflare.com/pages/configuration/redirects/" rel="noopener"
+              >Cloudflare Pages: Redirects</a
+            >
+            — 302 default, redirects run even when an asset exists.
+          </li>
+          <li>Repo: <code>apps/web/src/client/features/links/redirect-snippet.tsx</code> (<code>redirects</code> case).</li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>
