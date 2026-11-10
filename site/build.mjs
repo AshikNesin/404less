@@ -1,9 +1,12 @@
-// Assembles the marketing site: site/layout.html + site/pages/*.html → dist/client/,
+// Assembles the marketing site: site/layout.html + site/pages/**/*.html → dist/client/,
 // copies site/assets/* alongside, and writes sitemap.xml + robots.txt.
 // Runs after the SPA build (`pnpm build:client` = vp build && this): the SPA's
 // index.html becomes app.html (the Worker serves it for /app/*), because the
 // marketing home page owns /index.html.
 // Pages start with a <!--meta {json} --> block (path, title, description, og, nav).
+// "draft": true forces noindex, drops the URL from the sitemap, and prepends a
+// review banner. Remove the flag to publish. See site/CONTENT.md.
+// {{cta}} in a page is replaced with site/partials/cta.html.
 import fs from "node:fs";
 import path from "node:path";
 
@@ -34,16 +37,25 @@ if (fs.existsSync(DEMO)) {
   console.warn("site: docs/demo/404less-demo.mp4 missing; the hero player will have no video");
 }
 
+const cta = fs.readFileSync(path.join(ROOT, "partials", "cta.html"), "utf8").trim();
 const urls = [];
-for (const file of fs
-  .readdirSync(path.join(ROOT, "pages"))
-  .filter((f) => f.endsWith(".html"))
-  .sort()) {
-  const src = fs.readFileSync(path.join(ROOT, "pages", file), "utf8");
+const seen = new Set();
+for (const file of walk(path.join(ROOT, "pages"))) {
+  const src = fs.readFileSync(file, "utf8");
+  const rel = path.relative(path.join(ROOT, "pages"), file);
   const m = src.match(/^<!--meta\s*([\s\S]*?)-->/);
-  if (!m) throw new Error(`${file}: missing <!--meta--> block`);
+  if (!m) throw new Error(`${rel}: missing <!--meta--> block`);
   const meta = JSON.parse(m[1]);
-  const content = src.slice(m[0].length).trim();
+  if (seen.has(meta.path)) throw new Error(`${rel}: duplicate path ${meta.path}`);
+  seen.add(meta.path);
+  const draft = meta.draft === true;
+  const noindex = draft || meta.noindex === true;
+  let content = src.slice(m[0].length).trim().replaceAll("{{cta}}", () => cta);
+  if (draft) {
+    content =
+      `<aside class="draft-banner" role="note">Draft for review. This page sends <code>noindex</code> and is left out of the sitemap. To publish, remove <code>"draft": true</code> from its meta block. Steps are in the repo at <code>site/CONTENT.md</code>.</aside>\n` +
+      content;
+  }
   const canonical = SITE_URL + (meta.path === "/" ? "/" : meta.path);
   const jsonld = JSON.stringify(
     meta.path === "/"
@@ -91,14 +103,15 @@ for (const file of fs
     .replace("{{jsonld}}", jsonld)
     .replace(
       '<meta name="theme-color"',
-      (meta.noindex ? '<meta name="robots" content="noindex">\n  ' : "") +
-        '<meta name="theme-color"',
+      (noindex ? '<meta name="robots" content="noindex">\n  ' : "") + '<meta name="theme-color"',
     )
     .replace("{{content}}", () => content);
   const outName = meta.path === "/" ? "index.html" : `${meta.path.replace(/^\//, "")}.html`;
-  fs.writeFileSync(path.join(OUT, outName), html);
-  if (!meta.noindex) urls.push(canonical);
-  console.log("site:", meta.path, "→", outName);
+  const outPath = path.join(OUT, outName);
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, html);
+  if (!noindex) urls.push(canonical);
+  console.log("site:", meta.path, "→", outName, draft ? "(draft)" : "");
 }
 
 fs.writeFileSync(
@@ -109,6 +122,16 @@ fs.writeFileSync(
   path.join(OUT, "robots.txt"),
   `User-agent: *\nAllow: /\nDisallow: /app\nDisallow: /api\n\nSitemap: ${SITE_URL}/sitemap.xml\n`,
 );
+
+function walk(dir) {
+  const out = [];
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, ent.name);
+    if (ent.isDirectory()) out.push(...walk(p));
+    else if (ent.name.endsWith(".html")) out.push(p);
+  }
+  return out.sort();
+}
 
 function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");

@@ -8,6 +8,7 @@ const FILES: Record<string, string> = {
   "/app.html": '<div id="root"></div>',
   "/index.html": "home",
   "/embed.html": "embed",
+  "/guides/track.html": "guide",
   "/404.html": "not here",
 };
 const etag = (p: string) => `"${p}"`;
@@ -61,4 +62,22 @@ test("a trailing slash on a page redirects to the page", async () => {
   );
   expect(res.status).toBe(301);
   expect(res.headers.get("Location")).toBe("/embed");
+});
+
+test("a nested marketing page is served from its html file", async () => {
+  expect(await get("/guides/track")).toEqual({ status: 200, body: "guide" });
+});
+
+test("a trailing slash on a nested page redirects", async () => {
+  const res = await worker.fetch(
+    new Request("http://localhost/guides/track/"),
+    { ...env, ASSETS } as never,
+    createExecutionContext(),
+  );
+  expect(res.status).toBe(301);
+  expect(res.headers.get("Location")).toBe("/guides/track");
+});
+
+test("a missing nested page is the site 404, not the asset 404", async () => {
+  expect(await get("/guides/missing")).toEqual({ status: 404, body: FILES["/404.html"] });
 });

@@ -1,0 +1,190 @@
+<!--meta
+{
+  "path": "/compare/404-logging-non-wordpress",
+  "nav": "compare",
+  "draft": true,
+  "title": "404 logging for non-WordPress sites · 404less",
+  "ogTitle": "404 logging for non-WordPress sites",
+  "description": "The WordPress Redirection plugin logs 404s and manages 301s inside WordPress. Hugo, Next.js, Astro, and other static sites need the 404 template and a redirect file instead.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://wordpress.org/plugins/redirection/
+https://redirection.me (linked from the plugin page; this draft did not re-fetch the manual)
+Repo: platform-snippet.tsx
+Read 10 Nov 2026.
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Comparison · draft</span>
+        <h1>404 logging for non-WordPress sites.</h1>
+        <p class="lead">
+          On WordPress, the Redirection plugin logs 404s and writes the redirects. On a Hugo,
+          Next.js, Astro, or plain static site there is no plugin slot. The 404 template and
+          the host’s redirect file are the same job.
+        </p>
+        <div class="toc">
+          <a href="#plugin">What the plugin does</a>
+          <a href="#static">What you do without WordPress</a>
+          <a href="#both">Using 404less on WordPress anyway</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="WordPress uses a plugin. A static site uses the 404 template.">
+        <div class="trace-head">
+          <span class="trace-site">404 log</span>
+          <span class="trace-path">where it lives</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">WP</span>
+            <div>
+              <div class="trace-title">Redirection</div>
+              <div class="trace-meta">404 log and 301s inside WordPress. Free, no paid tier</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">404</span>
+            <div>
+              <div class="trace-title">Your 404 template</div>
+              <div class="trace-meta">Hugo, Next.js, Astro, 404.html</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">301</span>
+            <div>
+              <div class="trace-title">The host’s redirect file</div>
+              <div class="trace-meta">_redirects, vercel.json, nginx, Apache</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="plugin">
+        <h2>What the Redirection plugin actually ships</h2>
+        <p>
+          The listing at
+          <a class="link" href="https://wordpress.org/plugins/redirection/" rel="noopener"
+            >wordpress.org/plugins/redirection</a
+          >
+          (John Godley, page last modified 19 Sep 2026 in the fetch) describes a free plugin.
+          The same page says there is no premium version. Full docs are at redirection.me. PHP
+          7.4 through 8.5.
+        </p>
+        <p>From that listing:</p>
+        <ul>
+          <li>Create and manage redirects, including regular expressions, without writing Apache or nginx by hand. If the site uses permalinks, any URL can be redirected.</li>
+          <li>Match query parameters, and pass them through.</li>
+          <li>Optionally create a redirect when a post or page permalink changes. A separate “migrate permalinks” flow takes the old structure.</li>
+          <li>Conditions: login state, capability, browser, referrer, cookie, header, your own filter, IP, another domain on the same server, and “this page is a 404”.</li>
+          <li>A log of redirects with hit counts, browser, and referrer. IP collection can be reduced or turned off. Logs export.</li>
+          <li>A 404 log. Errors can be grouped, and redirected in bulk.</li>
+          <li>Redirects are handled by WordPress by default. They can be written to <code>.htaccess</code> for Apache, or exported as nginx rewrite rules.</li>
+          <li>Import and export: htaccess, nginx, JSON, CSV, WP-CLI, and imports from several other redirect plugins.</li>
+        </ul>
+        <p>
+          That is a complete “log the 404, then make the redirect” loop, and it lives in
+          wp-admin. It also only runs where WordPress runs. A Hugo site, a Next.js app, an Astro
+          site, and a bucket of HTML have nowhere to install it.
+        </p>
+        <p class="todo">
+          [ASHIK: the plugin page shows an active-install count that this text extract did not
+          keep. If you want the number in the published page, copy it off the listing that day.
+          Also re-fetch https://redirection.me if you describe a screen that is only in the
+          manual. This draft did not.]
+        </p>
+      </section>
+
+      <section id="static">
+        <h2>The same loop on a site that is not WordPress</h2>
+        <p>Two pieces, both files you already deploy:</p>
+        <ol>
+          <li>
+            The 404 template records the hit. Hugo’s file is <code>layouts/404.html</code>,
+            Next.js uses <code>app/not-found.js</code> or <code>pages/404.js</code>, Astro uses
+            <code>src/pages/404.astro</code>. The script and the reason for
+            <code>data-404="true"</code> are in the
+            <a class="link" href="/guides/custom-404-hugo-next-astro">custom 404 guide</a>.
+            Cloudflare Pages and other static hosts are in
+            <a class="link" href="/guides/track-404s-cloudflare-pages">tracking 404s on Pages</a>.
+          </li>
+          <li>
+            The redirect lives in the host’s file, not in a database. The dashboard copies
+            <code>_redirects</code>, <code>vercel.json</code>, <code>next.config.js</code>, an
+            nginx <code>location</code>, or an Apache <code>Redirect</code>. Those strings, and
+            the status-code traps, are in the
+            <a class="link" href="/guides/netlify-redirects-not-working">Netlify</a>,
+            <a class="link" href="/guides/vercel-redirects">Vercel</a>, and
+            <a class="link" href="/guides/redirects-after-migration">migration</a> guides.
+          </li>
+        </ol>
+        <p>
+          What you do not get, relative to the plugin listing: automatic creation of a redirect
+          when a permalink changes, conditional redirects based on login or IP, and a log of
+          every successful redirect (404less logs the miss, and the crawler’s history of
+          checks, not every 301 your host served). What you do get that the plugin cannot do
+          outside WordPress: the same list for a static host, suggestions from your sitemap, and
+          a read-only MCP server for Claude Code or Cursor
+          (<a class="link" href="/guides/fix-broken-links-with-mcp">that guide</a>).
+        </p>
+        <div class="callout">
+          Related tools, which may 404 until the tools PR lands:
+          <a class="link" href="/tools/redirect-generator">redirect rule generator</a>,
+          <a class="link" href="/tools/404-page-checker">404 page checker</a>.
+        </div>
+      </section>
+
+      <section id="both">
+        <h2>A WordPress site can still run the embed</h2>
+        <p>
+          The install UI in this repo has a WordPress tab. The guidance next to it says to add
+          the script to <code>404.php</code> in the theme, before
+          <code>&lt;?php get_footer(); ?&gt;</code>, or to use a plugin such as WPCode. That is
+          <code>platform-snippet.tsx</code>. The script will record hits and show suggestions.
+          It will not write <code>.htaccess</code> for you, and it will not notice that you
+          changed a permalink.
+        </p>
+        <p>
+          If the site is WordPress and the plugin already logs 404s and manages redirects, you
+          already have the loop the listing describes. Adding 404less on top is a second log.
+          The reason to do it is the MCP tools or a redirect snippet aimed at a non-PHP host,
+          which a normal WordPress site is not using.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — a WordPress 404.php you have
+          edited, or a site where you picked the plugin and stopped. First-hand beats this
+          paragraph.]
+        </p>
+        <p>
+          Other comparisons:
+          <a class="link" href="/compare/404less-vs-404tracker">404tracker</a>,
+          <a class="link" href="/compare/404less-vs-oh-dear">Oh Dear</a>,
+          <a class="link" href="/compare/404less-vs-dr-link-check">Dr. Link Check</a>.
+        </p>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://wordpress.org/plugins/redirection/" rel="noopener"
+              >WordPress.org: Redirection</a
+            >
+            — the feature list and the “no premium version” line. Author John Godley. Docs linked
+            at https://redirection.me (not re-fetched for this draft).
+          </li>
+          <li>
+            Repo: <code>apps/web/src/client/features/sites/platform-snippet.tsx</code> (the
+            WordPress, Hugo-adjacent HTML, Next, and Astro install notes),
+            <code>apps/web/src/client/features/links/redirect-snippet.tsx</code>.
+          </li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

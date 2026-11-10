@@ -1,0 +1,250 @@
+<!--meta
+{
+  "path": "/guides/track-404s-cloudflare-pages",
+  "nav": "guides",
+  "draft": true,
+  "title": "How to track 404 errors on Cloudflare Pages · 404less",
+  "ogTitle": "How to track 404 errors on Cloudflare Pages",
+  "description": "Serve a real 404.html on Cloudflare Pages, add one script tag, and record the missing URL and its referrer. The same pattern works on any static host that lets you write the 404 page.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://developers.cloudflare.com/pages/configuration/serving-pages/
+https://developers.cloudflare.com/pages/configuration/redirects/
+https://github.com/AshikNesin/404less (embed.js, apps/web/src/server/api/embed/embed-script.ts)
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Guide · draft</span>
+        <h1>How to track 404 errors on Cloudflare Pages.</h1>
+        <p class="lead">
+          Pages will show a visitor your <code>404.html</code>. It will not hand you a list of
+          which paths they asked for. Put one script tag on that file and the path, the referrer,
+          and a few close matches are yours.
+        </p>
+        <div class="toc">
+          <a href="#what-pages-does">What Pages does</a>
+          <a href="#snippet">The script</a>
+          <a href="#static">Any static host</a>
+          <a href="#redirects">When you already know the fix</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="A missing path on Cloudflare Pages becomes a recorded hit">
+        <div class="trace-head">
+          <span class="trace-site">pages.dev</span>
+          <span class="trace-path is-broken">/docs/old-install</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step is-bad">
+            <span class="trace-mark" aria-hidden="true">404</span>
+            <div>
+              <div class="trace-title">404.html</div>
+              <div class="trace-meta">Pages walks up the tree looking for one, then the site root</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">POST</span>
+            <div>
+              <div class="trace-title">/api/track</div>
+              <div class="trace-meta">URL, referrer, title. No cookies</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">3</span>
+            <div>
+              <div class="trace-title">Closest known pages</div>
+              <div class="trace-meta">From the sitemap and the crawl, ranked by the path</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="what-pages-does">
+        <h2>What Cloudflare Pages does with a missing file</h2>
+        <p>
+          Cloudflare’s serving-pages doc says a <code>404.html</code> in the output is the page
+          shown when a file is missing. Pages looks in the requested directory, then walks up to
+          <code>/404.html</code>. A <code>/blog/404.html</code> covers <code>/blog/…</code> and
+          the root file covers the rest.
+        </p>
+        <p>
+          If the project has no top-level <code>404.html</code>, Pages treats the site as a
+          single-page app and serves the root document for any path that is not a real asset.
+          That is how a missing URL becomes a 200 of your homepage. Search Console calls a 200
+          that looks like an error a soft 404. The
+          <a class="link" href="/guides/fix-soft-404-search-console">soft 404 guide</a> is the
+          longer version. Put a real <code>404.html</code> in the output before you worry about
+          tracking.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — <code>curl -sI</code> of a
+          missing path on a Pages project you run. The serving-pages doc describes which HTML is
+          chosen. It does not print a sample status line, so the 404-vs-200 check belongs to a
+          site you control.]
+        </p>
+        <p>
+          The same doc does not describe a report of the paths visitors requested. Analytics and
+          logpush are a separate product surface.
+        </p>
+        <p class="todo">
+          [ASHIK: if your Pages project already keeps 404 paths in Logpush or Web Analytics, say
+          so here and link the screen. This draft did not read a logs doc, so it does not claim
+          those products lack the path.]
+        </p>
+      </section>
+
+      <section id="snippet">
+        <h2>The script tag</h2>
+        <p>
+          This is the install snippet from the dashboard, aimed at your Worker. Replace the origin
+          and the site key. The key is on <em>Site settings → Install</em>.
+        </p>
+        <pre
+          class="code"
+        ><span class="m">&lt;</span><span class="k">script</span> <span class="p">src</span><span class="m">=</span><span class="s">"https://your-404less.example/embed.js"</span> <span class="p">data-site</span><span class="m">=</span><span class="s">"SITE_KEY"</span> <span class="p">defer</span><span class="m">&gt;&lt;/</span><span class="k">script</span><span class="m">&gt;</span></pre>
+        <p>
+          On Cloudflare Pages the tag goes in <code>404.html</code> before
+          <code>&lt;/body&gt;</code>. Hugo writes that file from
+          <code>layouts/404.html</code>. Astro writes it from <code>src/pages/404.astro</code>.
+          Both are spelled out in the
+          <a class="link" href="/guides/custom-404-hugo-next-astro">custom 404 page guide</a>.
+        </p>
+        <p>
+          The script, in <code>apps/web/src/server/api/embed/embed-script.ts</code>, does nothing
+          until it decides the page is a 404. First match wins:
+        </p>
+        <ul>
+          <li><code>data-404</code> on the script tag itself (anything other than <code>false</code> or <code>0</code>)</li>
+          <li><code>window.__404less.is404</code></li>
+          <li><code>data-404</code> on <code>&lt;html&gt;</code> or <code>&lt;body&gt;</code></li>
+          <li>
+            a meta tag named <code>404less</code>, <code>prerender-status-code</code>, or
+            <code>render:status_code</code> whose content matches “404” or “not found”
+          </li>
+          <li>a document title that contains “404”, “not found”, or “page doesn’t exist”</li>
+        </ul>
+        <p>
+          A Pages <code>404.html</code> whose <code>&lt;title&gt;</code> says “Page not found” is
+          enough. If the layout title is your site name, set <code>data-404="true"</code> on the
+          script. That is what the Next.js snippet in the dashboard does, for the same reason.
+        </p>
+        <p>
+          A hit is a <code>POST</code> to <code>/api/track</code> with the URL, the referrer, and
+          the title. The body is <code>text/plain</code> so the browser skips the preflight. Then
+          <code>GET /api/suggestions</code> returns up to three known URLs. Suggestions come from
+          <code>known_urls</code> (a sitemap import plus pages the crawler fetched). The ranker
+          scores path tokens and edit distance, drops a title that three or more pages share, and
+          hides anything under 0.2. Until a sitemap or a crawl has run, the card has nothing to
+          show. Details are on the <a class="link" href="/embed">embed page</a>.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — the “Looking for something?”
+          card on a real Pages 404, and a row from the broken-links list with a referrer you
+          recognise.]
+        </p>
+        <div class="callout">
+          Related tool:
+          <a class="link" href="/tools/404-page-checker">404 page checker</a>. It should say
+          whether the URL returns a real 404, whether the body looks like an error page, and
+          whether the snippet is present. That path may 404 until the tools PR lands.
+        </div>
+      </section>
+
+      <section id="static">
+        <h2>The same idea on any static host</h2>
+        <p>
+          The host has to return <em>your</em> 404 document for a missing path, and the browser
+          URL has to stay the URL the visitor typed. The script reports <code>location.href</code>.
+          If the host redirects the browser to <code>/404.html</code>, every miss is recorded as
+          that one path.
+        </p>
+        <p>
+          Netlify picks up a <code>404.html</code> in the publish directory with no redirect rule.
+          That is in their redirect-options doc, and the
+          <a class="link" href="/guides/netlify-redirects-not-working">Netlify redirects guide</a>
+          covers the case where a <code>/* /index.html 200</code> rule swallows the 404 first.
+        </p>
+        <p>Nginx, internal redirect, URL unchanged:</p>
+        <pre class="code">error_page 404 /404.html;</pre>
+        <p>Apache:</p>
+        <pre class="code">ErrorDocument 404 /404.html</pre>
+        <p>
+          Put the same script tag in that HTML file. Options (<code>data-mode</code>,
+          <code>data-theme</code>, <code>data-max</code>, and the rest) are the table on
+          <a class="link" href="/embed">/embed</a>.
+        </p>
+      </section>
+
+      <section id="redirects">
+        <h2>When you already know the new URL</h2>
+        <p>
+          Cloudflare Pages reads a <code>_redirects</code> file in the static output. One rule per
+          line: source, destination, optional status. The default status is <strong>302</strong>.
+          A comment line starts with <code>#</code>. The file allows 2,000 static redirects and
+          100 dynamic ones, and each line is limited to 1,000 characters. The top rule wins.
+          Redirects run even when a file exists at that path. Query-string matching is not
+          supported. Status 404 rewrites of the Netlify kind are not supported.
+        </p>
+        <p>
+          The rule the 404less link page copies is explicit about 301, which matters here because
+          the Pages default is 302. This string is what
+          <code>redirect-snippet.tsx</code> returns for <code>/docs/old</code> →
+          <code>/docs/new</code>:
+        </p>
+        <pre class="code" data-check="redirects"># _redirects (Cloudflare Pages / Netlify)
+/docs/old  /docs/new  301</pre>
+        <p>
+          Netlify’s file looks the same and defaults to 301, and an existing file shadows the
+          rule unless you force it. Copying a Netlify article onto Pages, or the other way
+          around, is a common way to ship the wrong status. The Netlify page is next to this one
+          on purpose.
+        </p>
+        <p>
+          Placeholders and a single splat are supported (<code>/blog/*</code> →
+          <code>/news/:splat</code>). Static rules should sit above dynamic ones. Pages Functions
+          do not see <code>_redirects</code>; the docs say to move those rules into the Function.
+        </p>
+        <div class="callout">
+          Related tool:
+          <a class="link" href="/tools/redirect-generator">redirect rule generator</a>, including
+          the Pages / Netlify line. That path may 404 until the tools PR lands.
+        </div>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://developers.cloudflare.com/pages/configuration/serving-pages/" rel="noopener"
+              >Cloudflare Pages: Serving Pages</a
+            >
+            — <code>404.html</code> lookup, and the SPA fallback when that file is absent.
+          </li>
+          <li>
+            <a class="link" href="https://developers.cloudflare.com/pages/configuration/redirects/" rel="noopener"
+              >Cloudflare Pages: Redirects</a
+            >
+            — <code>_redirects</code> syntax, the 302 default, the 2,100-rule cap, and what is not supported.
+          </li>
+          <li>
+            <a class="link" href="https://docs.netlify.com/manage/routing/redirects/redirect-options/" rel="noopener"
+              >Netlify: Redirect options</a
+            >
+            — a <code>404.html</code> is used automatically.
+          </li>
+          <li>
+            Repo: <code>apps/web/src/server/api/embed/embed-script.ts</code>,
+            <code>apps/web/src/server/lib/suggest.ts</code>,
+            <code>apps/web/src/client/features/links/redirect-snippet.tsx</code>.
+          </li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

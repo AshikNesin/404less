@@ -1,0 +1,260 @@
+<!--meta
+{
+  "path": "/guides/redirects-after-migration",
+  "nav": "guides",
+  "draft": true,
+  "title": "Redirects after a site migration or URL restructure · 404less",
+  "ogTitle": "Redirects after a site migration or URL restructure",
+  "description": "A checklist for redirects after a URL restructure: inventory the old paths, map each one, send one permanent hop, and watch the 404s that the map missed.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://developers.google.com/search/docs/crawling-indexing/http-network-errors
+https://vercel.com/docs/routing/redirects/bulk-redirects
+https://developers.cloudflare.com/pages/configuration/redirects/
+https://docs.netlify.com/manage/routing/redirects/overview/
+Repo redirect-snippet.tsx
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Guide · draft</span>
+        <h1>Redirects after a site migration or URL restructure.</h1>
+        <p class="lead">
+          One old path, one new path, one permanent hop. Everything else in a migration is
+          bookkeeping so that list is complete, and a way to hear about the URLs you missed.
+        </p>
+        <div class="toc">
+          <a href="#inventory">Inventory</a>
+          <a href="#map">Map</a>
+          <a href="#status">Status</a>
+          <a href="#ship">Ship the file</a>
+          <a href="#after">After launch</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="Old URL, one redirect, new URL">
+        <div class="trace-head">
+          <span class="trace-site">migration</span>
+          <span class="trace-path">/docs/v1/install</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">old</span>
+            <div>
+              <div class="trace-title">/docs/v1/install</div>
+              <div class="trace-meta">Sitemap, analytics, and the 404 log</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">301</span>
+            <div>
+              <div class="trace-title">One hop</div>
+              <div class="trace-meta">Google follows up to 10 and indexes the last URL</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">new</span>
+            <div>
+              <div class="trace-title">/docs/install</div>
+              <div class="trace-meta">Internal links updated in the same change</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="inventory">
+        <h2>Inventory the URLs that already exist in the wild</h2>
+        <ul>
+          <li>The current sitemap, and the previous one if you still have the file.</li>
+          <li>Paths in analytics that received a session in the last few months.</li>
+          <li>URLs other sites link to. A crawler of your own pages misses those until someone hits them.</li>
+          <li>
+            Once 404less is on the old 404 page, the visitor log
+            (<code>not_found_events</code>, pruned on the retention schedule) and the broken-link
+            list. Hits are the paths people still request.
+          </li>
+        </ul>
+        <p>
+          A sitemap import fills <code>known_urls</code>, which is also what suggestions are
+          ranked against. Import the new sitemap after the new URLs exist, so a suggestion is a
+          page you kept.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — a count from a move you did.
+          The SEO notes mention AIEngineerGuide merging posts. If that happened, put the real
+          numbers here. This draft does not invent them.]
+        </p>
+      </section>
+
+      <section id="map">
+        <h2>Map each old URL to one outcome</h2>
+        <ul>
+          <li>A specific new URL, when the content moved or was renamed.</li>
+          <li>410 or 404, when nothing replaced it. A 410 says the removal is intentional. Google’s status-code doc treats 404 and 410 the same for indexing: the URL comes out of the index.</li>
+          <li>Leave it alone when the path did not change.</li>
+        </ul>
+        <p>
+          Skip “send everything unknown to the homepage.” That serves one page for many old
+          URLs. The
+          <a class="link" href="/guides/fix-soft-404-search-console">soft 404 guide</a> is why
+          that is a weak map. A close page is a real target. No close page means a 404.
+        </p>
+        <p>
+          Update the hrefs inside the site in the same change as the redirect. The redirect
+          saves bookmarks and other people’s links. Internal links should point at the new path
+          so you are not one hop away from yourself. The agent prompt in
+          <code>redirect-snippet.tsx</code> asks for both. The
+          <a class="link" href="/guides/fix-broken-links-with-mcp">MCP guide</a> is how to hand
+          the list to Claude Code or Cursor.
+        </p>
+      </section>
+
+      <section id="status">
+        <h2>Pick the status once</h2>
+        <p>
+          A move that is staying is a permanent redirect. Google treats 301 and 308 as the same
+          strong signal, and 302 and 307 as a weak one. They follow up to 10 hops and index the
+          final URL, ignoring the body of the redirecting URLs. Chains waste hops and add a
+          round trip. Point the old path at the final path.
+        </p>
+        <p>
+          Temporary (302 or 307) is for a move you will undo. A launch-week “we might revert”
+          that you forget becomes the signal Google keeps.
+        </p>
+        <div class="callout">
+          Related tool:
+          <a class="link" href="/tools/redirect-chain-checker">redirect chain checker</a>.
+          That path may 404 until the tools PR lands.
+        </div>
+      </section>
+
+      <section id="ship">
+        <h2>Ship the file your host actually reads</h2>
+        <p>
+          The five strings below are what the dashboard generates for
+          <code>/docs/old</code> → <code>/docs/new</code>. Use the one that matches the repo.
+        </p>
+        <h3>Cloudflare Pages and Netlify</h3>
+        <pre class="code" data-check="redirects"># _redirects (Cloudflare Pages / Netlify)
+/docs/old  /docs/new  301</pre>
+        <p>
+          Pages defaults to 302 if you drop the code, caps the file at 2,000 static rules plus
+          100 dynamic ones, and will not take a Netlify-style query condition. Netlify defaults
+          to 301, processes <code>_redirects</code> before <code>netlify.toml</code>, and shadows
+          a rule when a file exists unless you force it. Both are written up in the
+          <a class="link" href="/guides/track-404s-cloudflare-pages">Pages</a> and
+          <a class="link" href="/guides/netlify-redirects-not-working">Netlify</a> guides. A large
+          Netlify list that fails the deploy is the “10,000 rules” note in their overview: use
+          splats where a whole prefix moved.
+        </p>
+        <h3>Vercel and Next.js</h3>
+        <pre class="code" data-check="json">{
+  "redirects": [
+    {
+      "source": "/docs/old",
+      "destination": "/docs/new",
+      "permanent": true
+    }
+  ]
+}</pre>
+        <pre class="code" data-check="js">// next.config.js
+module.exports = {
+  async redirects() {
+    return [{ source: "/docs/old", destination: "/docs/new", permanent: true }];
+  },
+};
+</pre>
+        <p>
+          <code>permanent: true</code> is a 308. For a migration of thousands of one-to-one
+          paths, Vercel bulk redirects are the feature built for that, on Pro and Enterprise,
+          with <code>permanent</code> defaulting to false (307) in that system. Read
+          <a class="link" href="/guides/vercel-redirects">Vercel redirects</a> before you
+          generate a CSV, or every row is temporary.
+        </p>
+        <h3>Nginx and Apache</h3>
+        <pre class="code">location = /docs/old {
+  return 301 /docs/new;
+}</pre>
+        <pre class="code"># .htaccess
+Redirect 301 /docs/old /docs/new</pre>
+        <p>
+          <code>location =</code> is an exact match. A prefix move is a different nginx block;
+          this generator does not emit one. Apache’s <code>Redirect</code> matches the path
+          prefix, so <code>Redirect 301 /docs/old /docs/new</code> also covers
+          <code>/docs/old/chapter</code>. That is Apache’s behaviour, and it surprises people who
+          expected an exact path. Use <code>RedirectMatch</code> when you need an exact line.
+        </p>
+        <p class="todo">
+          [ASHIK: if you have a prefix move you have deployed, paste that nginx or Apache block
+          here. The exact-match snippets above are the ones the product emits. The prefix
+          warning is the usual <code>mod_alias</code> behaviour; link the Apache doc you want
+          readers to trust.]
+        </p>
+        <div class="callout">
+          Related tool:
+          <a class="link" href="/tools/redirect-generator">redirect rule generator</a>, which
+          should emit these five forms from one pair of paths. That path may 404 until the tools
+          PR lands.
+        </div>
+      </section>
+
+      <section id="after">
+        <h2>After launch</h2>
+        <ul>
+          <li>Keep the old host answering with the redirects until logs go quiet. Cutting the old domain over to a parking page on day one drops the map.</li>
+          <li>Submit the new sitemap in Search Console.</li>
+          <li>Put the embed on the new 404 page so the paths the map missed show up with a referrer. That is <a class="link" href="/guides/track-404s-cloudflare-pages">tracking 404s</a>.</li>
+          <li>Re-crawl. A link that now returns 200 or 300 is resolved by the crawler. A link that still 404s stays open.</li>
+          <li>Look at redirect chains once, with the tool above or with <code>curl -sI -L</code>.</li>
+        </ul>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — how many mapped URLs still
+          404’d a week later on a move you ran.]
+        </p>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://developers.google.com/search/docs/crawling-indexing/http-network-errors" rel="noopener"
+              >Google: How HTTP status codes affect crawling</a
+            >
+            — 10 hops, 301 equivalent to 308, 4xx removed from the index.
+          </li>
+          <li>
+            <a class="link" href="https://vercel.com/docs/routing/redirects/bulk-redirects" rel="noopener"
+              >Vercel: Bulk redirects</a
+            >
+            — when a long one-to-one list belongs there, and the 307 default.
+          </li>
+          <li>
+            <a class="link" href="https://developers.cloudflare.com/pages/configuration/redirects/" rel="noopener"
+              >Cloudflare Pages: Redirects</a
+            >
+            — 2,000 static plus 100 dynamic, 302 default.
+          </li>
+          <li>
+            <a class="link" href="https://docs.netlify.com/manage/routing/redirects/overview/" rel="noopener"
+              >Netlify: Redirects overview</a
+            >
+            — rule order, and the note about 10,000 rules.
+          </li>
+          <li>Repo: <code>apps/web/src/client/features/links/redirect-snippet.tsx</code>.</li>
+          <li>
+            <a class="link" href="https://httpd.apache.org/docs/current/mod/mod_alias.html#redirect" rel="noopener"
+              >Apache: Redirect</a
+            >
+            — extra path after the matched prefix is appended to the target. Use
+            <code>RedirectMatch</code> for an exact path.
+          </li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>

@@ -1,0 +1,228 @@
+<!--meta
+{
+  "path": "/guides/fix-soft-404-search-console",
+  "nav": "guides",
+  "draft": true,
+  "title": "Fixing soft 404 errors in Google Search Console · 404less",
+  "ogTitle": "Fixing soft 404 errors in Google Search Console",
+  "description": "Search Console reports a soft 404 when a 2xx response looks like an error or an empty page. Return a real 404 or 410, or 301 to a page that is actually the thing the URL promised.",
+  "og": "/og/og.png"
+}
+-->
+<!-- sources:
+https://developers.google.com/search/docs/crawling-indexing/http-network-errors
+https://developers.cloudflare.com/pages/configuration/serving-pages/
+https://docs.netlify.com/manage/routing/redirects/redirect-options/
+https://nextjs.org/docs/app/api-reference/file-conventions/not-found
+The older URL https://developers.google.com/search/docs/appearance/soft-404-errors returned not found on 10 Nov 2026.
+-->
+<main class="doc guide">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Guide · draft</span>
+        <h1>Fixing soft 404 errors in Google Search Console.</h1>
+        <p class="lead">
+          A soft 404 is a success status on a page that looks like a failure. Google says so in
+          the status-code documentation. The fix is the status line, then the body.
+        </p>
+        <div class="toc">
+          <a href="#definition">What Google calls a soft 404</a>
+          <a href="#hosts">How static hosts produce one</a>
+          <a href="#fix">What to send instead</a>
+          <a href="#check">How to check</a>
+        </div>
+      </div>
+      <figure class="trace" aria-label="A 200 of an error page is a soft 404; a 404 status is a hard 404">
+        <div class="trace-head">
+          <span class="trace-site">search console</span>
+          <span class="trace-path is-broken">/blog/retired-post</span>
+        </div>
+        <ol class="trace-steps">
+          <li class="trace-step is-bad">
+            <span class="trace-mark" aria-hidden="true">200</span>
+            <div>
+              <div class="trace-title">Soft 404</div>
+              <div class="trace-meta">2xx, and the body is an error, empty, or a message that the page is gone</div>
+            </div>
+          </li>
+          <li class="trace-step">
+            <span class="trace-mark" aria-hidden="true">404</span>
+            <div>
+              <div class="trace-title">Hard 404</div>
+              <div class="trace-meta">Google drops the URL from the index. The body is ignored</div>
+            </div>
+          </li>
+          <li class="trace-step is-ok">
+            <span class="trace-mark" aria-hidden="true">301</span>
+            <div>
+              <div class="trace-title">Or a permanent redirect</div>
+              <div class="trace-meta">Only when a specific page replaced this one</div>
+            </div>
+          </li>
+        </ol>
+      </figure>
+    </div>
+    <div class="body">
+      <section id="definition">
+        <h2>What Google calls a soft 404</h2>
+        <p>
+          On the page
+          <a
+            class="link"
+            href="https://developers.google.com/search/docs/crawling-indexing/http-network-errors"
+            rel="noopener"
+            >How HTTP status codes affect Google’s crawlers</a
+          >, a <code>2xx</code> means Google will consider the body. Then this sentence: if the
+          content suggests an error, or the page is empty, or the page is an error message,
+          Search Console shows a soft 404. A 200 does not promise indexing. It does put the body
+          in front of the indexer.
+        </p>
+        <p>
+          A real <code>404</code> or <code>410</code> is handled with the other <code>4xx</code>
+          codes (except 429). Google does not index them. A URL that used to be indexed and now
+          returns <code>4xx</code> is removed over time. The bytes of a 404 page are ignored.
+          That is a hard 404, which is what you want for a URL that should not exist.
+        </p>
+        <p>
+          The dedicated help article that used to live at
+          <code>/search/docs/appearance/soft-404-errors</code> returned “not found” when this
+          draft was written. The status-code page is the citation until that article has a
+          working URL again.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — a Search Console row from a
+          property you own, and the current Google help URL if they have republished the soft
+          404 article. Also say whether redirecting a deleted URL to the homepage showed up as a
+          soft 404 for you. This draft does not claim that, because the page that used to say it
+          was not available.]
+        </p>
+      </section>
+
+      <section id="hosts">
+        <h2>How a static host produces one</h2>
+        <p>
+          Cloudflare Pages, when the build has no top-level <code>404.html</code>, serves the
+          root document for any path that is not an asset. That is in their serving-pages doc.
+          The visitor asked for <code>/blog/retired-post</code> and received the homepage. If
+          that response is a 200, it matches Google’s soft-404 description whenever the homepage
+          is a poor stand-in for the missing URL, and it matches it directly when your SPA then
+          renders an error state at that URL.
+        </p>
+        <p>
+          Netlify’s <code>/* /index.html 200</code> is the same shape: status 200, body of
+          whatever <code>index.html</code> is, address bar unchanged. Their docs call 200 a
+          rewrite. Put specific 301s above that line, and ship a <code>404.html</code> for paths
+          that should die. The order is in
+          <a class="link" href="/guides/netlify-redirects-not-working">Netlify redirects not working</a>.
+        </p>
+        <p>
+          Next.js, from the <code>not-found.js</code> doc: before streaming starts, the status is
+          404. After streaming has started, the status stays 200 and the not-found UI is rendered
+          into the response. Next injects a meta tag in both cases. The tag’s name did not
+          survive the text extract of that doc, so it is not repeated here. A 200 with a “not
+          found” heading is the soft-404 shape Google describes.
+        </p>
+        <p class="todo">
+          [ASHIK: open
+          https://nextjs.org/docs/app/api-reference/file-conventions/not-found and write the meta
+          tag’s name. The 404less embed does not treat a <code>robots</code> meta as a 404. It
+          looks at <code>data-404</code>, metas named <code>404less</code>,
+          <code>prerender-status-code</code>, or <code>render:status_code</code>, and the title.
+          That is why the product snippet sets <code>data-404="true"</code>.]
+        </p>
+        <p>
+          404less’s crawler will not flag these. <code>isWorking</code> in
+          <code>apps/web/src/server/api/crawl/checker.ts</code> treats every 2xx and 3xx as a
+          working link (401 and 429 too, plus any status you listed under ignored codes). A soft
+          404 is a successful response by that test. The embed only runs when the page is
+          detected as a 404, so a homepage served for a missing path does not report the hit
+          either.
+        </p>
+      </section>
+
+      <section id="fix">
+        <h2>What to send instead</h2>
+        <p>Pick one, per URL:</p>
+        <ul>
+          <li>
+            The page should exist. Make the URL return its own content with a 200, and a title
+            that is not an error.
+          </li>
+          <li>
+            A specific page replaced it. Send a permanent redirect, one hop.
+            <a class="link" href="/guides/vercel-redirects">301 vs 308 on Vercel</a> and the
+            <a class="link" href="/guides/redirects-after-migration">migration checklist</a>.
+            Google follows up to 10 hops and indexes the final URL. A 301 and a 308 are both
+            strong permanent signals in their status-code doc.
+          </li>
+          <li>
+            Nothing replaced it. Return 404 or 410, with your
+            <a class="link" href="/guides/custom-404-hugo-next-astro">custom 404 page</a> as the
+            body. The status is what removes the URL. The body is for the human who followed an
+            old link.
+          </li>
+        </ul>
+        <p>
+          Pointing dozens of retired URLs at <code>/</code> gives Google the homepage for each of
+          them. Prefer a close replacement, or a 404, so the indexed URL and the content agree.
+        </p>
+        <div class="callout">
+          Related tool:
+          <a class="link" href="/tools/404-page-checker">404 page checker</a>
+          for “is this a 200 with an error body, or a real 404?”. That path may 404 until the
+          tools PR lands.
+        </div>
+      </section>
+
+      <section id="check">
+        <h2>How to check a URL before you trust the report</h2>
+        <pre class="code">curl -sI https://example.com/blog/retired-post</pre>
+        <p>
+          Read the first status line, and follow <code>Location</code> if you see one.
+          <code>curl -sI -L</code> shows the hop list. Then open the URL in a browser and read
+          the title. Search Console’s URL inspection is the same request from Google’s side.
+          After you change the status, the report lags the crawl. A 404 you shipped today can
+          sit in the soft-404 report until Google fetches it again.
+        </p>
+        <p class="todo">
+          [ASHIK: add your own screenshot/numbers/experience here — how long a fixed URL stayed
+          in your soft-404 report. No number from a property of yours is in this draft.]
+        </p>
+      </section>
+
+      <section id="sources">
+        <h2>Sources</h2>
+        <p>Read on 10 Nov 2026.</p>
+        <ul class="sources">
+          <li>
+            <a class="link" href="https://developers.google.com/search/docs/crawling-indexing/http-network-errors" rel="noopener"
+              >Google: How HTTP status codes affect crawling</a
+            >
+            — soft 404 defined on 2xx error-like content; 4xx dropped from the index; 10 redirect hops; 308 equivalent to 301.
+          </li>
+          <li>
+            <a class="link" href="https://developers.cloudflare.com/pages/configuration/serving-pages/" rel="noopener"
+              >Cloudflare Pages: Serving Pages</a
+            >
+            — no top-level <code>404.html</code> means the root document is served for unknown paths.
+          </li>
+          <li>
+            <a class="link" href="https://docs.netlify.com/manage/routing/redirects/redirect-options/" rel="noopener"
+              >Netlify: Redirect options</a
+            >
+            — status 200 is a rewrite.
+          </li>
+          <li>
+            <a class="link" href="https://nextjs.org/docs/app/api-reference/file-conventions/not-found" rel="noopener"
+              >Next.js: not-found.js</a
+            >
+            — 404 before streaming, 200 after streaming has started.
+          </li>
+          <li>Repo: <code>apps/web/src/server/api/crawl/checker.ts</code> (<code>isWorking</code>).</li>
+        </ul>
+      </section>
+      {{cta}}
+    </div>
+  </div>
+</main>
