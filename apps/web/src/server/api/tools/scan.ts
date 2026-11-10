@@ -63,10 +63,14 @@ export async function scanChunk(input: unknown): Promise<ScanResult> {
     body.state && typeof body.state === "object" ? (body.state as Record<string, unknown>) : {};
   const host = start.host.replace(/^www\./, "");
   const queue = strings(stateIn.queue, 80).filter((url) => sameHost(url, host));
+  const queued = new Set(queue);
   const seen = new Set(strings(stateIn.seen, 200));
   const checked = new Set(strings(stateIn.checked, 400));
   let pages = clamp(stateIn.pages, 0, 0, MAX_SCAN_PAGES);
-  if (!queue.length && pages === 0 && seen.size === 0) queue.push(start.toString());
+  if (!queue.length && pages === 0 && seen.size === 0) {
+    queue.push(start.toString());
+    queued.add(start.toString());
+  }
 
   const notes: string[] = [];
   const robots = await loadRobots(start.origin, notes);
@@ -148,9 +152,11 @@ export async function scanChunk(input: unknown): Promise<ScanResult> {
       if (!sameHost(linked.toString(), host) || linked.search || SKIP_CRAWL.test(linked.pathname))
         continue;
       if (isAlwaysIgnored(linked.toString())) continue;
-      const id = canon(linked.toString());
-      if (seen.has(id) || queue.includes(linked.toString()) || queue.length >= 80) continue;
-      queue.push(linked.toString());
+      const nextUrl = linked.toString();
+      const id = canon(nextUrl);
+      if (seen.has(id) || queued.has(nextUrl) || queue.length >= 80) continue;
+      queue.push(nextUrl);
+      queued.add(nextUrl);
     }
 
     const candidates = [...links.map((link) => link.url), ...assets]

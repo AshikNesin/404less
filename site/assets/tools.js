@@ -62,9 +62,11 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `The check failed (${res.status}).`);
-    return data;
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `The check failed (${res.status}).`);
+    }
+    return res.json();
   }
 
   async function runRedirects() {
