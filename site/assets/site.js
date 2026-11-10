@@ -93,9 +93,18 @@
         }),
       })
         .then(function (res) {
-          return res.json().then(function (body) {
-            return { ok: res.ok, status: res.status, body: body };
-          });
+          if (res.ok) {
+            return res.json().then(function (body) {
+              return { ok: true, status: res.status, body: body };
+            });
+          }
+          // 400 and 429 carry a JSON { error } the form shows. Other failures do not.
+          if (res.status === 400 || res.status === 429) {
+            return res.json().then(function (body) {
+              return { ok: false, status: res.status, body: body };
+            });
+          }
+          return { ok: false, status: res.status, body: null };
         })
         .then(function (res) {
           if (res.ok && res.body && res.body.ok) {

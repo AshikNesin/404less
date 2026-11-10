@@ -47,15 +47,23 @@ async function callTool(name: string, args: unknown): Promise<unknown> {
       params: { name, arguments: args ?? {} },
     }),
   });
-  const body = (await res.json().catch(() => null)) as {
-    result?: unknown;
-    error?: { message?: string };
-  } | null;
-  if (body?.result) return body.result;
-  return {
-    content: [{ type: "text", text: body?.error?.message ?? `upstream HTTP ${res.status}` }],
-    isError: true,
-  };
+  if (!res.ok) {
+    const failed = (await res.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+    return {
+      content: [{ type: "text", text: failed?.error?.message ?? `upstream HTTP ${res.status}` }],
+      isError: true,
+    };
+  }
+  const body = (await res.json().catch(() => null)) as { result?: unknown } | null;
+  if (!body?.result) {
+    return {
+      content: [{ type: "text", text: `upstream HTTP ${res.status}` }],
+      isError: true,
+    };
+  }
+  return body.result;
 }
 
 async function handle(line: string): Promise<void> {
