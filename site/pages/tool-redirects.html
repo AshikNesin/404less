@@ -1,0 +1,237 @@
+<!--meta
+{
+  "path": "/tools/301-redirect-generator",
+  "nav": "tools",
+  "title": "301 redirect generator for htaccess, Netlify, Vercel and Nginx · 404less",
+  "ogTitle": "301 redirect generator",
+  "description": "Generate 301 redirects for Apache .htaccess, Netlify and Cloudflare Pages _redirects, vercel.json, Next.js and Nginx. Convert Netlify _redirects to vercel.json and catch the mistakes that make redirects look broken.",
+  "og": "/og/og.png"
+}
+-->
+<main class="doc">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> 301 redirect generator</span>
+        <h1>301 redirect generator</h1>
+        <p class="lead">
+          Paste old and new URLs, a CSV, a Netlify or Cloudflare Pages <code>_redirects</code> file,
+          or <code>vercel.json</code>. You get rules for <code>_redirects</code>,
+          <code>vercel.json</code>, Next.js, Nginx and Apache <code>.htaccess</code>, plus the
+          mistakes that make a redirect look like it isn’t working.
+        </p>
+      </div>
+    </div>
+
+    <form class="tool" data-tool="redirects">
+      <label for="rules"
+        >One pair per line, or paste <code>_redirects</code> / <code>vercel.json</code></label
+      >
+      <textarea id="rules" spellcheck="false">
+/docs/v1/install /docs/install 301
+/docs/v1/config /docs/config 301
+/blog/* /news/:splat 301
+</textarea
+      >
+      <div class="tool-actions">
+        <button class="btn btn-primary" type="submit">Generate rules</button>
+        <button class="btn btn-secondary" type="button" data-example="shadow">
+          Splat-first example
+        </button>
+        <button class="btn btn-secondary" type="button" data-example="vercel">
+          vercel.json example
+        </button>
+        <button class="btn btn-secondary" type="button" data-example="csv">CSV example</button>
+      </div>
+      <p class="tool-msg" data-msg hidden></p>
+      <div data-out hidden>
+        <p class="tool-note" data-detected></p>
+        <div class="out-tabs" data-tabs role="tablist" aria-label="Redirect format"></div>
+        <pre class="code"><code data-code></code></pre>
+        <div class="tool-actions">
+          <button class="btn btn-secondary btn-sm" type="button" data-copy>Copy</button>
+        </div>
+        <ul class="issues" data-issues></ul>
+        <div data-notes></div>
+      </div>
+    </form>
+
+    <div class="body">
+      <section>
+        <h2>htaccess redirect generator</h2>
+        <p>
+          Apache’s <code>Redirect</code> is prefix-based. This rule looks like it only moves
+          <code>/docs</code>:
+        </p>
+        <pre class="code"><code>Redirect 301 /docs /docs/install</code></pre>
+        <p>
+          It also redirects <code>/docs/install</code> to <code>/docs/install/install</code>, and
+          then that URL to <code>/docs/install/install/install</code>. The generator emits
+          <code>RedirectMatch</code> with <code>^</code> and <code>$</code> so
+          <code>/docs</code> does not catch <code>/docs/install</code>:
+        </p>
+        <pre class="code"><code>RedirectMatch 301 ^/docs$ /docs/install</code></pre>
+        <p>
+          A splat becomes a capture. <code>/blog/*</code> → <code>/news/:splat</code> is
+          <code>RedirectMatch 301 ^/blog/(.*)$ /news/$1</code>.
+        </p>
+      </section>
+
+      <section>
+        <h2>Netlify _redirects to vercel.json</h2>
+        <p>The same three ideas, written the way each host actually matches them:</p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Netlify / Cloudflare Pages</th>
+                <th>Vercel and Next.js</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>/blog/*</code></td>
+                <td><code>/blog/:path*</code></td>
+              </tr>
+              <tr>
+                <td><code>/news/:splat</code></td>
+                <td><code>/news/:path*</code></td>
+              </tr>
+              <tr>
+                <td><code>301</code></td>
+                <td><code>statusCode: 301</code></td>
+              </tr>
+              <tr>
+                <td><code>301!</code> (force, even if a file exists)</td>
+                <td>No equivalent. The file has to be gone.</td>
+              </tr>
+              <tr>
+                <td><code>200</code> (rewrite, URL stays)</td>
+                <td><code>rewrites</code>, not <code>redirects</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Paste either format in the box. A <code>vercel.json</code> that says
+          <code>"permanent": true</code> is read as <strong>308</strong>, because that is what
+          Vercel sends. The files this page writes use <code>statusCode: 301</code> when you asked
+          for a 301, so the status does not change on the way across.
+        </p>
+      </section>
+
+      <section>
+        <h2>Why Netlify redirects look like they aren’t working</h2>
+        <p>
+          These are the failures the warnings are for. All of them show up in real
+          <code>_redirects</code> files.
+        </p>
+        <h3>The first match wins</h3>
+        <p>
+          Netlify, Cloudflare Pages, Vercel and Next.js stop at the first rule that matches. This
+          file never reaches the docs rule, because <code>/*</code> already rewrote the request to
+          <code>index.html</code>:
+        </p>
+        <pre class="code"><code>/*            /index.html   200
+/docs/old    /docs/new     301</code></pre>
+        <p>
+          Put the specific rules above the splat. A single-page app still wants
+          <code>/* /index.html 200</code>, but it has to be last. The “Splat-first example” button
+          loads this mistake so you can see the warning.
+        </p>
+        <h3>The trailing slash is a different URL</h3>
+        <p>
+          A rule for <code>/about</code> does not match <code>/about/</code>. If the site answers
+          both, you need both rules, or one splat. Two rules that swap the slash (<code
+            >/about</code
+          >
+          → <code>/about/</code> and <code>/about/</code> → <code>/about</code>) loop.
+        </p>
+        <h3>301 and 308 are not the same status</h3>
+        <p>
+          <code>permanent: true</code> in <code>vercel.json</code> and in
+          <code>next.config.js</code> is a <strong>308</strong>. A 308 keeps the HTTP method (a POST
+          stays a POST). A 301 lets the client turn it into a GET. Browsers follow both, but a form
+          POST, a webhook, or a crawler that records the status will not treat them as the same
+          redirect. If you want a 301, set <code>statusCode: 301</code>. Don’t set
+          <code>permanent</code> as well and hope.
+        </p>
+        <h3>A file at the old path wins</h3>
+        <p>
+          On Netlify and Cloudflare Pages a real file is served before <code>_redirects</code>,
+          unless the status has a force flag: <code>/old /new 301!</code>. Vercel has no force flag.
+          Delete the file, or the redirect never runs. The other formats leave the
+          <code>!</code> out and say so.
+        </p>
+        <h3>200 is not a redirect</h3>
+        <p>
+          <code>/docs /docs/index.html 200</code> rewrites the request. The browser stays on
+          <code>/docs</code>. Search engines do not pass equity the way they do for a 301, and
+          <code>vercel.json</code> puts that line in <code>rewrites</code>, not
+          <code>redirects</code>.
+        </p>
+      </section>
+
+      <section>
+        <h2>Questions</h2>
+        <div class="faq">
+          <details>
+            <summary>Where does the _redirects file go?</summary>
+            <div class="a">
+              In the publish directory, named exactly <code>_redirects</code>. For Cloudflare Pages
+              that is the build output. For Netlify it is the same, unless you declare the rules in
+              <code>netlify.toml</code> instead. A file named <code>redirects</code> or sitting in
+              <code>src/</code> is never read.
+            </div>
+          </details>
+          <details>
+            <summary>Do Cloudflare Pages and Netlify use the same file?</summary>
+            <div class="a">
+              The static rules do: <code>from to status</code>, splats, and <code>:splat</code>.
+              Netlify’s conditions (<code>Country=us</code>, <code>Role=admin</code>) are not in
+              Cloudflare Pages. This generator drops them and warns, because the other hosts have no
+              place to put them.
+            </div>
+          </details>
+          <details>
+            <summary>Can I paste a whole vercel.json?</summary>
+            <div class="a">
+              Yes. Redirects and rewrites are converted. Other keys (headers, crons, functions) are
+              left out, with a warning, so you can merge the new <code>redirects</code> array into
+              the file you already have.
+            </div>
+          </details>
+          <details>
+            <summary>What about query strings?</summary>
+            <div class="a">
+              <code>/go?id=:id /landing/:id 301</code> is a Netlify pattern. Vercel expresses the
+              same idea with a <code>has</code> condition, and Nginx only keeps the original query
+              when the destination doesn’t set one (<code>$is_args$args</code>). The generator keeps
+              the query in the path and warns that it will not match the same way everywhere.
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<section class="cta">
+  <div class="container">
+    <h2>Generate the rule when a real 404 shows up.</h2>
+    <p>
+      404less records the 404, suggests the closest page, and gives you this same redirect for
+      <code>_redirects</code>, Vercel, Next.js, Nginx or Apache. Self-host it on Cloudflare’s free
+      tier.
+    </p>
+    <div class="ctas">
+      <a
+        class="btn btn-primary"
+        href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less"
+        rel="noopener"
+        >Deploy to Cloudflare</a
+      >
+      <a class="btn btn-secondary" href="/tools/waitlist">Cloud version waitlist</a>
+    </div>
+  </div>
+</section>
+<script src="/tools.js" defer></script>

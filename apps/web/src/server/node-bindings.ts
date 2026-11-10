@@ -44,20 +44,25 @@ function namespace(handler: Handler) {
   };
 }
 
-/** Same limits as do/rate-limiter.ts. */
+/** Same limits as do/rate-limiter.ts. `?limit=` overrides the default 500, capped at 500. */
 function rateLimiter(): Handler {
-  const LIMIT = 500;
   const windows = new Map<string, { count: number; windowStart: number }>();
-  return async (name) => {
+  return async (name, request) => {
+    const url = new URL(request.url);
+    const key = url.pathname.split("/").filter(Boolean)[0] || name;
+    const requested = url.searchParams.get("limit");
+    const parsed = requested == null ? 500 : Math.floor(Number(requested));
+    const limit =
+      requested == null || !Number.isFinite(parsed) ? 500 : Math.min(500, Math.max(1, parsed));
     const now = Date.now();
-    const state = windows.get(name) ?? { count: 0, windowStart: now };
+    const state = windows.get(key) ?? { count: 0, windowStart: now };
     if (now - state.windowStart > 3_600_000) {
       state.count = 0;
       state.windowStart = now;
     }
-    if (state.count >= LIMIT) return new Response(null, { status: 429 });
+    if (state.count >= limit) return new Response(null, { status: 429 });
     state.count++;
-    windows.set(name, state);
+    windows.set(key, state);
     return new Response(null, { status: 204 });
   };
 }

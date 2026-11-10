@@ -13,6 +13,7 @@ import { sites } from "./api/sites/sites.routes";
 import { appConfig } from "./config";
 import { sessionMiddleware } from "./middlewares/session.middleware";
 import type { AppBindings } from "./types";
+import { tools } from "./api/tools/tools.routes";
 import { staticAssets } from "./worker/static-assets";
 
 /** What a runtime supplies: its env source and adapters. Everything else is the app's. */
@@ -24,6 +25,9 @@ export type WebRuntime = Omit<BootstrapOptions, "config">;
  * `Access-Control-Allow-Origin: *` instead of the app's CORS allow-list.
  */
 export const WIDGET_PATHS = ["/api/track", "/api/suggestions"];
+
+/** Marketing tools are public and must answer the site even when dashboard CORS is locked down. */
+const OPEN_CORS = [...WIDGET_PATHS, "/api/tools/*"];
 
 /**
  * The one boot sequence for the Node and Workers entries and the test setup:
@@ -38,10 +42,11 @@ export function startWebApp(runtime: WebRuntime) {
 export function createWebApp(options: Omit<CreateAppOptions, "routes" | "openCorsPaths"> = {}) {
   return createApp({
     ...options,
-    openCorsPaths: WIDGET_PATHS,
+    openCorsPaths: OPEN_CORS,
     routes(app) {
       // Public: paths are external contracts; never move them.
       app.route("/", embed); // GET /embed.js
+      app.route("/api/tools", tools); // public marketing tools (no account, no database)
       app.route("/api", ingest); // POST /api/track, GET /api/suggestions
       app.route("/", mcp); // /mcp (MCP streamable HTTP, bearer API key)
       app.route("/api/v1/auth", auth); // POST magic, GET verify, POST logout

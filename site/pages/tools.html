@@ -1,0 +1,86 @@
+<!--meta
+{
+  "path": "/tools",
+  "nav": "tools",
+  "title": "Free redirect, 404 and broken-link tools · 404less",
+  "ogTitle": "Free tools for redirects, 404s and broken links",
+  "description": "301 redirect generator, Netlify to Vercel converter, redirect chain checker, soft 404 checker and a capped broken-link scan. No account. The same checks 404less runs when you self-host it.",
+  "og": "/og/og.png"
+}
+-->
+<main class="doc">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Free tools</span>
+        <h1>Fix the redirect. Then stop doing it by hand.</h1>
+        <p class="lead">
+          Five small tools for the jobs that show up mid-deploy: generate a 301, convert
+          <code>_redirects</code> to <code>vercel.json</code>, see a redirect chain, tell a real 404
+          from a soft 404, or scan a site for broken links. No account. The same code 404less uses
+          when you host it yourself.
+        </p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <a class="card" href="/tools/301-redirect-generator">
+        <span class="eyebrow">301 redirect generator</span>
+        <h3>htaccess, Netlify, Vercel, Nginx</h3>
+        <p>
+          Paste old → new URLs, a <code>_redirects</code> file or <code>vercel.json</code>. Get
+          rules for every host, and a warning when a splat, a slash or a 308 will make them miss.
+        </p>
+      </a>
+      <a class="card" href="/tools/redirect-chain-checker">
+        <span class="eyebrow">Redirect chain checker</span>
+        <h3>Every hop, status and loop</h3>
+        <p>
+          Enter a URL. We follow it server-side and flag chains, loops, and a hop that switches
+          between http and https.
+        </p>
+      </a>
+      <a class="card" href="/tools/soft-404-checker">
+        <span class="eyebrow">404 / soft 404 checker</span>
+        <h3>Real 404, or a 200 that pretends</h3>
+        <p>
+          Compare your URL with a path that should not exist. This is the Search Console “Soft 404”
+          warning, checked on the response rather than the template.
+        </p>
+      </a>
+      <a class="card" href="/tools/broken-link-checker">
+        <span class="eyebrow">Broken link checker</span>
+        <h3>A short crawl, no signup</h3>
+        <p>
+          Crawl up to 60 pages. Broken links and redirect chains, with robots.txt, timeouts, and no
+          requests to private addresses.
+        </p>
+      </a>
+      <a class="card" href="/tools/github-action">
+        <span class="eyebrow">GitHub Action</span>
+        <h3>Fail CI on open broken links</h3>
+        <p>
+          A workflow that reads the links your self-hosted crawler already found and fails the job
+          when any are still open.
+        </p>
+      </a>
+    </div>
+  </div>
+</main>
+<section class="cta">
+  <div class="container">
+    <h2>Run the same checks on a schedule.</h2>
+    <p>
+      404less is these tools, plus the 404s real visitors hit, a redirect rule for each one, and
+      alerts. Self-host it on Cloudflare’s free tier.
+    </p>
+    <div class="ctas">
+      <a
+        class="btn btn-primary"
+        href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less"
+        rel="noopener"
+        >Deploy to Cloudflare</a
+      >
+      <a class="btn btn-secondary" href="/tools/waitlist">Cloud version waitlist</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,200 @@
+<!--meta
+{
+  "path": "/tools/broken-link-checker",
+  "nav": "tools",
+  "title": "Broken link checker · free scan of 60 pages · 404less",
+  "ogTitle": "Broken link checker",
+  "description": "Free broken-link scan of up to 60 pages. Lists broken links and redirect chains. Respects robots.txt, times out, and refuses private addresses. No account.",
+  "og": "/og/og.png"
+}
+-->
+<main class="doc">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> Broken link checker</span>
+        <h1>Broken link checker</h1>
+        <p class="lead">
+          Enter a site. We crawl up to 60 pages on that host, check the links on them, and list the
+          broken ones and the redirect chains. No account. It is capped on purpose: a full crawl
+          belongs on a 404less instance you run yourself.
+        </p>
+      </div>
+    </div>
+
+    <form class="tool" data-tool="scan">
+      <label for="scan-url">Site URL</label>
+      <div class="tool-row">
+        <input id="scan-url" name="url" type="url" required placeholder="https://example.com/" />
+        <button class="btn btn-primary" type="submit">Scan</button>
+      </div>
+      <p class="tool-note">
+        Up to 60 pages, same host only. robots.txt is respected. Private and internal addresses are
+        refused.
+      </p>
+      <p class="tool-msg" data-msg hidden></p>
+      <div data-out hidden>
+        <p class="tool-note" data-progress></p>
+        <h3>Broken links</h3>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Status</th>
+                <th>Found on</th>
+              </tr>
+            </thead>
+            <tbody data-broken></tbody>
+          </table>
+        </div>
+        <h3 style="margin-top: 22px">Redirect chains</h3>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Flags</th>
+                <th>Found on</th>
+              </tr>
+            </thead>
+            <tbody data-chains></tbody>
+          </table>
+        </div>
+        <div data-notes></div>
+      </div>
+    </form>
+
+    <div class="body">
+      <section>
+        <h2>What gets reported</h2>
+        <p>
+          A link is broken when the final response is not a success: 404, 410, 500, or no response.
+          401 and 429 are left off the list. A login wall and a rate limit are not broken links, and
+          treating them as broken trains you to ignore the list.
+        </p>
+        <p>
+          A redirect chain is two or more redirects, a loop, or a hop that switches between http and
+          https. One hop from <code>http://</code> to <code>https://</code> on the same path is
+          flagged as mixed-scheme so you can see it, and it is not called a chain. The
+          <a class="link" href="/tools/redirect-chain-checker">redirect chain checker</a> shows
+          every status for a single URL when you need the hops.
+        </p>
+        <p>An example of the two rows that matter:</p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Status</th>
+                <th>Found on</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>https://docs.example.com/guide/v1</code></td>
+                <td>404</td>
+                <td><code>https://docs.example.com/</code></td>
+              </tr>
+              <tr>
+                <td><code>http://docs.example.com/old</code></td>
+                <td>chain, http ↔ https</td>
+                <td><code>https://docs.example.com/blog</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The first wants a new target, or a 301 if the page moved. The
+          <a class="link" href="/tools/301-redirect-generator">301 redirect generator</a> writes the
+          rule. The second wants the chain collapsed so the first hop lands on the final https URL.
+        </p>
+      </section>
+      <section>
+        <h2>What the cap is for</h2>
+        <p>
+          Each request fetches a handful of pages and stops. The page asks again with the queue,
+          until 60 pages or the site runs out of same-host links. That stays inside a Worker’s
+          subrequest limit, and it keeps one visitor from pointing the checker at the whole web.
+        </p>
+        <ul>
+          <li>
+            Same host only. <code>www</code> and the apex are the same site. Other hosts are checked
+            as links, not crawled.
+          </li>
+          <li>
+            <code>robots.txt</code> is read and Disallow rules are skipped. If it does not load, the
+            crawl continues and says so.
+          </li>
+          <li>A page request times out after a few seconds. Huge responses are cut off.</li>
+          <li>
+            Private IPs, link-local, loopback, metadata hostnames, and names that resolve to those
+            addresses are refused. So is any port other than 80, 443, 8080 and 8443.
+          </li>
+        </ul>
+        <p>
+          Results are not saved as a 404less project. Run it again and the list starts over. Forty
+          scan requests an hour from one network.
+        </p>
+      </section>
+      <section>
+        <h2>Questions</h2>
+        <div class="faq">
+          <details>
+            <summary>Why did it miss a page I know is broken?</summary>
+            <div class="a">
+              The crawl stops at 60 pages, skips paths <code>robots.txt</code> disallows, and does
+              not follow query strings or other hosts. A page nobody links will not be found. The
+              self-hosted crawler also records 404s that visitors actually hit, which a crawl from
+              the homepage cannot see.
+            </div>
+          </details>
+          <details>
+            <summary>Does it check images and scripts?</summary>
+            <div class="a">
+              Yes, up to a budget on each page, after the links. A broken stylesheet is a broken
+              link. Files we will not crawl as pages (images, css, pdf) are still checked when
+              something points at them.
+            </div>
+          </details>
+          <details>
+            <summary>Can I use this in CI?</summary>
+            <div class="a">
+              No. It is rate limited and capped, and a pull request should not depend on a public
+              checker. The <a class="link" href="/tools/github-action">GitHub Action</a> reads the
+              open broken links from a 404less instance you host, which is the crawler you already
+              run.
+            </div>
+          </details>
+          <details>
+            <summary>Is the site stored?</summary>
+            <div class="a">
+              The scan does not write a project, a sitemap, or a history. The Worker has ordinary
+              request logs. Self-hosting is what keeps the list, the referrers, and the alerts.
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<section class="cta">
+  <div class="container">
+    <h2>Crawl the whole site, on a schedule.</h2>
+    <p>
+      404less uses this crawler without the 60-page cap you see here: every link and asset, redirect
+      chains included, plus the 404s visitors hit between crawls. Self-host it on Cloudflare’s free
+      tier.
+    </p>
+    <div class="ctas">
+      <a
+        class="btn btn-primary"
+        href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less"
+        rel="noopener"
+        >Deploy to Cloudflare</a
+      >
+      <a class="btn btn-secondary" href="/tools/waitlist">Cloud version waitlist</a>
+    </div>
+  </div>
+</section>
+<script src="/tools.js" defer></script>

@@ -1,0 +1,149 @@
+<!--meta
+{
+  "path": "/tools/github-action",
+  "nav": "tools",
+  "title": "GitHub Action: fail CI on broken links · 404less",
+  "ogTitle": "Fail CI when the crawler finds broken links",
+  "description": "A GitHub Actions snippet that fails the job when your self-hosted 404less crawler has open broken links. Uses the API key you already have. No second crawler.",
+  "og": "/og/og.png"
+}
+-->
+<main class="doc">
+  <div class="container">
+    <div class="head">
+      <div class="head-copy">
+        <span class="eyebrow"><span class="dot"></span> GitHub Action</span>
+        <h1>Fail CI when the crawler finds broken links</h1>
+        <p class="lead">
+          The crawler already ran. This workflow asks your 404less instance for open broken links
+          and fails the job when the list is not empty. Resolved links stay green. There is no
+          second crawl inside GitHub.
+        </p>
+      </div>
+    </div>
+
+    <div class="body">
+      <section>
+        <h2>The workflow</h2>
+        <p>
+          Save it as <code>.github/workflows/broken-links.yml</code>. The same file is in the repo
+          at <code>docs/examples/broken-links.yml</code>. Create a team API key in 404less (it
+          starts with <code>404l_</code>) and three repository secrets:
+        </p>
+        <ul>
+          <li>
+            <code>FOURLESS_URL</code> — the Worker origin, no trailing slash, such as
+            <code>https://404less.example.com</code>
+          </li>
+          <li><code>FOURLESS_KEY</code> — the team API key</li>
+          <li><code>FOURLESS_SITE_ID</code> — the site id from the dashboard URL</li>
+        </ul>
+        <pre class="code"><code>name: Broken links
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+jobs:
+  broken-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if the crawler has open broken links
+        env:
+          FOURLESS_URL: ${{ secrets.FOURLESS_URL }}
+          FOURLESS_KEY: ${{ secrets.FOURLESS_KEY }}
+          FOURLESS_SITE_ID: ${{ secrets.FOURLESS_SITE_ID }}
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Authorization: Bearer $FOURLESS_KEY" \
+            "$FOURLESS_URL/api/v1/sites/$FOURLESS_SITE_ID/links?status=open&amp;limit=100" \
+            -o links.json
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const data = JSON.parse(readFileSync("links.json", "utf8"));
+            const links = data.links ?? [];
+            if (!links.length) {
+              console.log("No open broken links.");
+              process.exit(0);
+            }
+            console.error(links.length + " open broken link(s) the crawler is still tracking:");
+            for (const link of links) {
+              console.error("- " + link.hits + " hit(s)\t" + link.url);
+            }
+            process.exit(1);
+          '</code></pre>
+        <p>
+          The schedule is Monday morning so it reads whatever the daily crawl wrote.
+          <code>workflow_dispatch</code> is already there, so you can run it from the Actions tab
+          without waiting. It calls <code>GET /api/v1/sites/:id/links?status=open</code>, which is
+          the same list the dashboard shows. Ignored and resolved rows are not in it.
+        </p>
+        <p>
+          “New” here means currently open. A link you have marked resolved does not fail CI. A link
+          the crawler reopened, because visitors hit it again or the crawl saw a 404, does.
+        </p>
+      </section>
+      <section>
+        <h2>What this does not do</h2>
+        <p>
+          It does not crawl the pull request’s preview. The public
+          <a class="link" href="/tools/broken-link-checker">broken link checker</a> is capped at 60
+          pages and rate limited, so a CI job that called it would flake. Host 404less, point the
+          crawler at the site, and let CI read the result.
+        </p>
+        <p>
+          The API key is a bearer token for that team. Store it as a secret. Don’t print
+          <code>links.json</code> if the URLs themselves are sensitive; the failure log lists the
+          URL and the hit count, which is the point of the check.
+        </p>
+      </section>
+      <section>
+        <h2>Questions</h2>
+        <div class="faq">
+          <details>
+            <summary>The job fails on links I already know about.</summary>
+            <div class="a">
+              Mark them ignored in 404less if they are not yours to fix (a partner site, a mailto
+              rewrite). Ignored rows stay out of this query. Resolved rows come back only if the URL
+              breaks again.
+            </div>
+          </details>
+          <details>
+            <summary>Can a pull request fail before the crawl has run?</summary>
+            <div class="a">
+              Only on links that are already open. A brand-new 404 in the pull request is invisible
+              until the crawler, or a visitor, sees it. Run “Crawl now” on the preview if you need
+              this check on the PR itself, and point <code>FOURLESS_SITE_ID</code> at that site.
+            </div>
+          </details>
+          <details>
+            <summary>Why not lychee or a curl loop?</summary>
+            <div class="a">
+              Those crawl the repo from zero on every run. This one reuses the crawler you already
+              scheduled, including redirect chains and the 404s a crawl never sees because only a
+              visitor requested them.
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<section class="cta">
+  <div class="container">
+    <h2>The crawler has to be yours.</h2>
+    <p>
+      Deploy 404less, add the site, and the workflow above reads what the crawler stored.
+      Cloudflare’s free tier covers a personal instance.
+    </p>
+    <div class="ctas">
+      <a
+        class="btn btn-primary"
+        href="https://deploy.workers.cloudflare.com/?url=https://github.com/AshikNesin/404less"
+        rel="noopener"
+        >Deploy to Cloudflare</a
+      >
+      <a class="btn btn-secondary" href="/tools/waitlist">Cloud version waitlist</a>
+    </div>
+  </div>
+</section>

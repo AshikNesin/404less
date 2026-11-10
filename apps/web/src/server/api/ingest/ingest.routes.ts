@@ -9,12 +9,11 @@ import type { Env } from "../../types";
 import { eq } from "drizzle-orm";
 import { db, notFoundEvents, websites } from "../../db";
 import { waitUntil } from "../../lib/background";
+import { NOT_FOUND_TITLE } from "../../lib/not-found-title";
 
 export const ingest = new Hono<{ Bindings: Env }>();
 
-/** A "not found" page title; the same test the embed uses to detect a 404 page. */
-export const NOT_FOUND_TITLE =
-  /(^|\D)404(\D|$)|not\s+found|page\s+(doesn.?t|does\s+not|could\s+not\s+be|cannot\s+be)\s+(exist|be\s+found|found)/i;
+export { NOT_FOUND_TITLE };
 
 ingest.post("/track", async (c) => {
   const body = await c.req.json().catch(() => null);
