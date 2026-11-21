@@ -18,6 +18,7 @@ export default defineConfig({
       miniflare: {
         bindings: {
           MAX_SITES_PER_TEAM: "2", // tighten quota for tests
+          DEMO_ENABLED: "1", // the live demo (tests/worker/demo.test.ts)
           LOG_LEVEL: "silent",
           // a configured dashboard allow-list must not affect the public widget endpoints
           CORS_ALLOWED_ORIGINS: "https://dashboard.404less.test",

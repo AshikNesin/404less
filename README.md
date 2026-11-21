@@ -96,7 +96,9 @@ for) are generated on first boot and kept in D1.
 
 Optional vars (`wrangler.jsonc` → `vars`): `MAX_SITES_PER_TEAM` (default 5),
 `CRAWL_INTERVAL_HOURS` (default 24: how often a site with scheduled crawling
-is crawled), `EVENT_RETENTION_DAYS` (default 90). Crons: the crawl tick every
+is crawled), `EVENT_RETENTION_DAYS` (default 90), `DEMO_ENABLED` (`"1"` in
+`wrangler.jsonc`: a shared, read-only sample account at `/app/demo`, so visitors
+can look around without signing up; `"0"` or unset turns it off). Crons: the crawl tick every
 minute, retention nightly. Everything fits the Workers Free plan at hobby scale.
 
 ### How crawling fits the Free plan

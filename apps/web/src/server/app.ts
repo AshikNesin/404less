@@ -50,6 +50,9 @@ export function createWebApp(options: Omit<CreateAppOptions, "routes" | "openCor
         c.redirect(`/api/v1/auth/verify?token=${encodeURIComponent(c.req.query("token") ?? "")}`),
       );
 
+      // The live demo's short link (marketing site, login page); off unless DEMO_ENABLED.
+      app.get("/app/demo", (c) => c.redirect("/api/v1/auth/demo"));
+
       // Dashboard API: magic-link session cookie (see session.middleware.ts).
       const api = new Hono<AppBindings>();
       api.use(sessionMiddleware);

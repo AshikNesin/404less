@@ -9,6 +9,13 @@ import { authRateLimiter } from "@groot/core/middlewares/rate-limit.middleware";
 import { HttpError } from "@groot/core/errors";
 import type { MiddlewareHandler } from "hono";
 import { batch, db, magicTokens, teamMembers, teams, users } from "../../db";
+import {
+  DEMO_SITE_ID,
+  DEMO_USER_ID,
+  demoEnabled,
+  ensureDemoData,
+  isDemoUser,
+} from "../demo/demo.service";
 
 export const auth = new Hono<{ Bindings: Env }>();
 
@@ -90,6 +97,22 @@ auth.post("/magic", magicRateLimit, async (c) => {
   return c.json({ ok: true, emailed: false, devLink: link });
 });
 
+/**
+ * The live demo: sign in as the shared read-only demo account (no email), with
+ * its data written or refreshed first. Off unless DEMO_ENABLED is set.
+ */
+auth.get("/demo", async (c) => {
+  if (!demoEnabled(c.env)) return c.redirect("/app/login?error=demo-off");
+  await ensureDemoData();
+  const cookie = await signSession(DEMO_USER_ID);
+  // a short session: the demo is a look around, not an account to come back to
+  c.header(
+    "Set-Cookie",
+    `${SESSION_COOKIE}=${cookie}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24}`,
+  );
+  return c.redirect(`/app/sites/${DEMO_SITE_ID}`);
+});
+
 auth.get("/verify", async (c) => {
   const token = c.req.query("token");
   if (!token) return c.json({ error: "missing token" }, 400);
@@ -128,7 +151,10 @@ auth.get("/me", async (c) => {
       { success: false, error: { code: "UNAUTHORIZED", message: "Not signed in" } },
       401,
     );
-  return c.json({ success: true, data: { id: user.id, email: user.email, name: null } });
+  return c.json({
+    success: true,
+    data: { id: user.id, email: user.email, name: null, demo: isDemoUser(user.id) },
+  });
 });
 
 auth.post("/logout", async (c) => {
