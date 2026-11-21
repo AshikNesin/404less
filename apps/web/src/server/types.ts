@@ -27,6 +27,8 @@ export type Env = {
   /** Resend API key: sign-in links + email digests. Unset = dev mode (links returned in the API response). */
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
+  /** "1"/"true" opens the read-only live demo at /app/demo (api/demo/demo.service.ts). Off by default. */
+  DEMO_ENABLED?: string;
   /** Static assets (dist/client): marketing site + SPA shell. Absent in unit tests and on Node. */
   ASSETS?: Fetcher;
 };

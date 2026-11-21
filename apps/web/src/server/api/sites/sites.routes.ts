@@ -15,6 +15,7 @@ import { and, asc, count, desc, eq, max, min, sql } from "drizzle-orm";
 import { batch, db, notFoundEvents, teamMembers, teams, users, websites } from "../../db";
 import { waitUntil } from "../../lib/background";
 import { getSite, startRun } from "../crawl/crawl.service";
+import { isDemoUser } from "../demo/demo.service";
 import { INLINE_SLICE, crawlTick } from "../crawl/crawl.tick";
 
 export const sites = new Hono<AppBindings>();
@@ -48,7 +49,10 @@ sites.get("/me", async (c) => {
     .where(eq(users.id, userId))
     .get();
   if (!user) return c.json({ error: "unauthorized" }, 401);
-  return c.json({ user, teams: await teamsForUser(c.env, userId, c.get("bearerTeamId")) });
+  return c.json({
+    user: { ...user, demo: isDemoUser(userId) },
+    teams: await teamsForUser(c.env, userId, c.get("bearerTeamId")),
+  });
 });
 
 // --- teams ---

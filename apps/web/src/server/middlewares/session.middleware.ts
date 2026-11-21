@@ -5,6 +5,10 @@ import { SESSION_COOKIE, verifySession } from "../lib/auth";
 import { teamForToken } from "../api/keys/keys.service";
 import type { AppBindings } from "../types";
 import { eq } from "drizzle-orm";
+import { demoEnabled, isDemoUser } from "../api/demo/demo.service";
+
+/** Methods the read-only demo account may use. */
+const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
  * Guards the dashboard API: a valid magic-link session cookie sets
@@ -35,6 +39,12 @@ export const sessionMiddleware = createMiddleware<AppBindings>(async (c, next) =
   }
   const userId = await verifySession(getCookie(c, SESSION_COOKIE));
   if (!userId) return c.json({ error: "unauthorized" }, 401);
+  // The live demo is shared by everyone who opens it: look, never touch.
+  if (isDemoUser(userId)) {
+    if (!demoEnabled(c.env)) return c.json({ error: "unauthorized" }, 401);
+    if (!READ_METHODS.has(c.req.method))
+      return c.json({ error: "This is a read-only demo. Sign up to make changes." }, 403);
+  }
   c.set("userId", userId);
   await next();
 });

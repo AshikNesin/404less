@@ -103,6 +103,11 @@ the real Worker locally.
   ignored rows stay ignored and never alert.
 - `not_found_events` is the raw visitor log (pruned nightly); `link_checks` is
   crawler history (30 days).
+- The live demo (`api/demo/demo.service.ts`, on with `DEMO_ENABLED`): `/app/demo`
+  signs in as the shared `demo-user`, whose `demo-` sites are fiction written
+  straight to the tables and rewritten on the first visit after 24 h. The
+  session middleware refuses its writes; ingest and the crawl tick skip
+  `demo-` sites. Keep both guards when adding a write path or a site loop.
 - `known_urls` (sitemap import + crawler) feeds suggestions. `title` is the
   page's real `<title>`: imports store none, and the crawl tick reads them
   with whatever fetch budget a tick has left (`title_checked_at` marks a

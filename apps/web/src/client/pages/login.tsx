@@ -64,6 +64,11 @@ export function LoginPage() {
             <h1 className="text-page-title">Sign in</h1>
             <p className="text-caption mt-1">We’ll email you a link. No password to remember.</p>
           </div>
+          {error === "demo-off" && (
+            <Alert tone="info" title="The live demo isn’t available on this server.">
+              Sign in below to use your own account.
+            </Alert>
+          )}
           {error === "expired" && (
             <Alert tone="warning" title="That link has expired or was already used.">
               Request a new one below.
@@ -101,7 +106,11 @@ export function LoginPage() {
             </form>
           )}
           <p className="text-meta">
-            First time here? Signing in creates your account and a personal team.
+            First time here? Signing in creates your account and a personal team. Just looking?{" "}
+            <a href="/app/demo" className="link">
+              Explore the live demo
+            </a>
+            .
           </p>
         </div>
       </main>

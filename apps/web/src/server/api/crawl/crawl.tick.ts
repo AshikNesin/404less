@@ -33,6 +33,7 @@ import {
   type CrawlTask,
 } from "./crawl.service";
 import { SubrequestBudgetSpent, subrequestsLeft, withSubrequestBudget } from "./subrequests";
+import { isDemoSite } from "../demo/demo.service";
 
 const RETENTION_CRON = "17 3 * * *";
 
@@ -127,7 +128,9 @@ async function findWork(env: Env, now: number): Promise<Work | null> {
       crawl_cursor: websites.crawl_cursor,
       last_crawl_at: websites.last_crawl_at,
     })
-    .from(websites);
+    .from(websites)
+    // the live demo's sites are fiction: never crawl them
+    .then((rows) => rows.filter((s) => !isDemoSite(s.id)));
   const dueBefore = now - crawlIntervalHours(env) * 3_600_000;
   const due = sites
     .filter(

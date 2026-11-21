@@ -9,6 +9,7 @@ import type { Env } from "../../types";
 import { eq } from "drizzle-orm";
 import { db, notFoundEvents, websites } from "../../db";
 import { waitUntil } from "../../lib/background";
+import { isDemoSite } from "../demo/demo.service";
 
 export const ingest = new Hono<{ Bindings: Env }>();
 
@@ -31,6 +32,8 @@ ingest.post("/track", async (c) => {
     .where(eq(websites.site_key, String(body.siteKey)))
     .get();
   if (!site) return c.json({ error: "unknown site" }, 404);
+  // the live demo's data is fixed: its site keys are visible to anyone
+  if (isDemoSite(site.id)) return c.json({ ok: true, ignored: true });
 
   // URL must be absolute http(s); strip fragments (never sent to servers, never a distinct page)
   let parsed: URL;

@@ -16,6 +16,7 @@ import {
   Bot,
   Check,
   ChevronsUpDown,
+  Eye,
   Globe,
   KeyRound,
   LayoutDashboard,
@@ -145,6 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Button>
             <Brand />
           </header>
+          <DemoBanner />
           <main className="flex-1 px-4 py-5 md:px-8 md:py-7">{children}</main>
         </div>
       </div>
@@ -290,6 +292,33 @@ function SiteSwitcher({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** Shown to the shared demo account: everything is visible, nothing can be changed. */
+function DemoBanner() {
+  const me = useQuery(meQuery);
+  const qc = useQueryClient();
+  const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
+  if (!me.data?.user.demo) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-4 py-2 text-[0.8125rem] md:px-8">
+      <Eye className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 text-foreground/80">
+        You’re exploring a read-only demo with sample data.
+      </span>
+      <Button
+        size="sm"
+        onClick={async () => {
+          await logout();
+          qc.clear();
+          navigate("/login");
+        }}
+      >
+        Sign up free
+      </Button>
+    </div>
   );
 }
 

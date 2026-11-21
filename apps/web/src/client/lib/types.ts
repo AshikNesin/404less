@@ -150,5 +150,9 @@ export type Team = {
   created_at: number;
   role: "owner" | "admin" | "viewer";
 };
-export type Me = { user: { id: string; email: string; created_at: number }; teams: Team[] };
+export type Me = {
+  /** `demo`: the shared read-only demo account (/app/demo); writes answer 403. */
+  user: { id: string; email: string; created_at: number; demo?: boolean };
+  teams: Team[];
+};
 export type ApiKey = { id: string; prefix: string; created_at: number };
